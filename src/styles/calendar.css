@@ -1,0 +1,51 @@
+/* Calendar-specific fonts and styles */
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
+
+/* Calendar component overrides */
+.calendar-container {
+	font-family:
+		"Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+		sans-serif;
+	font-feature-settings: "cv11", "ss01", "ss03";
+}
+
+/* Ensure all calendar components use Inter font */
+.calendar-container * {
+	font-family: inherit;
+}
+
+/* Calendar-specific text styles */
+.calendar-container h1,
+.calendar-container h2,
+.calendar-container h3,
+.calendar-container h4,
+.calendar-container h5,
+.calendar-container h6 {
+	font-weight: 600;
+	letter-spacing: -0.02em;
+}
+
+.calendar-container button,
+.calendar-container input,
+.calendar-container select,
+.calendar-container textarea {
+	font-family: inherit;
+}
+
+/* Calendar day numbers */
+.calendar-day-number {
+	font-weight: 500;
+	font-variant-numeric: tabular-nums;
+}
+
+/* Calendar time display */
+.calendar-time {
+	font-variant-numeric: tabular-nums;
+	font-weight: 400;
+}
+
+/* Calendar event titles */
+.calendar-event-title {
+	font-weight: 500;
+	letter-spacing: -0.01em;
+}

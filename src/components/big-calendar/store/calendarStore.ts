@@ -18,18 +18,8 @@ const WORKING_HOURS: TWorkingHours = {
 
 const VISIBLE_HOURS: TVisibleHours = { from: 7, to: 18 };
 
-interface CalendarState {
-	selectedDate: Date;
-	selectedUserId: IUser["id"] | "all";
-	badgeVariant: TBadgeVariant;
-	visibleHours: TVisibleHours;
-	workingHours: TWorkingHours;
-	events: IEvent[];
-	users: IUser[];
-}
-
-export const calendarStore = createStore(
-	{
+export const calendarStore = createStore({
+	context: {
 		selectedDate: new Date(),
 		selectedUserId: "all" as IUser["id"] | "all",
 		badgeVariant: "colored" as TBadgeVariant,
@@ -38,57 +28,48 @@ export const calendarStore = createStore(
 		events: [] as IEvent[],
 		users: [] as IUser[],
 	},
-	{
-		setSelectedDate: (context: CalendarState, event: { date: Date }) => ({
+	on: {
+		setSelectedDate: (context, event: { date: Date }) => ({
 			...context,
-			selectedDate: date,
+			selectedDate: event.date,
 		}),
-
-		setSelectedUserId: (context, userId: IUser["id"] | "all") => ({
+		setSelectedUserId: (context, event: { userId: IUser["id"] | "all" }) => ({
 			...context,
-			selectedUserId: userId,
+			selectedUserId: event.userId,
 		}),
-
-		setBadgeVariant: (context, variant: TBadgeVariant) => ({
+		setBadgeVariant: (context, event: { variant: TBadgeVariant }) => ({
 			...context,
-			badgeVariant: variant,
+			badgeVariant: event.variant,
 		}),
-
-		setVisibleHours: (context, hours: TVisibleHours) => ({
+		setVisibleHours: (context, event: { hours: TVisibleHours }) => ({
 			...context,
-			visibleHours: hours,
+			visibleHours: event.hours,
 		}),
-
-		setWorkingHours: (context, hours: TWorkingHours) => ({
+		setWorkingHours: (context, event: { hours: TWorkingHours }) => ({
 			...context,
-			workingHours: hours,
+			workingHours: event.hours,
 		}),
-
-		setEvents: (context, events: IEvent[]) => ({
+		setEvents: (context, event: { events: IEvent[] }) => ({
 			...context,
-			events,
+			events: event.events,
 		}),
-
-		updateEvent: (context, updatedEvent: IEvent) => ({
+		updateEvent: (context, event: { updatedEvent: IEvent }) => ({
 			...context,
-			events: context.events.map((event) =>
-				event.id === updatedEvent.id ? updatedEvent : event,
+			events: context.events.map((e) =>
+				e.id === event.updatedEvent.id ? event.updatedEvent : e,
 			),
 		}),
-
-		addEvent: (context, newEvent: IEvent) => ({
+		addEvent: (context, event: { newEvent: IEvent }) => ({
 			...context,
-			events: [...context.events, newEvent],
+			events: [...context.events, event.newEvent],
 		}),
-
-		deleteEvent: (context, eventId: number) => ({
+		deleteEvent: (context, event: { eventId: number }) => ({
 			...context,
-			events: context.events.filter((event) => event.id !== eventId),
+			events: context.events.filter((e) => e.id !== event.eventId),
 		}),
-
-		setUsers: (context, users: IUser[]) => ({
+		setUsers: (context, event: { users: IUser[] }) => ({
 			...context,
-			users,
+			users: event.users,
 		}),
 	},
-);
+});
