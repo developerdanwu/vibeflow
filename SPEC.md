@@ -91,7 +91,7 @@ VibeFlow is a personal productivity calendar application that helps individuals 
 - **Build Tool:** Vite with TanStack Start (SSR)
 - **Routing:** TanStack Router (file-based routing)
 - **Styling:** Tailwind CSS v4 with tailwindcss-animate
-- **State Management:** TanStack Store & React Query
+- **State Management:** XState Store & React Query
 - **UI Components:** shadcn/ui components
 - **Dev Tools:** TanStack DevTools, React Query DevTools
 
@@ -117,7 +117,7 @@ VibeFlow is a personal productivity calendar application that helps individuals 
 - [x] Convex backend initialized
 - [x] WorkOS AuthKit integrated
 - [x] TanStack Query configured
-- [x] TanStack Store for state management
+- [x] XState Store for state management
 - [x] Biome for linting/formatting
 
 ### Calendar Integration

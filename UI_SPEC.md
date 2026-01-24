@@ -154,9 +154,27 @@
 
 #### 6. Calendar Views
 
+**IMPORTANT IMPLEMENTATION NOTE:** 
+A comprehensive calendar implementation example is available in `/big-calendar/` directory. This example includes:
+- All 5 calendar views (day, week, month, year, agenda) with full functionality
+- Drag-and-drop event management using react-dnd
+- Time zone support and working hours configuration
+- Multi-user calendar support with filtering
+- Responsive design patterns for mobile/tablet/desktop
+- Event color coding and badge variants
+- Real-time time indicator and current event highlighting
+
+**When implementing calendar views, reference and adapt the components from `/big-calendar/src/calendar/` rather than building from scratch.** Key components to reference:
+- `/big-calendar/src/calendar/components/week-and-day-view/` - Week and day view implementations
+- `/big-calendar/src/calendar/components/month-view/` - Month view with event bullets
+- `/big-calendar/src/calendar/components/year-view/` - Year overview
+- `/big-calendar/src/calendar/components/agenda-view/` - List-based agenda view
+- `/big-calendar/src/calendar/contexts/calendar-context.tsx` - State management pattern
+- `/big-calendar/src/calendar/helpers.ts` - Date utilities and calculations
+
 ##### 6.1 Day View - `/calendar/day/:date?`
 **Purpose:** Detailed daily schedule  
-**Components:**
+**Components:** (Reference `/big-calendar/src/calendar/components/week-and-day-view/calendar-day-view.tsx`)
 - 24-hour timeline (scrollable, current time indicator)
 - Events as blocks with duration visualization
 - Time blocks with distinct styling (dashed border)
@@ -173,7 +191,7 @@
 
 ##### 6.2 Week View - `/calendar/week/:date?`
 **Purpose:** Weekly overview  
-**Components:**
+**Components:** (Reference `/big-calendar/src/calendar/components/week-and-day-view/calendar-week-view.tsx`)
 - 7-day grid with current day highlighted
 - Compressed event display (show 2-3 per slot)
 - "More" indicator for overflow
@@ -188,7 +206,7 @@
 
 ##### 6.3 Month View - `/calendar/month/:date?`
 **Purpose:** Monthly planning  
-**Components:**
+**Components:** (Reference `/big-calendar/src/calendar/components/month-view/calendar-month-view.tsx`)
 - Traditional month grid
 - Event dots/bars (max 3 visible)
 - Day numbers with event count badges
@@ -203,7 +221,7 @@
 
 ##### 6.4 Agenda View - `/calendar/agenda`
 **Purpose:** List format for easy scanning  
-**Components:**
+**Components:** (Reference `/big-calendar/src/calendar/components/agenda-view/calendar-agenda-view.tsx`)
 - Grouped by day with date headers
 - Expandable event cards
 - Infinite scroll or pagination

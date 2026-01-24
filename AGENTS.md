@@ -4,7 +4,7 @@
 
 VibeFlow is a personal productivity calendar application built with React 19, TanStack Start (SSR), and Convex for real-time data synchronization. The app integrates with Google Calendar via OAuth, enables time blocking for focused work, and provides productivity analytics. Authentication is handled by WorkOS AuthKit, with deployment to Cloudflare Pages/Workers for edge performance.
 
-**Key Technologies:** React 19 • TypeScript • Vite • TanStack Router • Convex • WorkOS • Tailwind CSS v4 • Cloudflare
+**Key Technologies:** React 19 • TypeScript • Vite • TanStack Router • Convex • WorkOS • XState Store • Tailwind CSS v4 • Cloudflare
 
 **Documentation:** 
 - See [spec.md](./SPEC.md) for product requirements and features
@@ -227,7 +227,7 @@ vibeflow/
 ### Integration Guidelines
 - **Google Calendar:** Use existing OAuth flow in WorkOS
 - **Styling:** Use Tailwind classes, avoid inline styles
-- **State Management:** Use TanStack Query for server state, TanStack Store for client
+- **State Management:** Use TanStack Query for server state, XState Store for client state
 - **Forms:** Leverage React Hook Form if complex validation needed
 - **Time/Date:** Use existing date utilities, maintain timezone consistency
 
