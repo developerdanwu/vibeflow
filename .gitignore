@@ -11,3 +11,6 @@ count.txt
 .output
 .vinxi
 todos.json
+
+# Auto Claude data directory
+.auto-claude/

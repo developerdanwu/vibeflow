@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev --port 3000",
+    "convex:dev": "pnpm dlx convex dev",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
@@ -36,6 +37,7 @@
     "@tanstack/router-plugin": "^1.132.0",
     "@tanstack/store": "^0.7.0",
     "@workos-inc/authkit-react": "^0.13.0",
+    "@xstate/store-react": "^1.0.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "convex": "^1.27.3",
