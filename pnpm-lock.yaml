@@ -116,6 +116,9 @@ importers:
       '@workos-inc/authkit-react':
         specifier: ^0.13.0
         version: 0.13.0(react@19.2.3)
+      '@workos/authkit-tanstack-react-start':
+        specifier: ^0.5.0
+        version: 0.5.0(@tanstack/react-router@1.156.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@tanstack/react-start@1.156.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2)))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@xstate/store':
         specifier: ^3.15.0
         version: 3.15.0(react@19.2.3)(solid-js@1.9.11)
@@ -161,6 +164,9 @@ importers:
       react-hook-form:
         specifier: ^7.71.1
         version: 7.71.1(react@19.2.3)
+      react-resizable-panels:
+        specifier: ^4.5.1
+        version: 4.5.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       streamdown:
         specifier: ^1.6.5
         version: 1.6.11(@types/mdast@4.0.4)(micromark-util-types@2.0.2)(micromark@4.0.2)(react@19.2.3)
@@ -3232,6 +3238,23 @@ packages:
     peerDependencies:
       react: '>=17'
 
+  '@workos-inc/node@8.0.0':
+    resolution: {integrity: sha512-D8VDfx0GXeiVm8vccAl0rElW7taebRnrteKPJzZwehwzI9W/Usa4qKfmwxj+7Lh1Z1deEocDRCpZpV7ml4GpWQ==}
+    engines: {node: '>=20.15.0'}
+
+  '@workos/authkit-session@0.3.4':
+    resolution: {integrity: sha512-lbLP1y8MHWL1Op9athZ3SrzKLcL0+xBVpADCMQLI39mPgSQj+/lopVdOx0Cku96hYnJBOJTLVTK3Zox4FbZl4A==}
+    engines: {node: '>=20.0.0'}
+
+  '@workos/authkit-tanstack-react-start@0.5.0':
+    resolution: {integrity: sha512-W2Ot5QJLj1Kw2uzbs7VJk2vbkvwDXW9w7wLBFgUdmeu7JDmbW5VkI8tw4IU0fbA1PMBEt9ecj+h//B/BbKrPFg==}
+    engines: {node: '>=20.0.0'}
+    peerDependencies:
+      '@tanstack/react-router': '>=1.0.0'
+      '@tanstack/react-start': '>=1.0.0'
+      react: ^18.0 || ^19.0
+      react-dom: ^18.0 || ^19.0
+
   '@xstate/store-react@1.0.1':
     resolution: {integrity: sha512-J/pShjtAXYNZDLVGdx1W0OSH8kon1/pFjaQYpXEJpqsG4jAdptO0YjguqAIHK+3UvMSBf5HYlO+gMS0rRhkz8A==}
     peerDependencies:
@@ -4048,6 +4071,9 @@ packages:
   intl-messageformat@10.7.18:
     resolution: {integrity: sha512-m3Ofv/X/tV8Y3tHXLohcuVuhWKo7BBq62cqY15etqmLxg2DZ34AGGgQDeR+SCta2+zICb1NX83af0GJmbQ1++g==}
 
+  iron-webcrypto@2.0.0:
+    resolution: {integrity: sha512-rtffZKDUHciZElM8mjFCufBC7nVhCxHYyWHESqs89OioEDz4parOofd8/uhrejh/INhQFfYQfByS22LlezR9sQ==}
+
   is-alphabetical@2.0.1:
     resolution: {integrity: sha512-FWyyY60MeTNyeSRpkM2Iry0G9hpr7/9kD40mD/cGQEuilcZYS4okz8SN2Q6rLCJ8gbCt6fN+rC+6tMGS99LaxQ==}
 
@@ -4104,6 +4130,9 @@ packages:
   jiti@2.6.1:
     resolution: {integrity: sha512-ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ==}
     hasBin: true
+
+  jose@6.1.3:
+    resolution: {integrity: sha512-0TpaTfihd4QMNwrz/ob2Bp7X04yuxJkjRGi4aKmOqwhov54i6u79oCv7T+C7lo70MKH6BesI3vscD1yb/yzKXQ==}
 
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
@@ -4722,6 +4751,12 @@ packages:
       '@types/react':
         optional: true
 
+  react-resizable-panels@4.5.1:
+    resolution: {integrity: sha512-v1fw69n/xj7zrbP18cMbkNMGe/TjY2ftRLbmSogZaTXUv9mVwxJIGOa5kHWU9QUcRscRAiZBFSnpu2MwyTbmfg==}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+
   react-stately@3.43.0:
     resolution: {integrity: sha512-dScb9fTL1tRtFODPnk/2rP0a9kp1C+7+40RArS0C7j0auAUmnrO/wDILojwQUso7/kkys4fP707fTwGJDeJ7vg==}
     peerDependencies:
@@ -5148,6 +5183,10 @@ packages:
 
   ufo@1.6.3:
     resolution: {integrity: sha512-yDJTmhydvl5lJzBmy/hyOAA0d+aqCBuwl818haVdYCRrWV84o7YyeVm4QlVHStqNrrJSTb6jKuFAVqAFsr+K3Q==}
+
+  uint8array-extras@1.5.0:
+    resolution: {integrity: sha512-rvKSBiC5zqCCiDZ9kAOszZcDvdAHwwIKJG33Ykj43OKcWsnmcBRL09YTU4nOeHZ8Y2a7l1MgTd08SBe9A8Qj6A==}
+    engines: {node: '>=18'}
 
   unconfig-core@7.4.2:
     resolution: {integrity: sha512-VgPCvLWugINbXvMQDf8Jh0mlbvNjNC6eSUziHsBCMpxR05OPrNrvDnyatdMjRgcHaaNsCqz+wjNXxNw1kRLHUg==}
@@ -8763,6 +8802,25 @@ snapshots:
       '@workos-inc/authkit-js': 0.14.0
       react: 19.2.3
 
+  '@workos-inc/node@8.0.0':
+    dependencies:
+      iron-webcrypto: 2.0.0
+      jose: 6.1.3
+
+  '@workos/authkit-session@0.3.4':
+    dependencies:
+      '@workos-inc/node': 8.0.0
+      iron-webcrypto: 2.0.0
+      jose: 6.1.3
+
+  '@workos/authkit-tanstack-react-start@0.5.0(@tanstack/react-router@1.156.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@tanstack/react-start@1.156.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2)))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+    dependencies:
+      '@tanstack/react-router': 1.156.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@tanstack/react-start': 1.156.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      '@workos/authkit-session': 0.3.4
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
+
   '@xstate/store-react@1.0.1(react@19.2.3)(solid-js@1.9.11)':
     dependencies:
       '@xstate/store': 3.15.0(react@19.2.3)(solid-js@1.9.11)
@@ -9728,6 +9786,10 @@ snapshots:
       '@formatjs/icu-messageformat-parser': 2.11.4
       tslib: 2.8.1
 
+  iron-webcrypto@2.0.0:
+    dependencies:
+      uint8array-extras: 1.5.0
+
   is-alphabetical@2.0.1: {}
 
   is-alphanumerical@2.0.1:
@@ -9770,6 +9832,8 @@ snapshots:
       '@pkgjs/parseargs': 0.11.0
 
   jiti@2.6.1: {}
+
+  jose@6.1.3: {}
 
   js-tokens@4.0.0: {}
 
@@ -10686,6 +10750,11 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.2.9
 
+  react-resizable-panels@4.5.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3):
+    dependencies:
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
+
   react-stately@3.43.0(react@19.2.3):
     dependencies:
       '@react-stately/calendar': 3.9.1(react@19.2.3)
@@ -11223,6 +11292,8 @@ snapshots:
   typescript@5.9.3: {}
 
   ufo@1.6.3: {}
+
+  uint8array-extras@1.5.0: {}
 
   unconfig-core@7.4.2:
     dependencies:
