@@ -42,7 +42,7 @@ export function DayCell({ cell, events, eventPositions }: IProps) {
 		<DroppableDayCell cell={cell}>
 			<div
 				className={cn(
-					"flex h-full flex-col gap-1 border-l border-t py-1.5 lg:pb-2 lg:pt-1",
+					"flex h-full min-h-[80px] flex-col gap-1 border-l border-t py-1.5 lg:pb-2 lg:pt-1",
 					isSunday && "border-l-0",
 				)}
 			>
@@ -61,7 +61,7 @@ export function DayCell({ cell, events, eventPositions }: IProps) {
 
 				<div
 					className={cn(
-						"flex h-6 gap-1 px-2 lg:h-[94px] lg:flex-col lg:gap-2 lg:px-0",
+						"flex h-6 gap-1 px-2 lg:flex-1 lg:flex-col lg:gap-2 lg:px-0",
 						!currentMonth && "opacity-50",
 					)}
 				>

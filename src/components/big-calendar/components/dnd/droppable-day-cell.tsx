@@ -60,7 +60,7 @@ export function DroppableDayCell({ cell, children }: DroppableDayCellProps) {
 	return (
 		<div
 			ref={drop as unknown as React.RefObject<HTMLDivElement>}
-			className={cn(isOver && canDrop && "bg-accent/50")}
+			className={cn("h-full", isOver && canDrop && "bg-accent/50")}
 		>
 			{children}
 		</div>
