@@ -1,205 +1,149 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { ArrowRight, Calendar, MapPin, Users } from 'lucide-react'
+import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+	ArrowRight,
+	BarChart3,
+	Calendar,
+	CheckCircle,
+	Clock,
+	Target,
+} from "lucide-react";
 
-import { allSpeakers, allTalks } from 'content-collections'
-
-import SpeakerCard from '@/components/SpeakerCard'
-import TalkCard from '@/components/TalkCard'
-import RemyAssistant from '@/components/RemyAssistant'
-import HeroCarousel from '@/components/HeroCarousel'
-
-export const Route = createFileRoute('/')({
-  component: HomePage,
-})
+export const Route = createFileRoute("/")({
+	component: HomePage,
+});
 
 function HomePage() {
-  const featuredSpeakers = allSpeakers.slice(0, 3)
-  const featuredTalks = allTalks.slice(0, 4)
+	return (
+		<div className="min-h-screen">
+			<section className="relative min-h-[80vh] flex items-center justify-center px-6 overflow-hidden bg-gradient-to-br from-primary/10 via-background to-secondary/10">
+				<div className="max-w-5xl mx-auto text-center">
+					<h1 className="text-5xl md:text-7xl font-bold mb-6">VibeFlow</h1>
+					<p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto">
+						Flow Through Your Day - Manage your time effectively with smart
+						calendar management, time blocking, and productivity insights.
+					</p>
 
-  return (
-    <>
-      <RemyAssistant />
+					<div className="flex flex-wrap justify-center gap-4 mb-12">
+						<Link
+							to="/calendar"
+							className="inline-flex items-center gap-2 px-8 py-4 rounded-lg bg-primary text-primary-foreground font-semibold transition-all hover:bg-primary/90"
+						>
+							<Calendar className="w-5 h-5" />
+							Open Calendar
+							<ArrowRight className="w-5 h-5" />
+						</Link>
+						<button
+							type="button"
+							className="inline-flex items-center gap-2 px-8 py-4 rounded-lg border-2 border-primary/50 font-semibold transition-all hover:bg-primary/10"
+						>
+							Learn More
+						</button>
+					</div>
+				</div>
+			</section>
 
-      {/* Hero Section */}
-      <section className="relative min-h-[90vh] flex items-center justify-center px-6 overflow-hidden">
-        {/* Background carousel */}
-        <HeroCarousel />
+			<section className="py-20 px-6 bg-surface">
+				<div className="max-w-7xl mx-auto">
+					<div className="text-center mb-16">
+						<h2 className="text-3xl md:text-4xl font-bold mb-4">
+							Everything You Need to Stay Productive
+						</h2>
+						<p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+							Powerful features to help you manage your time, focus on what
+							matters, and achieve your goals.
+						</p>
+					</div>
 
-        <div className="relative max-w-5xl mx-auto text-center z-10">
-          {/* Event date badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 rounded-full bg-copper/10 border border-copper/30 text-copper-light text-sm font-medium">
-            <Calendar className="w-4 h-4" />
-            <span>March 15-17, 2026</span>
-            <span className="mx-2 text-copper/40">•</span>
-            <MapPin className="w-4 h-4" />
-            <span>Paris, France</span>
-          </div>
+					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+						<div className="p-6 rounded-lg bg-card border">
+							<div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+								<Calendar className="w-6 h-6 text-primary" />
+							</div>
+							<h3 className="text-xl font-semibold mb-2">Smart Calendar</h3>
+							<p className="text-muted-foreground">
+								Seamlessly integrate with Google Calendar and manage all your
+								events in one place.
+							</p>
+						</div>
 
-          {/* Main title */}
-          <h1 className="font-display text-6xl md:text-8xl font-bold text-cream mb-6 leading-tight">
-            Haute
-            <span className="block text-gold italic">Pâtisserie</span>
-          </h1>
+						<div className="p-6 rounded-lg bg-card border">
+							<div className="w-12 h-12 rounded-lg bg-secondary/10 flex items-center justify-center mb-4">
+								<Clock className="w-6 h-6 text-secondary" />
+							</div>
+							<h3 className="text-xl font-semibold mb-2">Time Blocking</h3>
+							<p className="text-muted-foreground">
+								Block time for deep work and protect your focus with
+								customizable time blocks.
+							</p>
+						</div>
 
-          <p className="text-xl md:text-2xl text-cream/70 font-body max-w-3xl mx-auto mb-10 leading-relaxed">
-            Join the world's most celebrated pastry chefs and master bakers for
-            three extraordinary days of masterclasses, demonstrations, and
-            culinary inspiration.
-          </p>
+						<div className="p-6 rounded-lg bg-card border">
+							<div className="w-12 h-12 rounded-lg bg-accent/10 flex items-center justify-center mb-4">
+								<Target className="w-6 h-6 text-accent" />
+							</div>
+							<h3 className="text-xl font-semibold mb-2">Task Management</h3>
+							<p className="text-muted-foreground">
+								Convert tasks to calendar events and track your progress
+								effortlessly.
+							</p>
+						</div>
 
-          {/* Stats */}
-          <div className="flex flex-wrap justify-center gap-8 mb-12">
-            <div className="text-center">
-              <div className="text-4xl font-display font-bold text-gold">
-                {allSpeakers.length}
-              </div>
-              <div className="text-cream/50 text-sm uppercase tracking-wider">
-                Master Chefs
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl font-display font-bold text-gold">
-                {allTalks.length}
-              </div>
-              <div className="text-cream/50 text-sm uppercase tracking-wider">
-                Sessions
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl font-display font-bold text-gold">3</div>
-              <div className="text-cream/50 text-sm uppercase tracking-wider">
-                Days
-              </div>
-            </div>
-          </div>
+						<div className="p-6 rounded-lg bg-card border">
+							<div className="w-12 h-12 rounded-lg bg-success/10 flex items-center justify-center mb-4">
+								<BarChart3 className="w-6 h-6 text-success" />
+							</div>
+							<h3 className="text-xl font-semibold mb-2">Analytics</h3>
+							<p className="text-muted-foreground">
+								Gain insights into how you spend your time and improve your
+								productivity.
+							</p>
+						</div>
 
-          {/* CTA buttons */}
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link
-              to="/speakers"
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-gradient-to-r from-copper to-copper-dark text-charcoal font-semibold text-lg transition-all hover:shadow-lg hover:shadow-copper/30 hover:scale-[1.02]"
-            >
-              <Users className="w-5 h-5" />
-              Meet Our Speakers
-            </Link>
-            <Link
-              to="/talks"
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-full border-2 border-gold/50 text-gold font-semibold text-lg transition-all hover:bg-gold/10 hover:border-gold"
-            >
-              View Sessions
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-          </div>
-        </div>
-      </section>
+						<div className="p-6 rounded-lg bg-card border">
+							<div className="w-12 h-12 rounded-lg bg-warning/10 flex items-center justify-center mb-4">
+								<CheckCircle className="w-6 h-6 text-warning" />
+							</div>
+							<h3 className="text-xl font-semibold mb-2">Real-time Sync</h3>
+							<p className="text-muted-foreground">
+								Changes sync instantly across all your devices with real-time
+								updates.
+							</p>
+						</div>
 
-      {/* Featured Speakers Section */}
-      <section className="py-20 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-end justify-between mb-12">
-            <div>
-              <h2 className="font-display text-4xl md:text-5xl font-bold text-cream mb-3">
-                Featured <span className="text-gold italic">Speakers</span>
-              </h2>
-              <p className="text-cream/60 text-lg font-body">
-                Learn from award-winning pastry chefs and master bakers
-              </p>
-            </div>
-            <Link
-              to="/speakers"
-              className="hidden md:inline-flex items-center gap-2 text-gold hover:text-gold/80 transition-colors font-medium"
-            >
-              View all speakers
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
+						<div className="p-6 rounded-lg bg-card border">
+							<div className="w-12 h-12 rounded-lg bg-danger/10 flex items-center justify-center mb-4">
+								<Target className="w-6 h-6 text-danger" />
+							</div>
+							<h3 className="text-xl font-semibold mb-2">Focus Mode</h3>
+							<p className="text-muted-foreground">
+								Minimize distractions and stay focused with Do Not Disturb
+								settings.
+							</p>
+						</div>
+					</div>
+				</div>
+			</section>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {featuredSpeakers.map((speaker) => (
-              <SpeakerCard key={speaker.slug} speaker={speaker} featured />
-            ))}
-          </div>
-
-          <div className="md:hidden mt-8 text-center">
-            <Link
-              to="/speakers"
-              className="inline-flex items-center gap-2 text-gold hover:text-gold/80 transition-colors font-medium"
-            >
-              View all speakers
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Divider */}
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-      </div>
-
-      {/* Featured Sessions Section */}
-      <section className="py-20 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-end justify-between mb-12">
-            <div>
-              <h2 className="font-display text-4xl md:text-5xl font-bold text-cream mb-3">
-                Featured <span className="text-gold italic">Sessions</span>
-              </h2>
-              <p className="text-cream/60 text-lg font-body">
-                Masterclasses and demonstrations to elevate your craft
-              </p>
-            </div>
-            <Link
-              to="/talks"
-              className="hidden md:inline-flex items-center gap-2 text-gold hover:text-gold/80 transition-colors font-medium"
-            >
-              View all sessions
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {featuredTalks.map((talk) => (
-              <TalkCard key={talk.slug} talk={talk} featured />
-            ))}
-          </div>
-
-          <div className="md:hidden mt-8 text-center">
-            <Link
-              to="/talks"
-              className="inline-flex items-center gap-2 text-gold hover:text-gold/80 transition-colors font-medium"
-            >
-              View all sessions
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 px-6">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="relative p-12 rounded-3xl bg-gradient-to-br from-card to-charcoal border border-border/50 overflow-hidden">
-            {/* Decorative elements */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-copper/5 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-gold/5 rounded-full blur-3xl" />
-
-            <div className="relative">
-              <h2 className="font-display text-3xl md:text-4xl font-bold text-cream mb-4">
-                Ready to Elevate Your Craft?
-              </h2>
-              <p className="text-cream/60 text-lg font-body mb-8 max-w-2xl mx-auto">
-                Join us in Paris for an unforgettable experience with the
-                world's finest pastry artisans.
-              </p>
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold/10 border border-gold/30 text-gold text-sm font-medium">
-                <span>🥐</span>
-                <span>Registration opens January 2026</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </>
-  )
+			<section className="py-20 px-6">
+				<div className="max-w-4xl mx-auto text-center">
+					<div className="p-12 rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 border">
+						<h2 className="text-3xl md:text-4xl font-bold mb-4">
+							Ready to Take Control of Your Time?
+						</h2>
+						<p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+							Start managing your calendar effectively and boost your
+							productivity today.
+						</p>
+						<Link
+							to="/calendar"
+							className="inline-flex items-center gap-2 px-8 py-4 rounded-lg bg-primary text-primary-foreground font-semibold transition-all hover:bg-primary/90"
+						>
+							Get Started
+							<ArrowRight className="w-5 h-5" />
+						</Link>
+					</div>
+				</div>
+			</section>
+		</div>
+	);
 }

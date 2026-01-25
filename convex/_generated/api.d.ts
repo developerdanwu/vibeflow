@@ -8,6 +8,8 @@
  * @module
  */
 
+import type * as calendars from "../calendars.js";
+import type * as events from "../events.js";
 import type * as todos from "../todos.js";
 
 import type {
@@ -17,6 +19,8 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  calendars: typeof calendars;
+  events: typeof events;
   todos: typeof todos;
 }>;
 

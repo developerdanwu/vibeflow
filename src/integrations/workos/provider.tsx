@@ -1,5 +1,5 @@
-import { AuthKitProvider } from '@workos-inc/authkit-react'
 import { useNavigate } from '@tanstack/react-router'
+import { AuthKitProvider } from '@workos-inc/authkit-react'
 
 const VITE_WORKOS_CLIENT_ID = import.meta.env.VITE_WORKOS_CLIENT_ID
 if (!VITE_WORKOS_CLIENT_ID) {
@@ -22,6 +22,7 @@ export default function AppWorkOSProvider({
     <AuthKitProvider
       clientId={VITE_WORKOS_CLIENT_ID}
       apiHostname={VITE_WORKOS_API_HOSTNAME}
+      devMode
       onRedirectCallback={({ state }) => {
         if (state?.returnTo) {
           navigate(state.returnTo)

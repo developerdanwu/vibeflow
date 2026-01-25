@@ -16,6 +16,7 @@
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.13.8",
     "@convex-dev/react-query": "0.1.0",
+    "@convex-dev/workos": "^0.0.1",
     "@faker-js/faker": "^10.0.0",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-accordion": "^1.2.12",
@@ -78,6 +79,7 @@
     "@content-collections/vite": "^0.2.8",
     "@tanstack/devtools-vite": "^0.3.11",
     "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.2.0",
     "@types/node": "^22.10.2",
     "@types/react": "^19.2.0",

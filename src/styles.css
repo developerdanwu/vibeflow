@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import 'tailwindcss';
 
 @plugin "tailwindcss-animate";
@@ -7,78 +7,154 @@
 
 body {
   @apply m-0;
-  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
-  font-family:
-    source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  font-family: 'JetBrains Mono', monospace;
 }
 
-/* Haute Patisserie Dark Theme */
+/* VibeFlow Light Theme (Default) */
 :root {
-  /* Core colors - Dark elegant bakery */
-  --background: oklch(0.13 0.01 60);
-  --foreground: oklch(0.93 0.02 85);
+  /* Primary colors - Indigo */
+  --primary: #6366F1;
+  --primary-hover: #4F46E5;
+  --primary-foreground: #FFFFFF;
 
-  /* Warm cream for cards */
-  --card: oklch(0.17 0.015 55);
-  --card-foreground: oklch(0.93 0.02 85);
+  /* Secondary - Purple */
+  --secondary: #8B5CF6;
+  --secondary-foreground: #FFFFFF;
 
-  /* Copper accent */
-  --primary: oklch(0.65 0.14 55);
-  --primary-foreground: oklch(0.13 0.01 60);
+  /* Accent - Pink */
+  --accent: #EC4899;
+  --accent-foreground: #FFFFFF;
 
-  /* Antique gold */
-  --secondary: oklch(0.72 0.12 85);
-  --secondary-foreground: oklch(0.13 0.01 60);
+  /* Semantic colors */
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
 
-  /* Muted warm tones */
-  --muted: oklch(0.22 0.02 55);
-  --muted-foreground: oklch(0.65 0.03 85);
+  /* Neutral tones */
+  --neutral: #6B7280;
+  --background: #FFFFFF;
+  --surface: #F9FAFB;
+  --foreground: #111827;
 
-  /* Accent - rich copper */
-  --accent: oklch(0.55 0.15 45);
-  --accent-foreground: oklch(0.95 0.02 85);
+  /* Text colors */
+  --text-primary: #111827;
+  --text-secondary: #6B7280;
 
-  /* Destructive */
-  --destructive: oklch(0.55 0.2 25);
-  --destructive-foreground: oklch(0.95 0.02 85);
+  /* Card */
+  --card: #FFFFFF;
+  --card-foreground: #111827;
+
+  /* Muted */
+  --muted: #F3F4F6;
+  --muted-foreground: #6B7280;
 
   /* Borders and inputs */
-  --border: oklch(0.28 0.03 55);
-  --input: oklch(0.22 0.02 55);
-  --ring: oklch(0.65 0.14 55);
+  --border: #E5E7EB;
+  --input: #E5E7EB;
+  --ring: #6366F1;
 
-  /* Chart colors - pastry inspired */
-  --chart-1: oklch(0.65 0.14 55);
-  --chart-2: oklch(0.72 0.12 85);
-  --chart-3: oklch(0.55 0.15 45);
-  --chart-4: oklch(0.6 0.1 30);
-  --chart-5: oklch(0.5 0.08 150);
+  /* Chart colors */
+  --chart-1: #6366F1;
+  --chart-2: #8B5CF6;
+  --chart-3: #EC4899;
+  --chart-4: #10B981;
+  --chart-5: #F59E0B;
 
-  --radius: 0.625rem;
+  --radius: 0.5rem;
 
   /* Popover */
-  --popover: oklch(0.17 0.015 55);
-  --popover-foreground: oklch(0.93 0.02 85);
+  --popover: #FFFFFF;
+  --popover-foreground: #111827;
 
   /* Sidebar */
-  --sidebar: oklch(0.15 0.01 55);
-  --sidebar-foreground: oklch(0.93 0.02 85);
-  --sidebar-primary: oklch(0.65 0.14 55);
-  --sidebar-primary-foreground: oklch(0.95 0.02 85);
-  --sidebar-accent: oklch(0.22 0.02 55);
-  --sidebar-accent-foreground: oklch(0.93 0.02 85);
-  --sidebar-border: oklch(0.28 0.03 55);
-  --sidebar-ring: oklch(0.65 0.14 55);
+  --sidebar: #F9FAFB;
+  --sidebar-foreground: #111827;
+  --sidebar-primary: #6366F1;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #F3F4F6;
+  --sidebar-accent-foreground: #111827;
+  --sidebar-border: #E5E7EB;
+  --sidebar-ring: #6366F1;
+}
+
+/* VibeFlow Dark Theme */
+.dark {
+  /* Primary colors - Lighter Indigo */
+  --primary: #818CF8;
+  --primary-hover: #6366F1;
+  --primary-foreground: #0F172A;
+
+  /* Secondary - Lighter Purple */
+  --secondary: #A78BFA;
+  --secondary-foreground: #0F172A;
+
+  /* Accent - Lighter Pink */
+  --accent: #F472B6;
+  --accent-foreground: #0F172A;
+
+  /* Semantic colors */
+  --success: #34D399;
+  --warning: #FBBF24;
+  --danger: #F87171;
+  --destructive: #F87171;
+  --destructive-foreground: #0F172A;
+
+  /* Neutral tones */
+  --neutral: #9CA3AF;
+  --background: #0F172A;
+  --surface: #1E293B;
+  --foreground: #F1F5F9;
+
+  /* Text colors */
+  --text-primary: #F1F5F9;
+  --text-secondary: #CBD5E1;
+
+  /* Card */
+  --card: #1E293B;
+  --card-foreground: #F1F5F9;
+
+  /* Muted */
+  --muted: #334155;
+  --muted-foreground: #94A3B8;
+
+  /* Borders and inputs */
+  --border: #334155;
+  --input: #334155;
+  --ring: #818CF8;
+
+  /* Chart colors */
+  --chart-1: #818CF8;
+  --chart-2: #A78BFA;
+  --chart-3: #F472B6;
+  --chart-4: #34D399;
+  --chart-5: #FBBF24;
+
+  /* Popover */
+  --popover: #1E293B;
+  --popover-foreground: #F1F5F9;
+
+  /* Sidebar */
+  --sidebar: #0F172A;
+  --sidebar-foreground: #F1F5F9;
+  --sidebar-primary: #818CF8;
+  --sidebar-primary-foreground: #0F172A;
+  --sidebar-accent: #334155;
+  --sidebar-accent-foreground: #F1F5F9;
+  --sidebar-border: #334155;
+  --sidebar-ring: #818CF8;
 }
 
 @theme inline {
-  --font-display: 'Playfair Display', Georgia, serif;
-  --font-body: 'Cormorant Garamond', Georgia, serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -117,16 +193,12 @@ code {
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* Custom colors for the theme */
-  --color-copper: oklch(0.65 0.14 55);
-  --color-copper-light: oklch(0.75 0.12 55);
-  --color-copper-dark: oklch(0.5 0.15 50);
-  --color-gold: oklch(0.72 0.12 85);
-  --color-gold-light: oklch(0.82 0.1 85);
-  --color-cream: oklch(0.93 0.02 85);
-  --color-cream-dark: oklch(0.85 0.03 80);
-  --color-charcoal: oklch(0.13 0.01 60);
-  --color-charcoal-light: oklch(0.2 0.015 55);
+  /* VibeFlow custom semantic colors */
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-surface: var(--surface);
+  --color-neutral: var(--neutral);
 }
 
 @layer base {
@@ -138,57 +210,42 @@ code {
   }
 }
 
-/* Custom utilities for the theme */
-.font-display {
-  font-family: 'Playfair Display', Georgia, serif;
+/* Custom font utilities */
+.font-sans {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-.font-body {
-  font-family: 'Cormorant Garamond', Georgia, serif;
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
 }
 
-/* Elegant grain texture overlay */
-.grain-texture {
-  position: relative;
-}
-
-.grain-texture::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
-  pointer-events: none;
-  opacity: 0.4;
-}
-
-/* Golden border accent */
-.border-gold-accent {
-  border-image: linear-gradient(
-      135deg,
-      oklch(0.72 0.12 85),
-      oklch(0.65 0.14 55),
-      oklch(0.72 0.12 85)
-    )
-    1;
-}
-
-/* Copper glow effect */
-.glow-copper {
-  box-shadow:
-    0 0 20px oklch(0.65 0.14 55 / 0.3),
-    0 0 40px oklch(0.65 0.14 55 / 0.1);
-}
-
-/* Elegant card hover effect */
+/* VibeFlow card hover effect */
 .card-hover {
   transition:
-    transform 0.3s ease,
-    box-shadow 0.3s ease;
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .card-hover:hover {
-  transform: translateY(-4px);
+  transform: translateY(-2px);
   box-shadow:
-    0 12px 40px oklch(0 0 0 / 0.4),
-    0 0 20px oklch(0.65 0.14 55 / 0.15);
+    0 10px 25px -5px rgb(0 0 0 / 0.1),
+    0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+.dark .card-hover:hover {
+  box-shadow:
+    0 10px 25px -5px rgb(0 0 0 / 0.3),
+    0 8px 10px -6px rgb(0 0 0 / 0.2);
+}
+
+/* Focus time block gradient */
+.focus-block {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+}
+
+/* Time display styling */
+.time-display {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
 }
