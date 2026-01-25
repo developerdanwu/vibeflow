@@ -1,11 +1,9 @@
-import { useNavigate } from "@tanstack/react-router";
 import { isToday, startOfDay } from "date-fns";
 import { useMemo } from "react";
 import { DroppableDayCell } from "@/components/big-calendar/components/dnd/droppable-day-cell";
-
 import { EventBullet } from "@/components/big-calendar/components/month-view/event-bullet";
 import { MonthEventBadge } from "@/components/big-calendar/components/month-view/month-event-badge";
-import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
+import { QuickAddEventPopover } from "@/components/big-calendar/components/month-view/quick-add-event-popover";
 import { getMonthCellEvents } from "@/components/big-calendar/helpers";
 import type {
 	ICalendarCell,
@@ -22,9 +20,6 @@ interface IProps {
 const MAX_VISIBLE_EVENTS = 3;
 
 export function DayCell({ cell, events, eventPositions }: IProps) {
-	const navigate = useNavigate();
-	const { setSelectedDate } = useCalendar();
-
 	const { day, currentMonth, date } = cell;
 
 	const cellEvents = useMemo(
@@ -32,11 +27,6 @@ export function DayCell({ cell, events, eventPositions }: IProps) {
 		[date, events, eventPositions],
 	);
 	const isSunday = date.getDay() === 0;
-
-	const handleClick = () => {
-		setSelectedDate(date);
-		navigate({ to: "/calendar" });
-	};
 
 	return (
 		<DroppableDayCell cell={cell}>
@@ -46,18 +36,16 @@ export function DayCell({ cell, events, eventPositions }: IProps) {
 					isSunday && "border-l-0",
 				)}
 			>
-				<button
-					type="button"
-					onClick={handleClick}
+				<span
 					className={cn(
-						"flex size-6 translate-x-1 items-center justify-center rounded-full text-xs font-semibold hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring lg:px-2",
+						"flex size-6 translate-x-1 items-center justify-center rounded-full text-xs font-semibold hover:bg-accent lg:px-2",
 						!currentMonth && "opacity-20",
 						isToday(date) &&
 							"bg-primary font-bold text-primary-foreground hover:bg-primary",
 					)}
 				>
 					{day}
-				</button>
+				</span>
 
 				<div
 					className={cn(
@@ -86,6 +74,7 @@ export function DayCell({ cell, events, eventPositions }: IProps) {
 							</div>
 						);
 					})}
+					<QuickAddEventPopover date={date} className="hidden lg:flex" />
 				</div>
 
 				{cellEvents.length > MAX_VISIBLE_EVENTS && (
