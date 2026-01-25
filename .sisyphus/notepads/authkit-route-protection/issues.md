@@ -22,3 +22,39 @@ User must restart the dev server:
 ### Verification
 After restart, visiting /calendar while unauthenticated should redirect to WorkOS sign-in.
 
+
+## [2026-01-25T04:10:00] useAuth Hook Context Error - RESOLVED
+
+### Issue
+Error: "useAuth must be used within an AuthKitProvider"
+Even though AuthKitProvider was wrapping the app in router.tsx
+
+### Root Cause
+The `useAuthFromWorkOS` function was calling hooks (`useAuth()`, `useAccessToken()`) at the module level, outside of any React component. React hooks can only be called inside functional components.
+
+### Solution
+Converted `useAuthFromWorkOS` function to `ConvexAuthBridge` component:
+- Component properly calls hooks inside React component context
+- AuthKitProvider wraps ConvexAuthBridge
+- ConvexAuthBridge calls useAuth/useAccessToken hooks
+- Then wraps children with ConvexProviderWithAuth
+
+### Code Change
+```typescript
+// Before (WRONG - hooks at module level)
+function useAuthFromWorkOS() {
+  const { loading, user } = useAuth(); // ❌ Called outside component
+  // ...
+}
+
+// After (CORRECT - hooks inside component)
+function ConvexAuthBridge({ children }) {
+  const { loading, user } = useAuth(); // ✅ Called inside component
+  // ...
+  return <ConvexProviderWithAuth ...>{children}</ConvexProviderWithAuth>
+}
+```
+
+### Status
+✅ RESOLVED - Error should no longer occur after dev server restart
+

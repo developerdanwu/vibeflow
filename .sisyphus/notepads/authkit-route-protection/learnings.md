@@ -146,3 +146,31 @@ The implementation is complete, but the dev server needs to be restarted to load
 - Clean separation of public/protected routes
 - Type-safe throughout
 
+
+## [2026-01-25T04:11:00] Bug Fix - useAuth Context Error
+
+### Issue Reported by User
+"useAuth must be used within an AuthKitProvider but i am already wrapped it with authkitprovider?"
+
+### Root Cause Identified
+The `useAuthFromWorkOS` function was calling React hooks at the module level (outside any component), which violates React's Rules of Hooks. Even though `AuthKitProvider` was wrapping the app, the hooks were being called before the provider was mounted.
+
+### Fix Applied
+Converted the hook function to a proper React component `ConvexAuthBridge`:
+- Component is rendered inside `AuthKitProvider` context
+- Hooks are called inside the component (following React rules)
+- Component wraps children with `ConvexProviderWithAuth`
+
+### Verification
+- ✅ Build succeeds
+- ✅ No TypeScript errors
+- ✅ Proper component hierarchy: AuthKitProvider → ConvexAuthBridge → ConvexProviderWithAuth → children
+
+### User Action Required
+Restart dev server to see the fix:
+```bash
+pnpm dev
+```
+
+The error should no longer occur.
+
