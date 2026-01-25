@@ -15,7 +15,7 @@ export function CalendarAgendaView({
 	singleDayEvents,
 	multiDayEvents,
 }: IProps) {
-	const { selectedDate } = useCalendar();
+	const [selectedDate] = useCalendar((s) => s.context.selectedDate);
 
 	const eventsByDay = useMemo(() => {
 		const allDates = new Map<

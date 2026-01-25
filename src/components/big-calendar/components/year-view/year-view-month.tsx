@@ -19,7 +19,7 @@ interface IProps {
 
 export function YearViewMonth({ month, events }: IProps) {
 	const navigate = useNavigate();
-	const { setSelectedDate } = useCalendar();
+	const [, store] = useCalendar();
 
 	const monthName = format(month, "MMMM");
 
@@ -36,7 +36,10 @@ export function YearViewMonth({ month, events }: IProps) {
 	const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 	const handleClick = () => {
-		setSelectedDate(new Date(month.getFullYear(), month.getMonth(), 1));
+		store.send({
+			type: "setSelectedDate",
+			date: new Date(month.getFullYear(), month.getMonth(), 1),
+		});
 		navigate({ to: "/month-view" });
 	};
 

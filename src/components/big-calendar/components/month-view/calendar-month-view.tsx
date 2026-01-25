@@ -1,6 +1,6 @@
+import { useMemo } from "react";
 import { DayCell } from "@/components/big-calendar/components/month-view/day-cell";
 import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
-import { useMemo } from "react";
 
 import {
 	calculateMonthEventPositions,
@@ -17,7 +17,7 @@ interface IProps {
 const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function CalendarMonthView({ singleDayEvents, multiDayEvents }: IProps) {
-	const { selectedDate } = useCalendar();
+	const [selectedDate] = useCalendar((s) => s.context.selectedDate);
 
 	const allEvents = [...multiDayEvents, ...singleDayEvents];
 

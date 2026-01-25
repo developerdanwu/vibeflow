@@ -10,7 +10,7 @@ interface IProps {
 }
 
 export function CalendarYearView({ allEvents }: IProps) {
-	const { selectedDate } = useCalendar();
+	const [selectedDate] = useCalendar((s) => s.context.selectedDate);
 
 	const months = useMemo(() => {
 		const yearStart = startOfYear(selectedDate);

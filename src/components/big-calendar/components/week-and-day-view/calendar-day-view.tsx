@@ -24,8 +24,10 @@ interface IProps {
 }
 
 export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
-	const { selectedDate, setSelectedDate, users, visibleHours, workingHours } =
-		useCalendar();
+	const [selectedDate, store] = useCalendar((s) => s.context.selectedDate);
+	const [users] = useCalendar((s) => s.context.users);
+	const [visibleHours] = useCalendar((s) => s.context.visibleHours);
+	const [workingHours] = useCalendar((s) => s.context.workingHours);
 
 	const { hours, earliestEventHour, latestEventHour } = getVisibleHours(
 		visibleHours,
@@ -219,7 +221,9 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 					className="mx-auto w-fit"
 					mode="single"
 					selected={selectedDate}
-					onSelect={setSelectedDate}
+					onSelect={(date) =>
+						date && store.send({ type: "setSelectedDate", date })
+					}
 					initialFocus
 				/>
 

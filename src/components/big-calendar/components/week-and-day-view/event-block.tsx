@@ -56,7 +56,7 @@ interface IProps
 }
 
 export function EventBlock({ event, className }: IProps) {
-	const { badgeVariant } = useCalendar();
+	const [badgeVariant] = useCalendar((s) => s.context.badgeVariant);
 
 	const start = parseISO(event.startDate);
 	const end = parseISO(event.endDate);

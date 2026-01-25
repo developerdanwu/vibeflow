@@ -78,7 +78,7 @@ export function MonthEventBadge({
 	className,
 	position: propPosition,
 }: IProps) {
-	const { badgeVariant } = useCalendar();
+	const [badgeVariant] = useCalendar((s) => s.context.badgeVariant);
 
 	const itemStart = startOfDay(parseISO(event.startDate));
 	const itemEnd = endOfDay(parseISO(event.endDate));

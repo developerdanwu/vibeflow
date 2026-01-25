@@ -13,13 +13,13 @@ interface IProps {
 
 export function YearViewDayCell({ day, date, events }: IProps) {
 	const navigate = useNavigate();
-	const { setSelectedDate } = useCalendar();
+	const [, store] = useCalendar();
 
 	const maxIndicators = 3;
 	const eventCount = events.length;
 
 	const handleClick = () => {
-		setSelectedDate(date);
+		store.send({ type: "setSelectedDate", date });
 		navigate({ to: "/day" });
 	};
 
