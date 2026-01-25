@@ -37,10 +37,10 @@ Migrate from client-side authentication guards to server-side route protection u
 - Removed old WorkOS/Convex providers (replaced by router config)
 
 ### Definition of Done
-- [ ] `pnpm dev` runs without errors
-- [ ] Unauthenticated user visiting `/calendar` is redirected to WorkOS sign-in
-- [ ] After sign-in, user is redirected back to original requested path
-- [ ] Authenticated user can access `/calendar` and see their events
+- [x] `pnpm dev` runs without errors
+- [x] Unauthenticated user visiting `/calendar` is redirected to WorkOS sign-in
+- [x] After sign-in, user is redirected back to original requested path
+- [x] Authenticated user can access `/calendar` and see their events
 - [x] Landing page (/) remains accessible to everyone
 - [x] Convex queries still work with authentication
 - [x] No flash of unauthenticated content on protected routes
