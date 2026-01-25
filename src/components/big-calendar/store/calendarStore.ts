@@ -1,4 +1,4 @@
-import { createStore } from "@xstate/store";
+import { createStoreHook } from "@xstate/store-react";
 import type { IEvent, IUser } from "@/components/big-calendar/interfaces";
 import type {
 	TBadgeVariant,
@@ -19,7 +19,7 @@ const WORKING_HOURS: TWorkingHours = {
 
 const VISIBLE_HOURS: TVisibleHours = { from: 7, to: 18 };
 
-export const calendarStore = createStore({
+export const useCalendar = createStoreHook({
 	context: {
 		selectedDate: new Date(),
 		selectedUserId: "all" as IUser["id"] | "all",
