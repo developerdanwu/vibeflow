@@ -3,10 +3,11 @@ import { formatDate } from "date-fns";
 import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
 
 export function TodayButton() {
-	const { setSelectedDate } = useCalendar();
+	const [, store] = useCalendar();
 
 	const today = new Date();
-	const handleClick = () => setSelectedDate(today);
+	const handleClick = () =>
+		store.send({ type: "setSelectedDate", date: today });
 
 	return (
 		<button

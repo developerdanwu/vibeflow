@@ -9,8 +9,8 @@ interface IProps {
 	events: IEvent[];
 }
 
-export function DateNavigator({ view, events }: IProps) {
-	const { selectedDate } = useCalendar();
+export function DateNavigator({ view: _view, events: _events }: IProps) {
+	const [selectedDate] = useCalendar((s) => s.context.selectedDate);
 
 	const month = formatDate(selectedDate, "MMM");
 	const year = selectedDate.getFullYear();

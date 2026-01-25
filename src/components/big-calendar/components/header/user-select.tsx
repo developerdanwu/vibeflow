@@ -10,10 +10,16 @@ import {
 } from "@/components/ui/select";
 
 export function UserSelect() {
-	const { users, selectedUserId, setSelectedUserId } = useCalendar();
+	const [users] = useCalendar((s) => s.context.users);
+	const [selectedUserId, store] = useCalendar((s) => s.context.selectedUserId);
 
 	return (
-		<Select value={selectedUserId} onValueChange={setSelectedUserId}>
+		<Select
+			value={selectedUserId}
+			onValueChange={(userId) =>
+				store.send({ type: "setSelectedUserId", userId })
+			}
+		>
 			<SelectTrigger className="flex-1 md:w-48">
 				<SelectValue />
 			</SelectTrigger>

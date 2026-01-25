@@ -1,10 +1,10 @@
+import { useNavigate } from "@tanstack/react-router";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { DateNavigator } from "@/components/big-calendar/components/header/date-navigator";
 import type { IEvent } from "@/components/big-calendar/interfaces";
 import type { TCalendarView } from "@/components/big-calendar/types";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useNavigate } from "@tanstack/react-router";
 import { useCalendar } from "../../contexts/calendar-context";
 import { navigateDate } from "../../helpers";
 
@@ -16,13 +16,20 @@ interface IProps {
 
 export function CalendarHeader({ view, events }: IProps) {
 	const navigate = useNavigate();
-	const { selectedDate, setSelectedDate } = useCalendar();
+	const [selectedDate, store] = useCalendar((s) => s.context.selectedDate);
 
 	const handlePrevious = () =>
-		setSelectedDate(navigateDate(selectedDate, view, "previous"));
+		store.send({
+			type: "setSelectedDate",
+			date: navigateDate(selectedDate, view, "previous"),
+		});
 	const handleNext = () =>
-		setSelectedDate(navigateDate(selectedDate, view, "next"));
-	const handleToday = () => setSelectedDate(new Date());
+		store.send({
+			type: "setSelectedDate",
+			date: navigateDate(selectedDate, view, "next"),
+		});
+	const handleToday = () =>
+		store.send({ type: "setSelectedDate", date: new Date() });
 
 	const handleViewChange = (newView: TCalendarView) => {
 		navigate({
