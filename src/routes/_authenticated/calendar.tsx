@@ -5,9 +5,11 @@ import { CalendarMonthView } from "@/components/big-calendar/components/month-vi
 import { CalendarDayView } from "@/components/big-calendar/components/week-and-day-view/calendar-day-view";
 import { CalendarWeekView } from "@/components/big-calendar/components/week-and-day-view/calendar-week-view";
 import { CalendarYearView } from "@/components/big-calendar/components/year-view/calendar-year-view";
-import { CalendarProvider } from "@/components/big-calendar/contexts/calendar-context";
+import {
+	CalendarProvider,
+	useCalendar,
+} from "@/components/big-calendar/contexts/calendar-context";
 import type { IEvent, IUser } from "@/components/big-calendar/interfaces";
-import { calendarStore } from "@/components/big-calendar/store/calendarStore";
 import type { TEventColor } from "@/components/big-calendar/types";
 import { AuthenticatedLayout } from "@/components/layouts/AuthenticatedLayout";
 import "@/styles/calendar.css";
@@ -80,10 +82,11 @@ function CalendarContent() {
 	const convexEvents = useQuery(api.events.getEventsByUser);
 
 	const initialDate = useMemo(() => parseUrlDate(dateParam), [dateParam]);
+	const [, store] = useCalendar();
 
 	useEffect(() => {
-		calendarStore.send({ type: "setSelectedDate", date: initialDate });
-	}, [initialDate]);
+		store.send({ type: "setSelectedDate", date: initialDate });
+	}, [initialDate, store]);
 
 	const events: IEvent[] = useMemo(() => {
 		if (!convexEvents || !currentUser) return [];
