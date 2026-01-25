@@ -20,7 +20,7 @@ if (!CONVEX_URL) {
 
 const convex = new ConvexReactClient(CONVEX_URL);
 
-function useAuthFromWorkOS() {
+function ConvexAuthBridge({ children }: { children: React.ReactNode }) {
 	const { loading, user } = useAuth();
 	const { accessToken, getAccessToken } = useAccessToken();
 
@@ -34,13 +34,19 @@ function useAuthFromWorkOS() {
 		[accessToken, getAccessToken],
 	);
 
-	return useMemo(
+	const authValue = useMemo(
 		() => ({
 			isLoading: loading,
 			isAuthenticated: !!user,
 			fetchAccessToken,
 		}),
 		[loading, user, fetchAccessToken],
+	);
+
+	return (
+		<ConvexProviderWithAuth client={convex} useAuth={() => authValue}>
+			{children}
+		</ConvexProviderWithAuth>
 	);
 }
 
@@ -58,9 +64,7 @@ export const getRouter = () => {
 
 		Wrap: ({ children }) => (
 			<AuthKitProvider>
-				<ConvexProviderWithAuth client={convex} useAuth={useAuthFromWorkOS}>
-					{children}
-				</ConvexProviderWithAuth>
+				<ConvexAuthBridge>{children}</ConvexAuthBridge>
 			</AuthKitProvider>
 		),
 	});
