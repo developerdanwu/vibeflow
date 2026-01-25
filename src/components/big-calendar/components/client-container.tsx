@@ -20,7 +20,9 @@ interface IProps {
 }
 
 export function ClientContainer({ view }: IProps) {
-	const { selectedDate, selectedUserId, events } = useCalendar();
+	const [selectedDate] = useCalendar((s) => s.context.selectedDate);
+	const [selectedUserId] = useCalendar((s) => s.context.selectedUserId);
+	const [events] = useCalendar((s) => s.context.events);
 
 	const filteredEvents = useMemo(() => {
 		return events.filter((event) => {
