@@ -7,10 +7,7 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 
-import ConvexProvider from "../integrations/convex/provider";
-
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
-import WorkOSProvider from "../integrations/workos/provider";
 import appCss from "../styles.css?url";
 
 interface MyRouterContext {
@@ -49,23 +46,19 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 				<HeadContent />
 			</head>
 			<body>
-				<WorkOSProvider>
-					<ConvexProvider>
-						{children}
-						<TanStackDevtools
-							config={{
-								position: "bottom-right",
-							}}
-							plugins={[
-								{
-									name: "Tanstack Router",
-									render: <TanStackRouterDevtoolsPanel />,
-								},
-								TanStackQueryDevtools,
-							]}
-						/>
-					</ConvexProvider>
-				</WorkOSProvider>
+				{children}
+				<TanStackDevtools
+					config={{
+						position: "bottom-right",
+					}}
+					plugins={[
+						{
+							name: "Tanstack Router",
+							render: <TanStackRouterDevtoolsPanel />,
+						},
+						TanStackQueryDevtools,
+					]}
+				/>
 				<Scripts />
 			</body>
 		</html>
