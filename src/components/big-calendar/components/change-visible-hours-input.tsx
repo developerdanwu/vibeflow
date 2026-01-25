@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/tooltip";
 
 export function ChangeVisibleHoursInput() {
-	const { visibleHours, setVisibleHours } = useCalendar();
+	const [visibleHours, store] = useCalendar((s) => s.context.visibleHours);
 
 	const [from, setFrom] = useState<{ hour: number; minute: number }>({
 		hour: visibleHours.from,
@@ -27,7 +27,10 @@ export function ChangeVisibleHoursInput() {
 
 	const handleApply = () => {
 		const toHour = to.hour === 0 ? 24 : to.hour;
-		setVisibleHours({ from: from.hour, to: toHour });
+		store.send({
+			type: "setVisibleHours",
+			hours: { from: from.hour, to: toHour },
+		});
 	};
 
 	return (

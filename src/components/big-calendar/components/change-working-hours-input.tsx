@@ -25,7 +25,7 @@ const DAYS_OF_WEEK = [
 ];
 
 export function ChangeWorkingHoursInput() {
-	const { workingHours, setWorkingHours } = useCalendar();
+	const [workingHours, store] = useCalendar((s) => s.context.workingHours);
 
 	const [localWorkingHours, setLocalWorkingHours] = useState({
 		...workingHours,
@@ -76,7 +76,7 @@ export function ChangeWorkingHoursInput() {
 			}
 		}
 
-		setWorkingHours(updatedWorkingHours);
+		store.send({ type: "setWorkingHours", hours: updatedWorkingHours });
 	};
 
 	return (
