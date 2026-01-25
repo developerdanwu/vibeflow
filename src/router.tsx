@@ -9,8 +9,9 @@ import {
 } from "@workos/authkit-tanstack-react-start/client";
 import { ConvexProviderWithAuth, ConvexReactClient } from "convex/react";
 import { useCallback, useMemo } from "react";
+import { GlobalAlertDialog } from "./components/dialogs/global-alert-dialog";
 import * as TanstackQuery from "./integrations/tanstack-query/root-provider";
-// Import the generated route tree
+import { DialogStoreProvider } from "./lib/dialog-store";
 import { routeTree } from "./routeTree.gen";
 
 function useAuthFromWorkOS() {
@@ -74,7 +75,10 @@ export const getRouter = () => {
 					client={convexQueryClient.convexClient}
 					useAuth={useAuthFromWorkOS}
 				>
-					{children}
+					<DialogStoreProvider>
+						{children}
+						<GlobalAlertDialog />
+					</DialogStoreProvider>
 				</ConvexProviderWithAuth>
 			</AuthKitProvider>
 		),
