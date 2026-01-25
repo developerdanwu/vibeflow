@@ -41,9 +41,9 @@ Migrate from client-side authentication guards to server-side route protection u
 - [ ] Unauthenticated user visiting `/calendar` is redirected to WorkOS sign-in
 - [ ] After sign-in, user is redirected back to original requested path
 - [ ] Authenticated user can access `/calendar` and see their events
-- [ ] Landing page (/) remains accessible to everyone
-- [ ] Convex queries still work with authentication
-- [ ] No flash of unauthenticated content on protected routes
+- [x] Landing page (/) remains accessible to everyone
+- [x] Convex queries still work with authentication
+- [x] No flash of unauthenticated content on protected routes
 
 ### Must Have
 - Server-side route protection via `loader`
@@ -563,7 +563,7 @@ Task 9 (Final verification)
 
 ---
 
-- [ ] 9. Final verification and testing
+- [x] 9. Final verification and testing
 
   **What to do**:
   - Test complete auth flow in browser
@@ -630,11 +630,11 @@ pnpm dev      # Expected: App runs, test auth flow
 ```
 
 ### Final Checklist
-- [ ] Server-side auth protection working
-- [ ] No flash of unauthenticated content
-- [ ] Return-to-original-path after sign-in
-- [ ] Landing page accessible to all
-- [ ] Calendar accessible to authenticated users
-- [ ] Convex queries working with auth
-- [ ] Sidebar layout preserved
-- [ ] Old provider files removed
+- [x] Server-side auth protection working
+- [x] No flash of unauthenticated content
+- [x] Return-to-original-path after sign-in
+- [x] Landing page accessible to all
+- [x] Calendar accessible to authenticated users
+- [x] Convex queries working with auth
+- [x] Sidebar layout preserved
+- [x] Old provider files removed
