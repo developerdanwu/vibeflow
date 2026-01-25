@@ -1,3 +1,5 @@
+import { ConvexQueryClient } from "@convex-dev/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
 import {
@@ -8,19 +10,10 @@ import {
 import { ConvexProviderWithAuth, ConvexReactClient } from "convex/react";
 import { useCallback, useMemo } from "react";
 import * as TanstackQuery from "./integrations/tanstack-query/root-provider";
-
 // Import the generated route tree
 import { routeTree } from "./routeTree.gen";
 
-const CONVEX_URL = (import.meta as ImportMeta & { env: Record<string, string> })
-	.env.VITE_CONVEX_URL;
-if (!CONVEX_URL) {
-	console.error("missing envar VITE_CONVEX_URL");
-}
-
-const convex = new ConvexReactClient(CONVEX_URL);
-
-function ConvexAuthBridge({ children }: { children: React.ReactNode }) {
+function useAuthFromWorkOS() {
 	const { loading, user } = useAuth();
 	const { accessToken, getAccessToken } = useAccessToken();
 
@@ -34,7 +27,7 @@ function ConvexAuthBridge({ children }: { children: React.ReactNode }) {
 		[accessToken, getAccessToken],
 	);
 
-	const authValue = useMemo(
+	return useMemo(
 		() => ({
 			isLoading: loading,
 			isAuthenticated: !!user,
@@ -42,36 +35,54 @@ function ConvexAuthBridge({ children }: { children: React.ReactNode }) {
 		}),
 		[loading, user, fetchAccessToken],
 	);
-
-	return (
-		<ConvexProviderWithAuth client={convex} useAuth={() => authValue}>
-			{children}
-		</ConvexProviderWithAuth>
-	);
 }
 
 // Create a new router instance
 export const getRouter = () => {
 	const rqContext = TanstackQuery.getContext();
+	const CONVEX_URL = (import.meta as any).env.VITE_CONVEX_URL!;
+	if (!CONVEX_URL) {
+		throw new Error("missing VITE_CONVEX_URL env var");
+	}
+	const convex = new ConvexReactClient(CONVEX_URL);
+	const convexQueryClient = new ConvexQueryClient(convex);
+
+	const queryClient = new QueryClient({
+		defaultOptions: {
+			queries: {
+				queryKeyHashFn: convexQueryClient.hashFn(),
+				queryFn: convexQueryClient.queryFn(),
+				gcTime: 5000,
+			},
+		},
+	});
+	convexQueryClient.connect(queryClient);
 
 	const router = createRouter({
 		routeTree,
+		defaultPreload: "intent",
+		scrollRestoration: true,
+		defaultPreloadStaleTime: 0, // Let React Query handle all caching
+		defaultErrorComponent: (err) => <p>{err.error.stack}</p>,
+		defaultNotFoundComponent: () => <p>not found</p>,
 		context: {
 			...rqContext,
 		},
-
-		defaultPreload: "intent",
-
 		Wrap: ({ children }) => (
 			<AuthKitProvider>
-				<ConvexAuthBridge>{children}</ConvexAuthBridge>
+				<ConvexProviderWithAuth
+					client={convexQueryClient.convexClient}
+					useAuth={useAuthFromWorkOS}
+				>
+					{children}
+				</ConvexProviderWithAuth>
 			</AuthKitProvider>
 		),
 	});
 
 	setupRouterSsrQueryIntegration({
 		router,
-		queryClient: rqContext.queryClient,
+		queryClient: queryClient,
 	});
 
 	return router;

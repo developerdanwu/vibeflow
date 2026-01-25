@@ -1,6 +1,5 @@
 import { useState } from "react";
 
-import { AppSidebar } from "@/components/AppSidebar";
 import { TasksPanel } from "@/components/TasksPanel";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
@@ -26,10 +25,10 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
 
 	return (
 		<SidebarProvider>
-			<AppSidebar
+			{/* <AppSidebar
 				onTasksClick={handleTasksClick}
 				onSettingsClick={handleSettingsClick}
-			/>
+			/> */}
 			<SidebarInset>
 				<div className="flex h-screen flex-col overflow-auto">{children}</div>
 			</SidebarInset>

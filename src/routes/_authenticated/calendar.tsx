@@ -1,8 +1,3 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useAuth } from "@workos/authkit-tanstack-react-start/client";
-import { useQuery } from "convex/react";
-import { useEffect, useMemo } from "react";
-import { z } from "zod";
 import { CalendarAgendaView } from "@/components/big-calendar/components/agenda-view/calendar-agenda-view";
 import { DndProviderWrapper } from "@/components/big-calendar/components/dnd/dnd-provider";
 import { CalendarHeader } from "@/components/big-calendar/components/header/calendar-header";
@@ -15,8 +10,13 @@ import type { IEvent, IUser } from "@/components/big-calendar/interfaces";
 import { calendarStore } from "@/components/big-calendar/store/calendarStore";
 import type { TEventColor } from "@/components/big-calendar/types";
 import { AuthenticatedLayout } from "@/components/layouts/AuthenticatedLayout";
-import { api } from "../../../convex/_generated/api";
 import "@/styles/calendar.css";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useAuth } from "@workos/authkit-tanstack-react-start/client";
+import { useQuery } from "convex/react";
+import { useEffect, useMemo } from "react";
+import { z } from "zod";
+import { api } from "../../../convex/_generated/api";
 
 const calendarSearchSchema = z.object({
 	view: z.enum(["month", "week", "day", "year", "agenda"]).default("month"),
