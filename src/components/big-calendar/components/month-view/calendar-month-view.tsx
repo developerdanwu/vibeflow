@@ -1,6 +1,6 @@
-import { useMemo } from "react";
 import { DayCell } from "@/components/big-calendar/components/month-view/day-cell";
 import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
+import { useMemo } from "react";
 
 import {
 	calculateMonthEventPositions,
@@ -35,7 +35,7 @@ export function CalendarMonthView({ singleDayEvents, multiDayEvents }: IProps) {
 
 	return (
 		<div className="h-full flex flex-col">
-			<div className="grid grid-cols-7 divide-x">
+			<div className="grid grid-cols-7">
 				{WEEK_DAYS.map((day) => (
 					<div key={day} className="flex items-center justify-center py-2">
 						<span className="text-xs font-medium text-muted-foreground">

@@ -1,7 +1,6 @@
 import { useState } from "react";
 
-import { TasksPanel } from "@/components/TasksPanel";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 
 interface AuthenticatedLayoutProps {
 	children: React.ReactNode;
@@ -25,14 +24,7 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
 
 	return (
 		<SidebarProvider>
-			{/* <AppSidebar
-				onTasksClick={handleTasksClick}
-				onSettingsClick={handleSettingsClick}
-			/> */}
-			<SidebarInset>
-				<div className="flex h-screen flex-col overflow-auto">{children}</div>
-			</SidebarInset>
-			<TasksPanel isOpen={isTasksPanelOpen} onClose={handleTasksPanelClose} />
+			<main className="h-full w-full">{children}</main>
 		</SidebarProvider>
 	);
 }

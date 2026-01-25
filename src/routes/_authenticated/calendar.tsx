@@ -119,16 +119,6 @@ function CalendarContent() {
 		});
 	}, [events]);
 
-	const handleViewChange = (
-		newView: "month" | "week" | "day" | "year" | "agenda",
-	) => {
-		navigate({
-			to: "/_authenticated/calendar",
-			search: { view: newView, date: dateParam },
-			replace: true,
-		});
-	};
-
 	const renderCalendarView = () => {
 		switch (view) {
 			case "day":
@@ -168,15 +158,11 @@ function CalendarContent() {
 	const isLoading = convexEvents === undefined;
 
 	return (
-		<div className="h-full bg-background calendar-container">
+		<div className="h-[calc(100vh-52px)] bg-background calendar-container">
 			<CalendarProvider users={users} events={events}>
 				<DndProviderWrapper>
-					<div className="h-full overflow-auto">
-						<CalendarHeader
-							view={view}
-							events={events}
-							onViewChange={handleViewChange}
-						/>
+					<div className="h-full">
+						<CalendarHeader view={view} events={events} />
 						<div className="h-full flex flex-col">
 							{isLoading ? (
 								<div className="flex items-center justify-center h-full">

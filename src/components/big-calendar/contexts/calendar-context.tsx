@@ -1,14 +1,15 @@
 "use client";
 
-import { useSelector } from "@xstate/store/react";
-import { createContext, type ReactNode, useContext } from "react";
 import type { IEvent, IUser } from "@/components/big-calendar/interfaces";
 import { calendarStore } from "@/components/big-calendar/store/calendarStore";
 import type {
 	TBadgeVariant,
+	TDensity,
 	TVisibleHours,
 	TWorkingHours,
 } from "@/components/big-calendar/types";
+import { useSelector } from "@xstate/store-react";
+import { createContext, type ReactNode, useContext } from "react";
 
 interface ICalendarContext {
 	selectedDate: Date;
@@ -17,6 +18,14 @@ interface ICalendarContext {
 	setSelectedUserId: (userId: IUser["id"] | "all") => void;
 	badgeVariant: TBadgeVariant;
 	setBadgeVariant: (variant: TBadgeVariant) => void;
+	density: TDensity;
+	setDensity: (density: TDensity) => void;
+	showWeekends: boolean;
+	setShowWeekends: (show: boolean) => void;
+	showDeclinedEvents: boolean;
+	setShowDeclinedEvents: (show: boolean) => void;
+	showDoneTasks: boolean;
+	setShowDoneTasks: (show: boolean) => void;
 	users: IUser[];
 	workingHours: TWorkingHours;
 	setWorkingHours: (hours: TWorkingHours) => void;
@@ -65,6 +74,22 @@ export function CalendarProvider({
 		calendarStore,
 		(state) => state.context.workingHours,
 	);
+	const density = useSelector(
+		calendarStore,
+		(state) => state.context.density,
+	);
+	const showWeekends = useSelector(
+		calendarStore,
+		(state) => state.context.showWeekends,
+	);
+	const showDeclinedEvents = useSelector(
+		calendarStore,
+		(state) => state.context.showDeclinedEvents,
+	);
+	const showDoneTasks = useSelector(
+		calendarStore,
+		(state) => state.context.showDoneTasks,
+	);
 	const storeEvents = useSelector(
 		calendarStore,
 		(state) => state.context.events,
@@ -84,6 +109,18 @@ export function CalendarProvider({
 		badgeVariant,
 		setBadgeVariant: (variant) =>
 			calendarStore.send({ type: "setBadgeVariant", variant }),
+		density,
+		setDensity: (density) =>
+			calendarStore.send({ type: "setDensity", density }),
+		showWeekends,
+		setShowWeekends: (show) =>
+			calendarStore.send({ type: "setShowWeekends", show }),
+		showDeclinedEvents,
+		setShowDeclinedEvents: (show) =>
+			calendarStore.send({ type: "setShowDeclinedEvents", show }),
+		showDoneTasks,
+		setShowDoneTasks: (show) =>
+			calendarStore.send({ type: "setShowDoneTasks", show }),
 		users: storeUsers.length > 0 ? storeUsers : users,
 		visibleHours,
 		setVisibleHours: (hours) =>

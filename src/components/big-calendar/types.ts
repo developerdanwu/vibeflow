@@ -8,5 +8,6 @@ export type TEventColor =
 	| "orange"
 	| "gray";
 export type TBadgeVariant = "dot" | "colored" | "mixed";
+export type TDensity = "small" | "medium" | "large";
 export type TWorkingHours = { [key: number]: { from: number; to: number } };
 export type TVisibleHours = { from: number; to: number };

@@ -28,6 +28,9 @@
       "frontend-ui-ux-engineer": {
         "model": "opencode/gemini-3-pro"
       },
+      "sisyphus-junior": {
+        "model": "opencode/claude-sonnet-4-5"
+      },
       "document-writer": {
         "model": "opencode/claude-sonnet-4-5"
       },

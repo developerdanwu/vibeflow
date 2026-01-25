@@ -2,6 +2,7 @@ import { createStore } from "@xstate/store";
 import type { IEvent, IUser } from "@/components/big-calendar/interfaces";
 import type {
 	TBadgeVariant,
+	TDensity,
 	TVisibleHours,
 	TWorkingHours,
 } from "@/components/big-calendar/types";
@@ -23,6 +24,10 @@ export const calendarStore = createStore({
 		selectedDate: new Date(),
 		selectedUserId: "all" as IUser["id"] | "all",
 		badgeVariant: "colored" as TBadgeVariant,
+		density: "small" as TDensity,
+		showWeekends: true,
+		showDeclinedEvents: true,
+		showDoneTasks: true,
 		visibleHours: VISIBLE_HOURS,
 		workingHours: WORKING_HOURS,
 		events: [] as IEvent[],
@@ -70,6 +75,22 @@ export const calendarStore = createStore({
 		setUsers: (context, event: { users: IUser[] }) => ({
 			...context,
 			users: event.users,
+		}),
+		setDensity: (context, event: { density: TDensity }) => ({
+			...context,
+			density: event.density,
+		}),
+		setShowWeekends: (context, event: { show: boolean }) => ({
+			...context,
+			showWeekends: event.show,
+		}),
+		setShowDeclinedEvents: (context, event: { show: boolean }) => ({
+			...context,
+			showDeclinedEvents: event.show,
+		}),
+		setShowDoneTasks: (context, event: { show: boolean }) => ({
+			...context,
+			showDoneTasks: event.show,
 		}),
 	},
 });
