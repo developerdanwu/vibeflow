@@ -471,7 +471,7 @@ Task 9 (Final verification)
 
 ---
 
-- [ ] 7. Update __root.tsx to remove old providers
+- [x] 7. Update __root.tsx to remove old providers
 
   **What to do**:
   - Remove `WorkOSProvider` import and usage (now in router)
@@ -525,7 +525,7 @@ Task 9 (Final verification)
 
 ---
 
-- [ ] 8. Cleanup old provider files
+- [x] 8. Cleanup old provider files
 
   **What to do**:
   - Delete `src/integrations/workos/provider.tsx` (no longer needed)

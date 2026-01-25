@@ -42,3 +42,16 @@
 - Kept AuthenticatedLayout wrapper for sidebar functionality
 - TypeScript errors expected until route tree regenerates
 
+## [2026-01-25T03:56:00] Task 7: Update __root.tsx
+- Removed WorkOSProvider import and usage
+- Removed ConvexProvider import and usage
+- Providers now in router.tsx's Wrap property
+- Kept TanStackDevtools, Scripts, HeadContent
+- Simplified RootDocument to just render children with devtools
+
+## [2026-01-25T03:57:00] Task 8: Cleanup old providers
+- Deleted src/integrations/workos/provider.tsx
+- Deleted src/integrations/convex/provider.tsx
+- Old packages (@workos-inc/authkit-react, @convex-dev/workos) can be removed later if desired
+- All auth now handled by new @workos/authkit-tanstack-react-start package
+
