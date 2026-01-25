@@ -1,12 +1,4 @@
-import { Link } from "@tanstack/react-router";
-import {
-	CalendarRange,
-	Columns,
-	Grid2x2,
-	Grid3x3,
-	List,
-	Plus,
-} from "lucide-react";
+import { Plus } from "lucide-react";
 import { AddEventDialog } from "@/components/big-calendar/components/dialogs/add-event-dialog";
 import { DateNavigator } from "@/components/big-calendar/components/header/date-navigator";
 import { TodayButton } from "@/components/big-calendar/components/header/today-button";
@@ -18,9 +10,10 @@ import { Button } from "@/components/ui/button";
 interface IProps {
 	view: TCalendarView;
 	events: IEvent[];
+	onViewChange?: (view: TCalendarView) => void;
 }
 
-export function CalendarHeader({ view, events }: IProps) {
+export function CalendarHeader({ view, events, onViewChange }: IProps) {
 	return (
 		<div className="flex flex-col gap-4 border-b p-4 lg:flex-row lg:items-center lg:justify-between">
 			<div className="flex items-center gap-3">
@@ -30,66 +23,62 @@ export function CalendarHeader({ view, events }: IProps) {
 
 			<div className="flex flex-col items-center gap-1.5 sm:flex-row sm:justify-between">
 				<div className="flex w-full items-center gap-1.5">
-					<div className="inline-flex first:rounded-r-none last:rounded-l-none [&:not(:first-child):not(:last-child)]:rounded-none">
-						<Button
-							asChild
-							aria-label="View by day"
-							size="icon"
-							variant={view === "day" ? "default" : "outline"}
-							className="rounded-r-none [&_svg]:size-5"
+					<div className="flex gap-2">
+						<button
+							type="button"
+							onClick={() => onViewChange?.("day")}
+							className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+								view === "day"
+									? "bg-primary text-primary-foreground"
+									: "bg-secondary/20 hover:bg-secondary/30"
+							}`}
 						>
-							<Link to="/day-view">
-								<List strokeWidth={1.8} />
-							</Link>
-						</Button>
-
-						<Button
-							asChild
-							aria-label="View by week"
-							size="icon"
-							variant={view === "week" ? "default" : "outline"}
-							className="-ml-px rounded-none [&_svg]:size-5"
+							Day
+						</button>
+						<button
+							type="button"
+							onClick={() => onViewChange?.("week")}
+							className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+								view === "week"
+									? "bg-primary text-primary-foreground"
+									: "bg-secondary/20 hover:bg-secondary/30"
+							}`}
 						>
-							<Link to="/week-view">
-								<Columns strokeWidth={1.8} />
-							</Link>
-						</Button>
-
-						<Button
-							asChild
-							aria-label="View by month"
-							size="icon"
-							variant={view === "month" ? "default" : "outline"}
-							className="-ml-px rounded-none [&_svg]:size-5"
+							Week
+						</button>
+						<button
+							type="button"
+							onClick={() => onViewChange?.("month")}
+							className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+								view === "month"
+									? "bg-primary text-primary-foreground"
+									: "bg-secondary/20 hover:bg-secondary/30"
+							}`}
 						>
-							<Link to="/month-view">
-								<Grid2x2 strokeWidth={1.8} />
-							</Link>
-						</Button>
-
-						<Button
-							asChild
-							aria-label="View by year"
-							size="icon"
-							variant={view === "year" ? "default" : "outline"}
-							className="-ml-px rounded-none [&_svg]:size-5"
+							Month
+						</button>
+						<button
+							type="button"
+							onClick={() => onViewChange?.("year")}
+							className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+								view === "year"
+									? "bg-primary text-primary-foreground"
+									: "bg-secondary/20 hover:bg-secondary/30"
+							}`}
 						>
-							<Link to="/year-view">
-								<Grid3x3 strokeWidth={1.8} />
-							</Link>
-						</Button>
-
-						<Button
-							asChild
-							aria-label="View by agenda"
-							size="icon"
-							variant={view === "agenda" ? "default" : "outline"}
-							className="-ml-px rounded-l-none [&_svg]:size-5"
+							Year
+						</button>
+						<button
+							type="button"
+							onClick={() => onViewChange?.("agenda")}
+							className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+								view === "agenda"
+									? "bg-primary text-primary-foreground"
+									: "bg-secondary/20 hover:bg-secondary/30"
+							}`}
 						>
-							<Link to="/agenda-view">
-								<CalendarRange strokeWidth={1.8} />
-							</Link>
-						</Button>
+							Agenda
+						</button>
 					</div>
 
 					<UserSelect />

@@ -171,85 +171,15 @@ function CalendarContent() {
 		<div className="h-full bg-background calendar-container">
 			<CalendarProvider users={users} events={events}>
 				<DndProviderWrapper>
-					<div className="h-full p-6 overflow-auto">
-						<div className="flex items-center justify-between mb-6">
-							<div className="flex items-center gap-4">
-								<h1 className="text-3xl font-bold">Calendar</h1>
-								{currentUser && (
-									<div className="flex items-center gap-2 text-sm text-muted-foreground">
-										{currentUser.picturePath && (
-											<img
-												src={currentUser.picturePath}
-												alt={currentUser.name}
-												className="w-6 h-6 rounded-full"
-											/>
-										)}
-										<span>{currentUser.name}</span>
-									</div>
-								)}
-							</div>
-							<div className="flex gap-2">
-								<button
-									type="button"
-									onClick={() => handleViewChange("day")}
-									className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-										view === "day"
-											? "bg-primary text-primary-foreground"
-											: "bg-secondary/20 hover:bg-secondary/30"
-									}`}
-								>
-									Day
-								</button>
-								<button
-									type="button"
-									onClick={() => handleViewChange("week")}
-									className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-										view === "week"
-											? "bg-primary text-primary-foreground"
-											: "bg-secondary/20 hover:bg-secondary/30"
-									}`}
-								>
-									Week
-								</button>
-								<button
-									type="button"
-									onClick={() => handleViewChange("month")}
-									className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-										view === "month"
-											? "bg-primary text-primary-foreground"
-											: "bg-secondary/20 hover:bg-secondary/30"
-									}`}
-								>
-									Month
-								</button>
-								<button
-									type="button"
-									onClick={() => handleViewChange("year")}
-									className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-										view === "year"
-											? "bg-primary text-primary-foreground"
-											: "bg-secondary/20 hover:bg-secondary/30"
-									}`}
-								>
-									Year
-								</button>
-								<button
-									type="button"
-									onClick={() => handleViewChange("agenda")}
-									className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-										view === "agenda"
-											? "bg-primary text-primary-foreground"
-											: "bg-secondary/20 hover:bg-secondary/30"
-									}`}
-								>
-									Agenda
-								</button>
-							</div>
-						</div>
-						<CalendarHeader view={view} events={events} />
-						<div className="mt-6 border rounded-lg p-4 bg-card">
+					<div className="h-full overflow-auto">
+						<CalendarHeader
+							view={view}
+							events={events}
+							onViewChange={handleViewChange}
+						/>
+						<div className="h-full flex flex-col">
 							{isLoading ? (
-								<div className="flex items-center justify-center h-96">
+								<div className="flex items-center justify-center h-full">
 									<div className="flex flex-col items-center gap-4">
 										<div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
 										<p className="text-muted-foreground">Loading events...</p>
