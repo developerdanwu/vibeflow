@@ -19,6 +19,7 @@ import { CalendarProvider } from "@/components/big-calendar/contexts/calendar-co
 import type { IEvent, IUser } from "@/components/big-calendar/interfaces";
 import { calendarStore } from "@/components/big-calendar/store/calendarStore";
 import type { TEventColor } from "@/components/big-calendar/types";
+import { AuthenticatedLayout } from "@/components/layouts/AuthenticatedLayout";
 import { api } from "../../convex/_generated/api";
 import "@/styles/calendar.css";
 
@@ -68,7 +69,9 @@ function CalendarRoute() {
 				<SignInPrompt />
 			</Unauthenticated>
 			<Authenticated>
-				<CalendarContent />
+				<AuthenticatedLayout>
+					<CalendarContent />
+				</AuthenticatedLayout>
 			</Authenticated>
 		</>
 	);
@@ -213,10 +216,10 @@ function CalendarContent() {
 	const isLoading = convexEvents === undefined;
 
 	return (
-		<div className="min-h-screen bg-background calendar-container">
+		<div className="h-full bg-background calendar-container">
 			<CalendarProvider users={users} events={events}>
 				<DndProviderWrapper>
-					<div className="container mx-auto p-6">
+					<div className="h-full p-6 overflow-auto">
 						<div className="flex items-center justify-between mb-6">
 							<div className="flex items-center gap-4">
 								<h1 className="text-3xl font-bold">Calendar</h1>
