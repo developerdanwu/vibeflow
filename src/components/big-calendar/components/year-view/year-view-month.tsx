@@ -48,7 +48,7 @@ export function YearViewMonth({ month, events }: IProps) {
 			<button
 				type="button"
 				onClick={handleClick}
-				className="w-full rounded-t-lg border px-3 py-2 text-sm font-semibold hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+				className="w-full rounded-t-lg border px-3 py-2 font-semibold text-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 			>
 				{monthName}
 			</button>
@@ -58,7 +58,7 @@ export function YearViewMonth({ month, events }: IProps) {
 					{weekDays.map((day, index) => (
 						<div
 							key={index}
-							className="text-xs font-medium text-muted-foreground"
+							className="font-medium text-muted-foreground text-xs"
 						>
 							{day}
 						</div>

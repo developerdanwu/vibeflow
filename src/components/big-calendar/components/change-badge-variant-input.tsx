@@ -16,7 +16,7 @@ export function ChangeBadgeVariantInput() {
 
 	return (
 		<div className="space-y-2">
-			<p className="text-sm font-semibold">Change badge variant</p>
+			<p className="font-semibold text-sm">Change badge variant</p>
 
 			<Select
 				value={badgeVariant}

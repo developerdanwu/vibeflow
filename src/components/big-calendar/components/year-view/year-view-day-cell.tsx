@@ -31,7 +31,7 @@ export function YearViewDayCell({ day, date, events }: IProps) {
 		>
 			<div
 				className={cn(
-					"flex size-6 items-center justify-center rounded-full text-xs font-medium",
+					"flex size-6 items-center justify-center rounded-full font-medium text-xs",
 					isToday(date) && "bg-primary font-semibold text-primary-foreground",
 				)}
 			>

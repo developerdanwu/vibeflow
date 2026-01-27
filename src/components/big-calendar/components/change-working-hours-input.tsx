@@ -82,7 +82,7 @@ export function ChangeWorkingHoursInput() {
 	return (
 		<div className="flex flex-col gap-2">
 			<div className="flex items-center gap-2">
-				<p className="text-sm font-semibold">Change working hours</p>
+				<p className="font-semibold text-sm">Change working hours</p>
 
 				<TooltipProvider delayDuration={100}>
 					<Tooltip>
@@ -113,7 +113,7 @@ export function ChangeWorkingHoursInput() {
 									checked={isDayActive}
 									onCheckedChange={() => handleToggleDay(day.index)}
 								/>
-								<span className="text-sm font-medium">{day.name}</span>
+								<span className="font-medium text-sm">{day.name}</span>
 							</div>
 
 							{isDayActive ? (

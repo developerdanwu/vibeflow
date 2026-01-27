@@ -1,44 +1,74 @@
-import { isToday, startOfDay } from "date-fns";
+import type { PopoverRootProps } from "@base-ui/react/popover";
+import type { VariantProps } from "class-variance-authority";
+import { format, isToday, startOfDay } from "date-fns";
 import { useMemo } from "react";
 import { DroppableDayCell } from "@/components/big-calendar/components/dnd/droppable-day-cell";
-import { EventBullet } from "@/components/big-calendar/components/month-view/event-bullet";
-import { MonthEventBadge } from "@/components/big-calendar/components/month-view/month-event-badge";
-import { QuickAddEventPopover } from "@/components/big-calendar/components/month-view/quick-add-event-popover";
+import {
+	eventBadgeVariants,
+	MonthEventBadge,
+} from "@/components/big-calendar/components/month-view/month-event-badge";
+import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
 import { getMonthCellEvents } from "@/components/big-calendar/helpers";
 import type {
 	ICalendarCell,
 	IEvent,
 } from "@/components/big-calendar/interfaces";
+import { PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
 interface IProps {
 	cell: ICalendarCell;
 	events: IEvent[];
 	eventPositions: Record<string, number>;
+	handle: NonNullable<PopoverRootProps["handle"]>;
 }
 
 const MAX_VISIBLE_EVENTS = 3;
 
-export function DayCell({ cell, events, eventPositions }: IProps) {
+export function DayCell({ cell, events, eventPositions, handle }: IProps) {
 	const { day, currentMonth, date } = cell;
-
+	const [badgeVariant] = useCalendar((s) => s.context.badgeVariant);
+	const [newEventTitle] = useCalendar((s) => s.context.newEventTitle);
+	const [newEventStartTime] = useCalendar((s) => s.context.newEventStartTime);
+	const [newEventAllDay] = useCalendar((s) => s.context.newEventAllDay);
 	const cellEvents = useMemo(
 		() => getMonthCellEvents(date, events, eventPositions),
 		[date, events, eventPositions],
 	);
+	const formattedStartTime = useMemo(() => {
+		if (!newEventStartTime) return null;
+
+		return format(
+			new Date(1970, 0, 1, newEventStartTime.hour, newEventStartTime.minute),
+			"h:mm a",
+		);
+	}, [newEventStartTime]);
+
+	const isOpen = handle.store.useState("open");
+	const activeTriggerId = handle.store.useState("activeTriggerId");
+	const triggerId = `quick-add-event-${date.toISOString()}`;
 	const isSunday = date.getDay() === 0;
 
+	const addEventColor = (
+		badgeVariant === "dot" ? "gray-dot" : "gray"
+	) as VariantProps<typeof eventBadgeVariants>["color"];
+
 	return (
-		<DroppableDayCell cell={cell}>
+		<DroppableDayCell
+			cell={cell}
+			onClick={() => {
+				handle.open(triggerId);
+			}}
+		>
 			<div
 				className={cn(
-					"flex h-full min-h-[80px] flex-col gap-1 border-l border-t py-1.5 lg:pb-2 lg:pt-1",
+					"flex h-full flex-col gap-1 border-t border-l py-1.5 pt-1 pb-2",
 					isSunday && "border-l-0",
 				)}
 			>
 				<span
 					className={cn(
-						"flex size-6 translate-x-1 items-center justify-center rounded-full text-xs font-semibold hover:bg-accent lg:px-2",
+						"flex size-6 translate-x-1 items-center justify-center rounded-full px-2 font-semibold text-xs hover:bg-accent",
 						!currentMonth && "opacity-20",
 						isToday(date) &&
 							"bg-primary font-bold text-primary-foreground hover:bg-primary",
@@ -49,50 +79,72 @@ export function DayCell({ cell, events, eventPositions }: IProps) {
 
 				<div
 					className={cn(
-						"flex h-6 gap-1 px-2 lg:flex-1 lg:flex-col lg:gap-2 lg:px-0",
+						"flex h-6 flex-1 flex-col gap-2 px-2",
 						!currentMonth && "opacity-50",
 					)}
 				>
-					{[0, 1, 2].map((position) => {
+					<PopoverTrigger
+						handle={handle}
+						id={triggerId}
+						payload={{ date }}
+						className={cn(
+							"invisible flex h-0 w-full",
+							isOpen && activeTriggerId === triggerId && "visible h-auto",
+						)}
+					>
+						<div
+							className={cn(
+								eventBadgeVariants({
+									color: addEventColor,
+									multiDayPosition: "none",
+								}),
+							)}
+						>
+							<div className="flex w-full items-center justify-between gap-1.5 truncate">
+								<p className="truncate font-semibold">
+									{newEventTitle || "(No title)"}
+								</p>
+								{!newEventAllDay && newEventStartTime ? (
+									<p>{formattedStartTime}</p>
+								) : null}
+							</div>
+						</div>
+					</PopoverTrigger>
+					{Array.from({ length: MAX_VISIBLE_EVENTS }).map((_, position) => {
 						const event = cellEvents.find((e) => e.position === position);
 						const eventKey = event
 							? `event-${event.id}-${position}`
 							: `empty-${position}`;
 
 						return (
-							<div key={eventKey} className="lg:flex-1">
+							<div key={eventKey} className="w-full flex-1">
 								{event && (
-									<>
-										<EventBullet className="lg:hidden" color={event.color} />
-										<MonthEventBadge
-											className="hidden lg:flex"
-											event={event}
-											cellDate={startOfDay(date)}
-										/>
-									</>
+									<MonthEventBadge
+										className="flex hidden"
+										event={event}
+										cellDate={startOfDay(date)}
+									/>
 								)}
 							</div>
 						);
 					})}
-					<QuickAddEventPopover date={date} className="hidden lg:flex" />
 				</div>
 
-				{cellEvents.length > MAX_VISIBLE_EVENTS && (
-					<p
-						className={cn(
-							"h-4.5 px-1.5 text-xs font-semibold text-muted-foreground",
-							!currentMonth && "opacity-50",
-						)}
-					>
-						<span className="sm:hidden">
-							+{cellEvents.length - MAX_VISIBLE_EVENTS}
-						</span>
-						<span className="hidden sm:inline">
-							{" "}
-							{cellEvents.length - MAX_VISIBLE_EVENTS} more...
-						</span>
-					</p>
-				)}
+				<p
+					className={cn(
+						"h-4.5 px-1.5 font-semibold text-muted-foreground text-xs",
+						!currentMonth && "opacity-50",
+						cellEvents.length <= MAX_VISIBLE_EVENTS && "invisible",
+					)}
+				>
+					<span className="sm:hidden">
+						+{cellEvents.length - MAX_VISIBLE_EVENTS}
+					</span>
+					<span className="hidden sm:inline">
+						{" "}
+						{cellEvents.length - MAX_VISIBLE_EVENTS} more...
+					</span>
+				</p>
 			</div>
 		</DroppableDayCell>
 	);

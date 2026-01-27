@@ -8,8 +8,8 @@ import { useCalendar } from "@/components/big-calendar/contexts/calendar-context
 import type { IEvent } from "@/components/big-calendar/interfaces";
 import { cn } from "@/lib/utils";
 
-const eventBadgeVariants = cva(
-	"mx-1 flex size-auto h-6.5 select-none items-center justify-between gap-1.5 truncate whitespace-nowrap rounded-md border px-2 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+export const eventBadgeVariants = cva(
+	"flex size-auto h-6.5 w-full select-none items-center justify-between gap-1.5 truncate whitespace-nowrap rounded-md border px-2 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
 	{
 		variants: {
 			color: {
@@ -121,25 +121,13 @@ export function MonthEventBadge({
 	return (
 		<DraggableEvent event={event}>
 			<EventDetailsDialog event={event}>
-				<div
-					role="button"
+				<button
+					type="button"
 					tabIndex={0}
 					className={eventBadgeClasses}
 					onKeyDown={handleKeyDown}
 				>
 					<div className="flex items-center gap-1.5 truncate">
-						{!["middle", "last"].includes(position) &&
-							["mixed", "dot"].includes(badgeVariant) && (
-								<svg
-									width="8"
-									height="8"
-									viewBox="0 0 8 8"
-									className="event-dot shrink-0"
-								>
-									<circle cx="4" cy="4" r="4" />
-								</svg>
-							)}
-
 						{renderBadgeText && (
 							<p className="flex-1 truncate font-semibold">
 								{eventCurrentDay && (
@@ -155,7 +143,7 @@ export function MonthEventBadge({
 					{renderBadgeText && (
 						<span>{format(new Date(event.startDate), "h:mm a")}</span>
 					)}
-				</div>
+				</button>
 			</EventDetailsDialog>
 		</DraggableEvent>
 	);

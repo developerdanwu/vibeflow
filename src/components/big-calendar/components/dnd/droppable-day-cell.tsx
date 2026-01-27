@@ -1,6 +1,7 @@
 "use client";
 
 import { differenceInMilliseconds, parseISO } from "date-fns";
+import type { HTMLAttributes } from "react";
 import { useDrop } from "react-dnd";
 import { ItemTypes } from "@/components/big-calendar/components/dnd/draggable-event";
 import { useUpdateEvent } from "@/components/big-calendar/hooks/use-update-event";
@@ -10,12 +11,15 @@ import type {
 } from "@/components/big-calendar/interfaces";
 import { cn } from "@/lib/utils";
 
-interface DroppableDayCellProps {
+interface DroppableDayCellProps extends HTMLAttributes<HTMLDivElement> {
 	cell: ICalendarCell;
-	children: React.ReactNode;
 }
 
-export function DroppableDayCell({ cell, children }: DroppableDayCellProps) {
+export function DroppableDayCell({
+	cell,
+	className,
+	...props
+}: DroppableDayCellProps) {
 	const { updateEvent } = useUpdateEvent();
 
 	const [{ isOver, canDrop }, drop] = useDrop(
@@ -60,9 +64,8 @@ export function DroppableDayCell({ cell, children }: DroppableDayCellProps) {
 	return (
 		<div
 			ref={drop as unknown as React.RefObject<HTMLDivElement>}
-			className={cn("h-full", isOver && canDrop && "bg-accent/50")}
-		>
-			{children}
-		</div>
+			className={cn("h-full", isOver && canDrop && "bg-accent/50", className)}
+			{...props}
+		></div>
 	);
 }

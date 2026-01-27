@@ -27,7 +27,7 @@ export default function HeroCarousel() {
 						index === currentIndex ? "opacity-100" : "opacity-0"
 					}`}
 				>
-					<img src={bg} alt="" className="w-full h-full object-cover" />
+					<img src={bg} alt="" className="h-full w-full object-cover" />
 				</div>
 			))}
 
@@ -38,14 +38,14 @@ export default function HeroCarousel() {
 			<div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(26,26,26,0.4)_100%)]" />
 
 			{/* Carousel indicators */}
-			<div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+			<div className="absolute bottom-8 left-1/2 z-10 flex -translate-x-1/2 gap-2">
 				{backgrounds.map((_, index) => (
 					<button
 						key={index}
 						onClick={() => setCurrentIndex(index)}
-						className={`w-2 h-2 rounded-full transition-all duration-300 ${
+						className={`h-2 w-2 rounded-full transition-all duration-300 ${
 							index === currentIndex
-								? "bg-gold w-6"
+								? "w-6 bg-gold"
 								: "bg-cream/30 hover:bg-cream/50"
 						}`}
 						aria-label={`Go to slide ${index + 1}`}

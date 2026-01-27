@@ -86,8 +86,7 @@ export function AddEventDialog({ children, startDate, startTime }: IProps) {
 
 	return (
 		<Dialog open={isOpen} onOpenChange={onToggle}>
-			<DialogTrigger asChild>{children}</DialogTrigger>
-
+			<DialogTrigger>{children}</DialogTrigger>
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>Add New Event</DialogTitle>

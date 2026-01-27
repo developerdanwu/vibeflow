@@ -1,5 +1,6 @@
 "use client";
 
+import { useSelector } from "@xstate/store-react";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -10,7 +11,6 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { dialogStore, useDialogStore } from "@/lib/dialog-store";
-import { useSelector } from "@xstate/store-react";
 
 export function GlobalAlertDialog() {
 	const store = useDialogStore();

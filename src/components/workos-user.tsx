@@ -15,7 +15,7 @@ export default function SignInButton({ large }: { large?: boolean }) {
 						<img
 							src={user.profilePictureUrl}
 							alt={`Avatar of ${user.firstName} ${user.lastName}`}
-							className="w-10 h-10 rounded-full"
+							className="h-10 w-10 rounded-full"
 						/>
 					)}
 					{user.firstName} {user.lastName}

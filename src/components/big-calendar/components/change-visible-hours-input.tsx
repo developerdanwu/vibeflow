@@ -36,7 +36,7 @@ export function ChangeVisibleHoursInput() {
 	return (
 		<div className="flex flex-col gap-2">
 			<div className="flex items-center gap-2">
-				<p className="text-sm font-semibold">Change visible hours</p>
+				<p className="font-semibold text-sm">Change visible hours</p>
 
 				<TooltipProvider delayDuration={100}>
 					<Tooltip>

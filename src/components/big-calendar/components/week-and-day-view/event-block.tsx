@@ -69,7 +69,7 @@ export function EventBlock({ event, className }: IProps) {
 
 	const calendarWeekEventCardClasses = cn(
 		calendarWeekEventCardVariants({ color, className }),
-		durationInMinutes < 35 && "py-0 justify-center",
+		durationInMinutes < 35 && "justify-center py-0",
 	);
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {

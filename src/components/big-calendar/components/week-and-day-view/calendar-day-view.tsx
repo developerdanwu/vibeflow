@@ -59,7 +59,7 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 					{/* Day header */}
 					<div className="relative z-20 flex border-b">
 						<div className="w-18"></div>
-						<span className="flex-1 border-l py-2 text-center text-xs font-medium text-muted-foreground">
+						<span className="flex-1 border-l py-2 text-center font-medium text-muted-foreground text-xs">
 							{format(selectedDate, "EE")}{" "}
 							<span className="font-semibold text-foreground">
 								{format(selectedDate, "d")}
@@ -76,7 +76,7 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 								<div key={hour} className="relative" style={{ height: "96px" }}>
 									<div className="absolute -top-3 right-2 flex h-6 items-center">
 										{index !== 0 && (
-											<span className="text-xs text-muted-foreground">
+											<span className="text-muted-foreground text-xs">
 												{format(new Date().setHours(hour, 0, 0, 0), "hh a")}
 											</span>
 										)}
@@ -235,12 +235,12 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 								<span className="relative inline-flex size-2.5 rounded-full bg-green-600"></span>
 							</span>
 
-							<p className="text-sm font-semibold text-foreground">
+							<p className="font-semibold text-foreground text-sm">
 								Happening now
 							</p>
 						</div>
 					) : (
-						<p className="p-4 text-center text-sm italic text-muted-foreground">
+						<p className="p-4 text-center text-muted-foreground text-sm italic">
 							No appointments or consultations at the moment
 						</p>
 					)}
@@ -253,7 +253,7 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 
 									return (
 										<div key={event.id} className="space-y-1.5">
-											<p className="line-clamp-2 text-sm font-semibold">
+											<p className="line-clamp-2 font-semibold text-sm">
 												{event.title}
 											</p>
 

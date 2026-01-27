@@ -1,5 +1,5 @@
 {
-	"$schema": "https://biomejs.dev/schemas/2.2.4/schema.json",
+	"$schema": "https://biomejs.dev/schemas/latest/schema.json",
 	"vcs": {
 		"enabled": false,
 		"clientKind": "git",
@@ -16,6 +16,11 @@
 			"!**/src/styles.css"
 		]
 	},
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
+		}
+	},
 	"formatter": {
 		"enabled": true,
 		"indentStyle": "tab"
@@ -24,6 +29,19 @@
 	"linter": {
 		"enabled": true,
 		"rules": {
+			"nursery": {
+				"useSortedClasses": {
+					"level": "error",
+					"fix": "safe",
+					"options": {
+						"attributes": ["class", "className"],
+						"functions": ["cn", "clsx", "cva", "tw"]
+					}
+				}
+			},
+			"suspicious": {
+				"noArrayIndexKey": "warn"
+			},
 			"recommended": true
 		}
 	},

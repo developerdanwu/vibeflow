@@ -1,26 +1,19 @@
 "use client";
 
-import type { ReactNode } from "react";
-import type { IEvent, IUser } from "@/components/big-calendar/interfaces";
+import { type ReactNode, useEffect } from "react";
 import { useCalendar } from "@/components/big-calendar/store/calendarStore";
 
 export function CalendarProvider({
 	children,
-	users = [],
-	events = [],
+	initialDate,
 }: {
 	children: ReactNode;
-	users?: IUser[];
-	events?: IEvent[];
+	initialDate: Date;
 }) {
 	const [, store] = useCalendar();
-
-	if (users.length > 0) {
-		store.send({ type: "setUsers", users });
-	}
-	if (events.length > 0) {
-		store.send({ type: "setEvents", events });
-	}
+	useEffect(() => {
+		store.send({ type: "setSelectedDate", date: initialDate });
+	}, [initialDate, store]);
 
 	return <>{children}</>;
 }

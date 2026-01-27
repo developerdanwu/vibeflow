@@ -112,19 +112,19 @@ export function AgendaEventCard({
 
 					<div className="mt-1 flex items-center gap-1">
 						<User className="size-3 shrink-0" />
-						<p className="text-xs text-foreground">{event.user.name}</p>
+						<p className="text-foreground text-xs">{event.user.name}</p>
 					</div>
 
 					<div className="flex items-center gap-1">
 						<Clock className="size-3 shrink-0" />
-						<p className="text-xs text-foreground">
+						<p className="text-foreground text-xs">
 							{format(startDate, "h:mm a")} - {format(endDate, "h:mm a")}
 						</p>
 					</div>
 
 					<div className="flex items-center gap-1">
 						<Text className="size-3 shrink-0" />
-						<p className="text-xs text-foreground">{event.description}</p>
+						<p className="text-foreground text-xs">{event.description}</p>
 					</div>
 				</div>
 			</div>

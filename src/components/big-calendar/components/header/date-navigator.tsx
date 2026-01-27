@@ -18,7 +18,7 @@ export function DateNavigator({ view: _view, events: _events }: IProps) {
 	return (
 		<div className="space-y-0.5">
 			<div className="flex items-center gap-2">
-				<span className="text-md font-semibold">
+				<span className="font-semibold text-md">
 					{month} {year}
 				</span>
 			</div>

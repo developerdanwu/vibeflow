@@ -1,3 +1,4 @@
+import type { Time } from "@internationalized/date";
 import { createStoreHook } from "@xstate/store-react";
 import type { IEvent, IUser } from "@/components/big-calendar/interfaces";
 import type {
@@ -32,8 +33,26 @@ export const useCalendar = createStoreHook({
 		workingHours: WORKING_HOURS,
 		events: [] as IEvent[],
 		users: [] as IUser[],
+		newEventTitle: "",
+		newEventStartTime: null as Time | null | undefined,
+		newEventAllDay: true as boolean | undefined,
 	},
 	on: {
+		setNewEventStartTime: (
+			context,
+			event: { startTime: Time | null | undefined },
+		) => ({
+			...context,
+			newEventStartTime: event.startTime,
+		}),
+		setNewEventAllDay: (context, event: { allDay: boolean | undefined }) => ({
+			...context,
+			newEventAllDay: event.allDay,
+		}),
+		setNewEventTitle: (context, event: { title: string }) => ({
+			...context,
+			newEventTitle: event.title,
+		}),
 		setSelectedDate: (context, event: { date: Date }) => ({
 			...context,
 			selectedDate: event.date,

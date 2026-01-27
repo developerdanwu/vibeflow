@@ -42,7 +42,7 @@ export function CalendarWeekView({ singleDayEvents, multiDayEvents }: IProps) {
 
 	return (
 		<>
-			<div className="flex flex-col items-center justify-center border-b py-4 text-sm text-muted-foreground sm:hidden">
+			<div className="flex flex-col items-center justify-center border-b py-4 text-muted-foreground text-sm sm:hidden">
 				<p>Weekly view is not available on smaller devices.</p>
 				<p>Please switch to daily or monthly view.</p>
 			</div>
@@ -61,7 +61,7 @@ export function CalendarWeekView({ singleDayEvents, multiDayEvents }: IProps) {
 							{weekDays.map((day, index) => (
 								<span
 									key={index}
-									className="py-2 text-center text-xs font-medium text-muted-foreground"
+									className="py-2 text-center font-medium text-muted-foreground text-xs"
 								>
 									{format(day, "EE")}{" "}
 									<span className="ml-1 font-semibold text-foreground">
@@ -81,7 +81,7 @@ export function CalendarWeekView({ singleDayEvents, multiDayEvents }: IProps) {
 								<div key={hour} className="relative" style={{ height: "96px" }}>
 									<div className="absolute -top-3 right-2 flex h-6 items-center">
 										{index !== 0 && (
-											<span className="text-xs text-muted-foreground">
+											<span className="text-muted-foreground text-xs">
 												{format(new Date().setHours(hour, 0, 0, 0), "hh a")}
 											</span>
 										)}

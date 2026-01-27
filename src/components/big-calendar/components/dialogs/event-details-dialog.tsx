@@ -50,27 +50,32 @@ export function EventDetailsDialog({ event, children }: IProps) {
 
 	return (
 		<Dialog>
-			<DialogTrigger asChild>{children}</DialogTrigger>
-
-			<DialogContent>
+			<DialogTrigger
+				className={"w-full"}
+				onClick={(e) => {
+					e.stopPropagation();
+				}}
+			>
+				{children}
+			</DialogTrigger>
+			<DialogContent overlayProps={{ onClick: (e) => e.stopPropagation() }}>
 				<DialogHeader>
 					<DialogTitle>{event.title}</DialogTitle>
 				</DialogHeader>
-
 				<div className="space-y-4">
 					<div className="flex items-start gap-2">
 						<User className="mt-1 size-4 shrink-0" />
 						<div>
-							<p className="text-sm font-medium">Responsible</p>
-							<p className="text-sm text-muted-foreground">{event.user.name}</p>
+							<p className="font-medium text-sm">Responsible</p>
+							<p className="text-muted-foreground text-sm">{event.user.name}</p>
 						</div>
 					</div>
 
 					<div className="flex items-start gap-2">
 						<Calendar className="mt-1 size-4 shrink-0" />
 						<div>
-							<p className="text-sm font-medium">Start Date</p>
-							<p className="text-sm text-muted-foreground">
+							<p className="font-medium text-sm">Start Date</p>
+							<p className="text-muted-foreground text-sm">
 								{format(startDate, "MMM d, yyyy h:mm a")}
 							</p>
 						</div>
@@ -79,8 +84,8 @@ export function EventDetailsDialog({ event, children }: IProps) {
 					<div className="flex items-start gap-2">
 						<Clock className="mt-1 size-4 shrink-0" />
 						<div>
-							<p className="text-sm font-medium">End Date</p>
-							<p className="text-sm text-muted-foreground">
+							<p className="font-medium text-sm">End Date</p>
+							<p className="text-muted-foreground text-sm">
 								{format(endDate, "MMM d, yyyy h:mm a")}
 							</p>
 						</div>
@@ -89,8 +94,8 @@ export function EventDetailsDialog({ event, children }: IProps) {
 					<div className="flex items-start gap-2">
 						<Text className="mt-1 size-4 shrink-0" />
 						<div>
-							<p className="text-sm font-medium">Description</p>
-							<p className="text-sm text-muted-foreground">
+							<p className="font-medium text-sm">Description</p>
+							<p className="text-muted-foreground text-sm">
 								{event.description}
 							</p>
 						</div>

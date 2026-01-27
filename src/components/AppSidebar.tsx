@@ -29,9 +29,9 @@ export function AppSidebar({ onTasksClick, onSettingsClick }: AppSidebarProps) {
 
 	return (
 		<Sidebar collapsible="icon">
-			<SidebarHeader className="border-b border-sidebar-border">
+			<SidebarHeader className="border-sidebar-border border-b">
 				<div className="flex items-center gap-2 px-2 py-1">
-					<div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm">
+					<div className="flex size-8 items-center justify-center rounded-lg bg-primary font-bold text-primary-foreground text-sm">
 						V
 					</div>
 					{!isCollapsed && (
@@ -62,7 +62,7 @@ export function AppSidebar({ onTasksClick, onSettingsClick }: AppSidebarProps) {
 				</SidebarGroup>
 			</SidebarContent>
 
-			<SidebarFooter className="border-t border-sidebar-border">
+			<SidebarFooter className="border-sidebar-border border-t">
 				{user ? (
 					<div className="flex flex-col gap-2">
 						<div className="flex items-center gap-2 px-2">
@@ -77,11 +77,11 @@ export function AppSidebar({ onTasksClick, onSettingsClick }: AppSidebarProps) {
 								</AvatarFallback>
 							</Avatar>
 							{!isCollapsed && (
-								<div className="flex flex-col min-w-0">
-									<span className="text-sm font-medium truncate">
+								<div className="flex min-w-0 flex-col">
+									<span className="truncate font-medium text-sm">
 										{user.firstName} {user.lastName}
 									</span>
-									<span className="text-xs text-muted-foreground truncate">
+									<span className="truncate text-muted-foreground text-xs">
 										{user.email}
 									</span>
 								</div>

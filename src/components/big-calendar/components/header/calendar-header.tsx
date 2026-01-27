@@ -1,4 +1,5 @@
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { addMonths, subMonths } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { DateNavigator } from "@/components/big-calendar/components/header/date-navigator";
 import type { IEvent } from "@/components/big-calendar/interfaces";
@@ -42,19 +43,30 @@ export function CalendarHeader({ view, events }: IProps) {
 	const currentTab = view === "day" ? "day" : "month";
 
 	return (
-		<div className="flex flex-col gap-4 pt-2 pb-3 px-3 flex-row items-center justify-between">
+		<div className="flex flex-row flex-col items-center justify-between gap-4 px-3 pt-2 pb-3">
 			<DateNavigator view={view} events={events} />
 			<div className="flex flex-col items-center gap-1.5 sm:flex-row sm:justify-between">
 				<div className="flex items-center gap-1">
 					<Button variant="ghost" size="icon-sm" onClick={handleToday}>
 						T
 					</Button>
-					<Button variant="ghost" size="icon-sm" onClick={handlePrevious}>
-						<ChevronLeft />
-					</Button>
-					<Button variant="ghost" size="icon-sm" onClick={handleNext}>
-						<ChevronRight />
-					</Button>
+					<Link
+						from="/calendar"
+						search={({ date }) => ({ date: subMonths(date, 1) })}
+					>
+						<Button variant="ghost" size="icon-sm" onClick={handlePrevious}>
+							<ChevronLeft />
+						</Button>
+					</Link>
+
+					<Link
+						from="/calendar"
+						search={({ date }) => ({ date: addMonths(date, 1) })}
+					>
+						<Button variant="ghost" size="icon-sm" onClick={handleNext}>
+							<ChevronRight />
+						</Button>
+					</Link>
 					<Tabs
 						value={currentTab}
 						onValueChange={(value) => {
