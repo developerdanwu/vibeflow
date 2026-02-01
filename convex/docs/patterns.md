@@ -68,10 +68,10 @@ Define indexes in the schema:
 ```typescript
 events: defineTable({
   userId: v.id("users"),
-  startDate: v.number(),
+  startTimestamp: v.number(),
 })
   .index("by_user", ["userId"])
-  .index("by_user_and_date", ["userId", "startDate"]);
+  .index("by_user_and_date", ["userId", "startTimestamp"]);
 ```
 
 Use indexes in queries:
@@ -85,7 +85,7 @@ const userEvents = await ctx.db
 const upcomingEvents = await ctx.db
   .query("events")
   .withIndex("by_user_and_date", (q) =>
-    q.eq("userId", userId).gte("startDate", Date.now())
+    q.eq("userId", userId).gte("startTimestamp", Date.now())
   )
   .collect();
 ```

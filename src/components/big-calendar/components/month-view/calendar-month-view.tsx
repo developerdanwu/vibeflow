@@ -1,6 +1,6 @@
-import { DayCell } from "@/components/big-calendar/components/month-view/day-cell";
 import { Popover as PopoverBase } from "@base-ui/react";
 import { useMemo } from "react";
+import { DayCell } from "@/components/big-calendar/components/month-view/day-cell";
 
 import {
 	calculateMonthEventPositions,
@@ -9,7 +9,7 @@ import {
 
 import type { IEvent } from "@/components/big-calendar/interfaces";
 import { Route } from "@/routes/_authenticated/calendar";
-import { QuickAddEventPopover } from "./quick-add-event-popover";
+import { EventPopover } from "@/components/big-calendar/components/event-popover";
 
 interface IProps {
 	singleDayEvents: IEvent[];
@@ -69,7 +69,7 @@ export function CalendarMonthView({ singleDayEvents, multiDayEvents }: IProps) {
 					))}
 				</div>
 			</div>
-			<QuickAddEventPopover handle={quickAddEventPopoverHandle} />
+			<EventPopover handle={quickAddEventPopoverHandle} />
 		</>
 	);
 }

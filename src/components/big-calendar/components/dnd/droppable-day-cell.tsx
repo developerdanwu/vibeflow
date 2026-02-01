@@ -1,6 +1,6 @@
 "use client";
 
-import { differenceInMilliseconds, parseISO } from "date-fns";
+import { addDays, differenceInDays, format, parseISO } from "date-fns";
 import type { HTMLAttributes } from "react";
 import { useDrop } from "react-dnd";
 import { ItemTypes } from "@/components/big-calendar/components/dnd/draggable-event";
@@ -28,13 +28,10 @@ export function DroppableDayCell({
 			drop: (item: { event: IEvent }) => {
 				const droppedEvent = item.event;
 
+				if (!droppedEvent.convexId) return { moved: false };
+
 				const eventStartDate = parseISO(droppedEvent.startDate);
 				const eventEndDate = parseISO(droppedEvent.endDate);
-
-				const eventDurationMs = differenceInMilliseconds(
-					eventEndDate,
-					eventStartDate,
-				);
 
 				const newStartDate = new Date(cell.date);
 				newStartDate.setHours(
@@ -43,12 +40,17 @@ export function DroppableDayCell({
 					eventStartDate.getSeconds(),
 					eventStartDate.getMilliseconds(),
 				);
-				const newEndDate = new Date(newStartDate.getTime() + eventDurationMs);
+				const daysDiff = differenceInDays(newStartDate, eventStartDate);
 
 				updateEvent({
-					...droppedEvent,
-					startDate: newStartDate.toISOString(),
-					endDate: newEndDate.toISOString(),
+					id: droppedEvent.convexId,
+					startDateStr: format(newStartDate, "yyyy-MM-dd"),
+					endDateStr: format(addDays(eventEndDate, daysDiff), "yyyy-MM-dd"),
+					...(droppedEvent.startTime && {
+						startTime: droppedEvent.startTime,
+					}),
+					...(droppedEvent.endTime && { endTime: droppedEvent.endTime }),
+					...(droppedEvent.timeZone && { timeZone: droppedEvent.timeZone }),
 				});
 
 				return { moved: true };

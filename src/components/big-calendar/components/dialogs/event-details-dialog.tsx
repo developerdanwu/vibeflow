@@ -15,8 +15,8 @@ import { useConvexMutation } from "@convex-dev/react-query";
 import { useMutation } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import { Calendar, Clock, Text, User } from "lucide-react";
-import { api } from "../../../../../convex/_generated/api";
-import type { Id } from "../../../../../convex/_generated/dataModel";
+import { api } from "convex/_generated/api";
+import type { Id } from "convex/_generated/dataModel";
 
 interface IProps {
 	event: IEvent;
@@ -63,9 +63,11 @@ export function EventDetailsDialog({ event, children }: IProps) {
 				onClick={(e) => {
 					e.stopPropagation();
 				}}
-			>
-				{children}
-			</DialogTrigger>
+				render={(props) => {
+					return <div {...props}>{children}</div>;
+				}}
+			/>
+
 			<DialogContent overlayProps={{ onClick: (e) => e.stopPropagation() }}>
 				<DialogHeader>
 					<DialogTitle>{event.title}</DialogTitle>

@@ -12,7 +12,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useAuth } from "@workos/authkit-tanstack-react-start/client";
 import { useMemo } from "react";
 import { z } from "zod";
-import { api } from "../../../convex/_generated/api";
+import { api } from "convex/_generated/api";
 
 const calendarSearchSchema = z.object({
 	view: z.enum(["month", "week", "day", "year", "agenda"]).default("month"),
@@ -76,12 +76,18 @@ function CalendarContent() {
 			convexId: event._id,
 			title: event.title,
 			description: event.description ?? "",
-			startDate: new Date(event.startDate).toISOString(),
-			endDate: new Date(event.endDate).toISOString(),
+			startDate: new Date(event.startTimestamp).toISOString(),
+			endDate: new Date(event.endTimestamp).toISOString(),
 			color: (validColors.includes(event.color as TEventColor)
 				? event.color
 				: "blue") as TEventColor,
 			user: currentUser,
+			allDay: event.allDay,
+			startDateStr: event.startDateStr,
+			endDateStr: event.endDateStr,
+			startTime: event.startTime,
+			endTime: event.endTime,
+			timeZone: event.timeZone,
 		}));
 	}, [convexEvents, currentUser]);
 

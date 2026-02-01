@@ -15,6 +15,12 @@ export interface IEvent {
 	color: TEventColor;
 	description: string;
 	user: IUser;
+	allDay: boolean;
+	startDateStr?: string;
+	endDateStr?: string;
+	startTime?: string;
+	endTime?: string;
+	timeZone?: string;
 }
 
 export interface ICalendarCell {

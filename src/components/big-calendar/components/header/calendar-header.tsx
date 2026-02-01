@@ -6,8 +6,8 @@ import type { IEvent } from "@/components/big-calendar/interfaces";
 import type { TCalendarView } from "@/components/big-calendar/types";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useCalendar } from "../../contexts/calendar-context";
-import { navigateDate } from "../../helpers";
+import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
+import { navigateDate } from "@/components/big-calendar/helpers";
 
 interface IProps {
 	view: TCalendarView;

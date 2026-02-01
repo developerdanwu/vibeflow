@@ -1,6 +1,21 @@
 "use client";
 
+import type { PopoverRootProps } from "@base-ui/react";
+import { Time } from "@internationalized/date";
+import { formOptions, useStore } from "@tanstack/react-form-start";
+import { useMutation } from "convex/react";
+import { addDays, format, parseISO } from "date-fns";
+import {
+	forwardRef,
+	useEffect,
+	useId,
+	useImperativeHandle,
+	useRef,
+} from "react";
+import { toast } from "sonner";
+import { z } from "zod";
 import ColorPickerCompact from "@/components/ui/color-picker-compact";
+import { DayPicker } from "@/components/ui/day-picker";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { useAppForm } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -10,41 +25,12 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { TimeInput } from "@/components/ui/time-input";
 import { useDisclosure } from "@/hooks/use-disclosure";
-import type { PopoverRootProps } from "@base-ui/react";
-import type { CalendarDate } from "@internationalized/date";
-import {
-	fromDate,
-	getLocalTimeZone,
-	Time,
-	toCalendarDate,
-	toCalendarDateTime,
-} from "@internationalized/date";
-import { formOptions, useStore } from "@tanstack/react-form-start";
-import { useMutation } from "convex/react";
-import {
-	forwardRef,
-	useEffect,
-	useId,
-	useImperativeHandle,
-	useRef,
-} from "react";
-import {
-	Button,
-	Calendar,
-	DateInput,
-	DatePicker,
-	DateSegment,
-	Dialog,
-	Group,
-	Popover as RACPopover,
-} from "react-aria-components";
-import { toast } from "sonner";
-import { z } from "zod";
-import { api } from "../../../../../convex/_generated/api";
-import { useCalendar } from "../../store/calendarStore";
-import type { TEventColor } from "../../types";
+import { api } from "convex/_generated/api";
+import type { Id } from "convex/_generated/dataModel";
+import type { IEvent } from "@/components/big-calendar/interfaces";
+import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
+import type { TEventColor } from "@/components/big-calendar/types";
 
-// Color mapping: predefined color names to hex values
 const colorNameToHex: Record<TEventColor, string> = {
 	blue: "#3B82F6",
 	green: "#22C55E",
@@ -55,7 +41,6 @@ const colorNameToHex: Record<TEventColor, string> = {
 	gray: "#6B7280",
 };
 
-// Helper function to convert hex to RGB
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
 	const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
 	return result
@@ -67,7 +52,6 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
 		: { r: 0, g: 0, b: 0 };
 }
 
-// Calculate Euclidean distance between two colors in RGB space
 function colorDistance(
 	rgb1: { r: number; g: number; b: number },
 	rgb2: { r: number; g: number; b: number },
@@ -78,7 +62,6 @@ function colorDistance(
 	return Math.sqrt(dr * dr + dg * dg + db * db);
 }
 
-// Map hex color to closest predefined color name
 function hexToColorName(hex: string): TEventColor {
 	const inputRgb = hexToRgb(hex);
 	let minDistance = Infinity;
@@ -96,28 +79,11 @@ function hexToColorName(hex: string): TEventColor {
 	return closestColor;
 }
 
-function isCalendarDate(v: unknown): v is CalendarDate {
-	return (
-		v != null &&
-		typeof v === "object" &&
-		"calendar" in v &&
-		"year" in v &&
-		"month" in v &&
-		"day" in v &&
-		typeof (v as CalendarDate).compare === "function"
-	);
-}
-
-const calendarDateSchema = z.custom<CalendarDate>(
-	(v) => isCalendarDate(v) && v != null,
-	{ message: "Date is required" },
-);
-
-export const quickAddEventSchema = z
+export const eventFormSchema = z
 	.object({
 		title: z.string().min(1, "Title is required"),
-		startDate: calendarDateSchema,
-		endDate: calendarDateSchema,
+		startDate: z.date({ message: "Date is required" }),
+		endDate: z.date({ message: "Date is required" }),
 		description: z.string().optional(),
 		allDay: z.boolean(),
 		startTime: z.custom<Time>().optional(),
@@ -128,46 +94,46 @@ export const quickAddEventSchema = z
 			.optional(),
 	})
 	.superRefine((data, ctx) => {
-		// Validate date ordering (CalendarDate.compare: negative = a before b)
-		if (
-			data.startDate != null &&
-			data.endDate != null &&
-			data.startDate.compare(data.endDate) > 0
-		) {
-			ctx.addIssue({
+		if (data.allDay) {
+			if (data.startDate > data.endDate) {
+				ctx.addIssue({
+					code: "custom",
+					message: "Start date must be before or equal to end date",
+					path: ["endDate"],
+				});
+			}
+			return;
+		}
+
+		if (!data.startTime || !data.endTime) {
+			return ctx.addIssue({
 				code: "custom",
-				message: "Start date must be before or equal to end date",
-				path: ["endDate"],
+				message: "Start time and end time are required when not all day",
+				path: ["startTime"],
 			});
 		}
 
-		// Validate times when not all day
-		if (!data.allDay) {
-			// Check if times are provided
-			if (!data.startTime || !data.endTime) {
-				ctx.addIssue({
-					code: "custom",
-					message: "Start time and end time are required when not all day",
-					path: ["startTime"],
-				});
-			}
-			// Check if start time is before end time
-			else if (data.startTime.compare(data.endTime) >= 0) {
-				ctx.addIssue({
-					code: "custom",
-					message: "Start time must be before end time",
-					path: ["endTime"],
-				});
-			}
+		const startDateTime = new Date(data.startDate);
+		startDateTime.setHours(data.startTime.hour, data.startTime.minute, 0, 0);
+		const endDateTime = new Date(data.endDate);
+		endDateTime.setHours(data.endTime.hour, data.endTime.minute, 0, 0);
+		if (startDateTime >= endDateTime) {
+			ctx.addIssue({
+				code: "custom",
+				message: "Start must be before end",
+				path: ["endTime"],
+			});
 		}
 	});
 
-export type TQuickAddEventFormData = z.infer<typeof quickAddEventSchema>;
+export type TEventFormData = z.infer<typeof eventFormSchema>;
 
-function getDefaultValues(
+type EventPopoverMode = "create" | "edit";
+
+function getCreateDefaultValues(
 	date: Date,
 	initialTime?: { hour: number; minute: number },
-): TQuickAddEventFormData {
+): TEventFormData {
 	const hasTime = initialTime != null;
 	const startTime = hasTime
 		? new Time(initialTime.hour, initialTime.minute)
@@ -175,12 +141,11 @@ function getDefaultValues(
 	const endTime = hasTime
 		? new Time(initialTime.hour + 1, initialTime.minute)
 		: new Time(10, 0);
-	const calendarDate = toCalendarDate(fromDate(date, getLocalTimeZone()));
 	return {
 		title: "",
 		description: "",
-		startDate: calendarDate,
-		endDate: calendarDate,
+		startDate: date,
+		endDate: date,
 		allDay: !hasTime,
 		startTime,
 		endTime,
@@ -188,71 +153,178 @@ function getDefaultValues(
 	};
 }
 
-const addEventFormOptions = formOptions({
-	defaultValues: getDefaultValues(new Date(), { hour: 9, minute: 0 }),
+function getEditDefaultValues(event: IEvent): TEventFormData {
+	const startDate = parseISO(event.startDate);
+	const endDate = parseISO(event.endDate);
+
+	let startTime: Time | undefined;
+	let endTime: Time | undefined;
+
+	if (!event.allDay && event.startTime && event.endTime) {
+		const [startHour, startMin] = event.startTime.split(":").map(Number);
+		const [endHour, endMin] = event.endTime.split(":").map(Number);
+		startTime = new Time(startHour, startMin);
+		endTime = new Time(endHour, endMin);
+	} else if (!event.allDay) {
+		startTime = new Time(startDate.getHours(), startDate.getMinutes());
+		endTime = new Time(endDate.getHours(), endDate.getMinutes());
+	}
+
+	const colorHex = colorNameToHex[event.color] ?? "#3B82F6";
+
+	return {
+		title: event.title,
+		description: event.description ?? "",
+		startDate,
+		endDate,
+		allDay: event.allDay,
+		startTime,
+		endTime,
+		color: colorHex,
+	};
+}
+
+const eventFormOptions = formOptions({
+	defaultValues: getCreateDefaultValues(new Date(), { hour: 9, minute: 0 }),
 	validators: {
-		onSubmit: quickAddEventSchema,
+		onSubmit: eventFormSchema,
 	},
 });
 
-export type QuickAddEventPopoverContentHandle = {
+export type EventPopoverContentHandle = {
 	submitIfDirty: () => void;
 };
 
-const QuickAddEventPopoverContent = forwardRef<
-	QuickAddEventPopoverContentHandle,
-	{
-		onClose: () => void;
-		date: Date;
-		initialTime?: { hour: number; minute: number };
-	}
->(function QuickAddEventPopoverContent({ onClose, date, initialTime }, ref) {
+interface EventPopoverContentProps {
+	onClose: () => void;
+	date: Date;
+	initialTime?: { hour: number; minute: number };
+	mode?: EventPopoverMode;
+	event?: IEvent;
+}
+
+const EventPopoverContent = forwardRef<
+	EventPopoverContentHandle,
+	EventPopoverContentProps
+>(function EventPopoverContent(
+	{ onClose, date, initialTime, mode = "create", event },
+	ref,
+) {
 	const formId = useId();
 	const titleId = useId();
 
 	const createEvent = useMutation(api.events.createEvent);
+	const updateEvent = useMutation(api.events.updateEvent);
 	const [_, calendarStore] = useCalendar();
-	const defaults = getDefaultValues(date, initialTime);
+
+	const defaults =
+		mode === "edit" && event
+			? getEditDefaultValues(event)
+			: getCreateDefaultValues(date, initialTime);
+
 	const form = useAppForm({
-		...addEventFormOptions,
+		...eventFormOptions,
 		defaultValues: defaults,
 		onSubmit: async ({ value }) => {
 			try {
-				const values = value as TQuickAddEventFormData;
-				if (!values.startDate || !values.endDate) return;
-
-				const tz = getLocalTimeZone();
-				let startDt: import("@internationalized/date").CalendarDateTime;
-				let endDt: import("@internationalized/date").CalendarDateTime;
-
-				if (values.allDay) {
-					startDt = toCalendarDateTime(values.startDate, new Time(0, 0, 0, 0));
-					endDt = toCalendarDateTime(values.endDate, new Time(23, 59, 59, 999));
-				} else {
-					const startTime = values.startTime ?? new Time(9, 0);
-					const endTime = values.endTime ?? new Time(10, 0);
-					startDt = toCalendarDateTime(values.startDate, startTime);
-					endDt = toCalendarDateTime(values.endDate, endTime);
-				}
-
-				const startDate = startDt.toDate(tz).getTime();
-				const endDate = endDt.toDate(tz).getTime();
+				const values = value as TEventFormData;
 				const colorName = values.color ? hexToColorName(values.color) : "blue";
 
-				await createEvent({
-					title: values.title,
-					description: values.description || "",
-					startDate,
-					endDate,
-					color: colorName,
-					allDay: values.allDay,
-				});
+				if (mode === "edit" && event?.convexId) {
+					if (values.allDay) {
+						await updateEvent({
+							id: event.convexId as Id<"events">,
+							title: values.title,
+							description: values.description || "",
+							allDay: true,
+							startDateStr: format(values.startDate, "yyyy-MM-dd"),
+							endDateStr: format(addDays(values.endDate, 1), "yyyy-MM-dd"),
+							color: colorName,
+						});
+					} else {
+						const startTimeVal = values.startTime ?? new Time(9, 0);
+						const endTimeVal = values.endTime ?? new Time(10, 0);
 
-				toast.success("Event created");
+						const startDateTime = new Date(values.startDate);
+						startDateTime.setHours(
+							startTimeVal.hour,
+							startTimeVal.minute,
+							0,
+							0,
+						);
+
+						const endDateTime = new Date(values.endDate);
+						endDateTime.setHours(endTimeVal.hour, endTimeVal.minute, 0, 0);
+
+						const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+						await updateEvent({
+							id: event.convexId as Id<"events">,
+							title: values.title,
+							description: values.description || "",
+							allDay: false,
+							startDateStr: format(values.startDate, "yyyy-MM-dd"),
+							startTime: format(startDateTime, "HH:mm"),
+							endDateStr: format(values.endDate, "yyyy-MM-dd"),
+							endTime: format(endDateTime, "HH:mm"),
+							timeZone: browserTz,
+							color: colorName,
+						});
+					}
+					toast.success("Event updated");
+				} else {
+					if (values.allDay) {
+						await createEvent({
+							title: values.title,
+							description: values.description || "",
+							allDay: true,
+							startDateStr: format(values.startDate, "yyyy-MM-dd"),
+							endDateStr: format(addDays(values.endDate, 1), "yyyy-MM-dd"),
+							color: colorName,
+						});
+					} else {
+						const startTimeVal = values.startTime ?? new Time(9, 0);
+						const endTimeVal = values.endTime ?? new Time(10, 0);
+
+						const startDateTime = new Date(values.startDate);
+						startDateTime.setHours(
+							startTimeVal.hour,
+							startTimeVal.minute,
+							0,
+							0,
+						);
+
+						const endDateTime = new Date(values.endDate);
+						endDateTime.setHours(endTimeVal.hour, endTimeVal.minute, 0, 0);
+
+						const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+						await createEvent({
+							title: values.title,
+							description: values.description || "",
+							allDay: false,
+							startDateStr: format(values.startDate, "yyyy-MM-dd"),
+							startTime: format(startDateTime, "HH:mm"),
+							endDateStr: format(values.endDate, "yyyy-MM-dd"),
+							endTime: format(endDateTime, "HH:mm"),
+							timeZone: browserTz,
+							color: colorName,
+						});
+					}
+					toast.success("Event created");
+				}
+
 				onClose();
-				form.reset(getDefaultValues(date, initialTime));
+				form.reset(
+					mode === "edit" && event
+						? getEditDefaultValues(event)
+						: getCreateDefaultValues(date, initialTime),
+				);
 			} catch (error) {
-				console.error("Failed to create event:", error);
+				console.error(
+					`Failed to ${mode === "edit" ? "update" : "create"} event:`,
+					error,
+				);
 			}
 		},
 	});
@@ -301,63 +373,19 @@ const QuickAddEventPopoverContent = forwardRef<
 							{(field) => {
 								const isInvalid =
 									field.state.meta.isTouched && !field.state.meta.isValid;
-								const value = field.state.value ?? undefined;
 								return (
 									<Field data-invalid={isInvalid}>
-										<DatePicker<CalendarDate>
-											value={value ?? null}
-											onChange={(v) =>
-												field.handleChange(v ?? field.state.value ?? null)
+										<DayPicker
+											fieldClassName="w-min"
+											dateFormat="EEE, MMM d"
+											date={field.state.value}
+											setDate={(d) =>
+												field.handleChange(d ?? field.state.value)
 											}
-											className="w-min"
-											aria-invalid={isInvalid}
-										>
-											<Group className="inline-flex h-6 min-w-0 items-center gap-0.5 rounded-md border border-input bg-background px-2 py-0.5 text-xs shadow-xs">
-												<DateInput className="flex min-w-0 flex-1 items-center gap-0.5">
-													{(segment) => (
-														<DateSegment
-															segment={segment}
-															className="rounded px-0.5 outline-none data-placeholder:text-muted-foreground"
-														/>
-													)}
-												</DateInput>
-												<Button
-													className="rounded p-0.5 outline-none hover:bg-muted"
-													aria-label="Pick start date"
-												>
-													<svg
-														aria-hidden
-														xmlns="http://www.w3.org/2000/svg"
-														width="12"
-														height="12"
-														viewBox="0 0 24 24"
-														fill="none"
-														stroke="currentColor"
-														strokeWidth="2"
-														strokeLinecap="round"
-														strokeLinejoin="round"
-													>
-														<title>Calendar</title>
-														<rect
-															width="18"
-															height="18"
-															x="3"
-															y="4"
-															rx="2"
-															ry="2"
-														/>
-														<line x1="16" x2="16" y1="2" y2="6" />
-														<line x1="8" x2="8" y1="2" y2="6" />
-														<line x1="3" x2="21" y1="10" y2="10" />
-													</svg>
-												</Button>
-											</Group>
-											<RACPopover className="w-auto overflow-hidden rounded-md border bg-popover p-0 shadow-md">
-												<Dialog className="p-0 outline-none">
-													<Calendar className="p-2" />
-												</Dialog>
-											</RACPopover>
-										</DatePicker>
+											buttonProps={{
+												size: "xs",
+											}}
+										/>
 										{isInvalid && (
 											<FieldError errors={field.state.meta.errors} />
 										)}
@@ -374,9 +402,11 @@ const QuickAddEventPopoverContent = forwardRef<
 											name="startTime"
 											listeners={{
 												onChange: ({ value }) => {
-													calendarStore.trigger.setNewEventStartTime({
-														startTime: value,
-													});
+													if (mode === "create") {
+														calendarStore.trigger.setNewEventStartTime({
+															startTime: value,
+														});
+													}
 												},
 											}}
 										>
@@ -434,64 +464,19 @@ const QuickAddEventPopoverContent = forwardRef<
 							{(field) => {
 								const isInvalid =
 									field.state.meta.isTouched && !field.state.meta.isValid;
-								const value = field.state.value ?? undefined;
 								return (
 									<Field data-invalid={isInvalid}>
-										<DatePicker<CalendarDate>
-											value={value ?? null}
-											onChange={(v) =>
-												field.handleChange(v ?? field.state.value ?? null)
+										<DayPicker
+											fieldClassName="w-min"
+											dateFormat="EEE, MMM d"
+											date={field.state.value}
+											setDate={(d) =>
+												field.handleChange(d ?? field.state.value)
 											}
-											className="w-min"
-											aria-invalid={isInvalid}
-										>
-											<Group className="inline-flex h-6 min-w-0 items-center gap-0.5 rounded-md border border-input bg-background px-2 py-0.5 text-xs shadow-xs">
-												<DateInput className="flex min-w-0 flex-1 items-center gap-0.5">
-													{(segment) => (
-														<DateSegment
-															segment={segment}
-															className="rounded px-0.5 outline-none data-placeholder:text-muted-foreground"
-														/>
-													)}
-												</DateInput>
-												<Button
-													className="rounded p-0.5 outline-none hover:bg-muted"
-													aria-label="Pick end date"
-												>
-													~/.config/opencode/skills{" "}
-													<svg
-														aria-hidden
-														xmlns="http://www.w3.org/2000/svg"
-														width="12"
-														height="12"
-														viewBox="0 0 24 24"
-														fill="none"
-														stroke="currentColor"
-														strokeWidth="2"
-														strokeLinecap="round"
-														strokeLinejoin="round"
-													>
-														<title>Calendar</title>
-														<rect
-															width="18"
-															height="18"
-															x="3"
-															y="4"
-															rx="2"
-															ry="2"
-														/>
-														<line x1="16" x2="16" y1="2" y2="6" />
-														<line x1="8" x2="8" y1="2" y2="6" />
-														<line x1="3" x2="21" y1="10" y2="10" />
-													</svg>
-												</Button>
-											</Group>
-											<RACPopover className="w-auto overflow-hidden rounded-md border bg-popover p-0 shadow-md">
-												<Dialog className="p-0 outline-none">
-													<Calendar className="p-2" />
-												</Dialog>
-											</RACPopover>
-										</DatePicker>
+											buttonProps={{
+												size: "xs",
+											}}
+										/>
 										{isInvalid && (
 											<FieldError errors={field.state.meta.errors} />
 										)}
@@ -504,14 +489,18 @@ const QuickAddEventPopoverContent = forwardRef<
 						name="allDay"
 						listeners={{
 							onMount: ({ value }) => {
-								calendarStore.trigger.setNewEventAllDay({
-									allDay: value ?? false,
-								});
+								if (mode === "create") {
+									calendarStore.trigger.setNewEventAllDay({
+										allDay: value ?? false,
+									});
+								}
 							},
 							onChange: ({ value }) => {
-								calendarStore.trigger.setNewEventAllDay({
-									allDay: value ?? false,
-								});
+								if (mode === "create") {
+									calendarStore.trigger.setNewEventAllDay({
+										allDay: value ?? false,
+									});
+								}
 							},
 						}}
 					>
@@ -545,10 +534,18 @@ const QuickAddEventPopoverContent = forwardRef<
 						name="title"
 						listeners={{
 							onMount: ({ value }) => {
-								calendarStore.trigger.setNewEventTitle({ title: value ?? "" });
+								if (mode === "create") {
+									calendarStore.trigger.setNewEventTitle({
+										title: value ?? "",
+									});
+								}
 							},
 							onChange: ({ value }) => {
-								calendarStore.trigger.setNewEventTitle({ title: value ?? "" });
+								if (mode === "create") {
+									calendarStore.trigger.setNewEventTitle({
+										title: value ?? "",
+									});
+								}
 							},
 						}}
 					>
@@ -606,13 +603,13 @@ const QuickAddEventPopoverContent = forwardRef<
 	);
 });
 
-export function QuickAddEventPopover({
+export function EventPopover({
 	handle,
 }: {
 	handle: NonNullable<PopoverRootProps["handle"]>;
 }) {
 	const { isOpen, onClose, onToggle } = useDisclosure();
-	const contentRef = useRef<QuickAddEventPopoverContentHandle | null>(null);
+	const contentRef = useRef<EventPopoverContentHandle | null>(null);
 
 	const handleClose = () => {
 		onClose();
@@ -633,22 +630,30 @@ export function QuickAddEventPopover({
 				const payload = _payload as {
 					date?: Date;
 					time?: { hour: number; minute: number };
+					mode?: EventPopoverMode;
+					event?: IEvent;
 				};
 
 				if (!payload?.date) {
 					return null;
 				}
 
-				const key = payload.time
-					? `${payload.date.toISOString()}-${payload.time.hour}-${payload.time.minute}`
-					: payload.date.toISOString();
+				const mode = payload.mode ?? "create";
+				const key =
+					mode === "edit" && payload.event
+						? `edit-${payload.event.id}`
+						: payload.time
+							? `${payload.date.toISOString()}-${payload.time.hour}-${payload.time.minute}`
+							: payload.date.toISOString();
 
 				return (
-					<QuickAddEventPopoverContent
+					<EventPopoverContent
 						ref={contentRef}
 						key={key}
 						date={payload.date}
 						initialTime={payload.time}
+						mode={mode}
+						event={payload.event}
 						onClose={handleClose}
 					/>
 				);

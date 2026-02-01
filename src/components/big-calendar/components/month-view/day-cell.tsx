@@ -4,7 +4,10 @@ import {
 	MonthEventBadge,
 } from "@/components/big-calendar/components/month-view/month-event-badge";
 import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
-import { getMonthCellEvents } from "@/components/big-calendar/helpers";
+import {
+	getMonthCellEvents,
+	isEventOnDate,
+} from "@/components/big-calendar/helpers";
 import type {
 	ICalendarCell,
 	IEvent,
@@ -35,6 +38,9 @@ export function DayCell({ cell, events, eventPositions, handle }: IProps) {
 		() => getMonthCellEvents(date, events, eventPositions),
 		[date, events, eventPositions],
 	);
+	if (cellEvents.length > 0) {
+		console.log("cellEvents::", cellEvents);
+	}
 	const formattedStartTime = useMemo(() => {
 		if (!newEventStartTime) return null;
 
@@ -59,6 +65,7 @@ export function DayCell({ cell, events, eventPositions, handle }: IProps) {
 			onClick={() => {
 				handle.open(triggerId);
 			}}
+			className="relative"
 		>
 			<div
 				className={cn(
@@ -79,7 +86,7 @@ export function DayCell({ cell, events, eventPositions, handle }: IProps) {
 
 				<div
 					className={cn(
-						"flex h-6 flex-1 flex-col gap-2 px-2",
+						"relative flex flex-1 flex-col space-y-2 px-2",
 						!currentMonth && "opacity-50",
 					)}
 				>
@@ -87,34 +94,44 @@ export function DayCell({ cell, events, eventPositions, handle }: IProps) {
 						handle={handle}
 						id={triggerId}
 						payload={{ date }}
-						className={cn(
-							"invisible flex h-0 w-full",
-							isOpen && activeTriggerId === triggerId && "visible h-auto",
-						)}
-					>
-						<div
-							className={cn(
-								eventBadgeVariants({
-									color: addEventColor,
-									multiDayPosition: "none",
-								}),
-							)}
-						>
-							<div className="flex w-full items-center justify-between gap-1.5 truncate">
-								<p className="truncate font-semibold">
-									{newEventTitle || "(No title)"}
-								</p>
-								{!newEventAllDay && newEventStartTime ? (
-									<p>{formattedStartTime}</p>
-								) : null}
-							</div>
-						</div>
-					</PopoverTrigger>
+						render={({ className, ...props }) => {
+							return (
+								<div
+									className={cn(
+										eventBadgeVariants({
+											color: addEventColor,
+										}),
+										"invisible absolute top-0 flex h-0 w-full",
+										isOpen &&
+											activeTriggerId === triggerId &&
+											"visible relative h-auto min-h-6",
+										className,
+									)}
+									{...props}
+								>
+									<div className="flex w-full items-center justify-between gap-1.5 truncate">
+										<p className="truncate font-semibold">
+											{newEventTitle || "(No title)"}
+										</p>
+										{!newEventAllDay && newEventStartTime ? (
+											<p>{formattedStartTime}</p>
+										) : null}
+									</div>
+								</div>
+							);
+						}}
+					/>
 					{Array.from({ length: MAX_VISIBLE_EVENTS }).map((_, position) => {
 						const event = cellEvents.find((e) => e.position === position);
 						const eventKey = event
 							? `event-${event.id}-${position}`
 							: `empty-${position}`;
+						const cellDate = startOfDay(date);
+
+						// Use helper to check if event should display on this calendar day
+						if (!event || !isEventOnDate(event, cellDate)) {
+							return null;
+						}
 
 						return (
 							<div key={eventKey} className="w-full">
@@ -122,7 +139,7 @@ export function DayCell({ cell, events, eventPositions, handle }: IProps) {
 									<MonthEventBadge
 										className="flex"
 										event={event}
-										cellDate={startOfDay(date)}
+										cellDate={cellDate}
 									/>
 								)}
 							</div>

@@ -142,6 +142,33 @@ Same pattern as Popover - NO `asChild`:
 - **Form components:** e.g. `form.SubmitButton` used inside `form.AppForm`; they use `useFormContext()` from `@/components/ui/form`.
 - **Reference:** [TanStack Form Composition](https://tanstack.com/form/latest/docs/framework/react/guides/form-composition), [shadcn TanStack Form](https://ui.shadcn.com/docs/forms/tanstack-form).
 
+### Zod validation (superRefine)
+
+This follows the general preference (see AGENTS.md) for **linear conditional logic** via early returns. In Zod `superRefine`, handle each case and return (or return after adding an issue); then run the next check. Example:
+
+```ts
+.superRefine((data, ctx) => {
+  if (data.allDay) {
+    if (data.startDate > data.endDate) {
+      ctx.addIssue({ code: "custom", message: "...", path: ["endDate"] });
+    }
+    return;
+  }
+
+  if (!data.startTime || !data.endTime) {
+    return ctx.addIssue({ code: "custom", message: "...", path: ["startTime"] });
+  }
+
+  const startDateTime = new Date(data.startDate);
+  startDateTime.setHours(data.startTime.hour, data.startTime.minute, 0, 0);
+  const endDateTime = new Date(data.endDate);
+  endDateTime.setHours(data.endTime.hour, data.endTime.minute, 0, 0);
+  if (startDateTime >= endDateTime) {
+    ctx.addIssue({ code: "custom", message: "Start must be before end", path: ["endTime"] });
+  }
+});
+```
+
 ## Shared Popover with handle
 
 To open the **same** popover from multiple triggers (e.g. month day cells and day/week time slots):

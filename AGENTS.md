@@ -108,6 +108,11 @@ vibeflow/
 - **UI Components:** Use `pnpm dlx shadcn@latest add [component]`
 - **Static Content:** Add markdown files to `content/`
 
+### Agent Skills
+- **Master copy:** Skills live in `.agents/skills/`. This is the single source of truth.
+- **Copies:** Copies live in `.cursor/skills/` and `.opencode/skills/` because Cursor and OpenCode do not reliably discover symlinked skills.
+- **Editing skills:** If you need to edit skill files, edit the master copy in `.agents/skills/` and copy the updated version to `.cursor/skills/` and `.opencode/skill/`.
+
 ---
 
 ## Coding Style and Conventions
@@ -127,12 +132,14 @@ vibeflow/
 - **Variables/Functions:** camelCase
 - **Types/Interfaces:** PascalCase with `T` or `I` prefix when needed
 - **Constants:** UPPER_SNAKE_CASE for true constants
+- **Database Fields:** camelCase for all Convex schema fields (e.g., `startDateStr`, `timeZone`, NOT `start_date`, `time_zone`)
 
 ### Code Formatting
 - **Indentation:** Tabs (enforced by Biome)
 - **Quotes:** Double quotes for strings
 - **Semicolons:** Required
 - **Import Order:** Auto-organized by Biome on save
+- **Control flow:** Prefer early returns / short-circuit with `return` to keep conditional logic linear; avoid nested if/else where a linear flow is clearer. Applies to any conditional logic (validation, handlers, utilities). See [src/docs/ui.md](src/docs/ui.md) for a form-validation example.
 
 ### Imports
 - **Use import aliases where possible** - Prefer `@/` over relative paths

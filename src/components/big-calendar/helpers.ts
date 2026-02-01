@@ -349,3 +349,155 @@ export function getMonthCellEvents(
 			return a.position - b.position;
 		});
 }
+
+// ================ New date helper functions ================ //
+
+/**
+ * Gets the calendar date (YYYY-MM-DD) for display purposes.
+ * For all-day events, uses startDateStr/endDateStr directly.
+ * For timed events, derives from startDate ISO string.
+ */
+export function getEventCalendarDate(
+	event: {
+		startDateStr?: string;
+		endDateStr?: string;
+		startDate?: string;
+		endDate?: string;
+	},
+	which: "start" | "end",
+): string {
+	if (which === "start") {
+		// Prefer startDateStr for all-day events
+		if (event.startDateStr) {
+			return event.startDateStr;
+		}
+		// Fallback to startDate ISO string
+		if (event.startDate) {
+			return event.startDate.slice(0, 10); // Extract YYYY-MM-DD from ISO
+		}
+	} else {
+		// Prefer endDateStr for all-day events
+		if (event.endDateStr) {
+			return event.endDateStr;
+		}
+		// Fallback to endDate ISO string
+		if (event.endDate) {
+			return event.endDate.slice(0, 10);
+		}
+	}
+	throw new Error(`Missing date field for ${which}`);
+}
+
+/**
+ * Timezone offset map for common timezones (in hours from UTC)
+ */
+const TIMEZONE_OFFSETS: Record<string, number> = {
+	"America/Los_Angeles": -8, // PST
+	"America/Denver": -7, // MST
+	"America/Chicago": -6, // CST
+	"America/New_York": -5, // EST
+	"Europe/London": 0, // GMT
+	"Europe/Paris": 1, // CET
+	"Asia/Tokyo": 9, // JST
+	"Australia/Sydney": 11, // AEDT
+};
+
+/**
+ * Converts Notion-style date fields to UTC timestamp (milliseconds).
+ * - Date only: midnight UTC of that date
+ * - Date + time + timezone: interprets time in given timezone, converts to UTC
+ */
+export function deriveNumericTimestamp(
+	date: string,
+	time?: string,
+	timezone?: string,
+): number {
+	// Validate date format YYYY-MM-DD
+	if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+		throw new Error(`Invalid date format: ${date}. Expected YYYY-MM-DD`);
+	}
+
+	if (time) {
+		// Validate time format HH:mm
+		if (!/^\d{2}:\d{2}$/.test(time)) {
+			throw new Error(`Invalid time format: ${time}. Expected HH:mm`);
+		}
+
+		// If timezone provided, convert from that timezone to UTC
+		if (timezone && TIMEZONE_OFFSETS[timezone] !== undefined) {
+			const offset = TIMEZONE_OFFSETS[timezone];
+			// Create date in UTC first
+			const utcDate = new Date(`${date}T${time}:00.000Z`);
+			// Adjust by timezone offset (subtract because offset is from UTC)
+			const adjustedTime = utcDate.getTime() - offset * 60 * 60 * 1000;
+			return adjustedTime;
+		}
+
+		// No timezone or unknown timezone - interpret as UTC
+		return new Date(`${date}T${time}:00.000Z`).getTime();
+	}
+
+	// Date only - midnight UTC
+	return new Date(`${date}T00:00:00.000Z`).getTime();
+}
+
+/**
+ * Checks if an event should display on a given calendar date.
+ * Uses exclusive endDateStr semantics (endDateStr is first day NOT included).
+ */
+export function isEventOnDate(
+	event: {
+		allDay?: boolean;
+		startDateStr?: string;
+		endDateStr?: string;
+		startDate?: string;
+		endDate?: string;
+	},
+	date: Date,
+): boolean {
+	const dateStr = format(date, "yyyy-MM-dd");
+
+	if (event.startDateStr && event.endDateStr) {
+		// All-day event with Notion-style fields
+		// Exclusive end: event on Jan 1-3 with endDateStr="2026-01-03" shows on Jan 1, 2 only
+		// But for single-day events (start == end), include that day
+		if (event.startDateStr === event.endDateStr) {
+			return dateStr === event.startDateStr;
+		}
+		return dateStr >= event.startDateStr && dateStr < event.endDateStr;
+	}
+
+	if (event.startDate && event.endDate) {
+		// Timed event - check if date falls within range
+		const eventStart = event.startDate.slice(0, 10);
+		const eventEnd = event.endDate.slice(0, 10);
+		return dateStr >= eventStart && dateStr <= eventEnd;
+	}
+
+	return false;
+}
+
+/**
+ * Formats the event time for display.
+ * Returns null for all-day events.
+ */
+export function formatEventTime(event: {
+	allDay?: boolean;
+	startTime?: string;
+	timeZone?: string;
+}): string | null {
+	if (event.allDay) {
+		return null;
+	}
+
+	if (!event.startTime) {
+		return null;
+	}
+
+	// Parse HH:mm and format as 12-hour time
+	const [hours, minutes] = event.startTime.split(":").map(Number);
+	const period = hours >= 12 ? "PM" : "AM";
+	const displayHours = hours % 12 || 12;
+
+	return `${displayHours}:${minutes.toString().padStart(2, "0")} ${period}`;
+}

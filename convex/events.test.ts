@@ -31,15 +31,15 @@ describe("Event Validation Logic", () => {
 		it("should have required fields", () => {
 			const event = {
 				title: "Test Event",
-				startDate: Date.now(),
-				endDate: Date.now() + 3600000,
+				startTimestamp: Date.now(),
+				endTimestamp: Date.now() + 3600000,
 				userId: "user-123",
 				allDay: false,
 			};
 
 			expect(event).toHaveProperty("title");
-			expect(event).toHaveProperty("startDate");
-			expect(event).toHaveProperty("endDate");
+			expect(event).toHaveProperty("startTimestamp");
+			expect(event).toHaveProperty("endTimestamp");
 			expect(event).toHaveProperty("userId");
 			expect(event).toHaveProperty("allDay");
 		});
@@ -48,8 +48,8 @@ describe("Event Validation Logic", () => {
 			const event = {
 				title: "Test Event",
 				description: "Optional description",
-				startDate: Date.now(),
-				endDate: Date.now() + 3600000,
+				startTimestamp: Date.now(),
+				endTimestamp: Date.now() + 3600000,
 				userId: "user-123",
 				calendarId: "calendar-123",
 				color: "blue",

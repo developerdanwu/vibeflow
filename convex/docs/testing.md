@@ -24,8 +24,8 @@ test("create event", async () => {
   const t = convexTest(schema);
   const eventId = await t.mutation(createEvent, {
     title: "Test Event",
-    startDate: Date.now(),
-    endDate: Date.now() + 3600000,
+    startTimestamp: Date.now(),
+    endTimestamp: Date.now() + 3600000,
     allDay: false,
   });
   expect(eventId).toBeDefined();

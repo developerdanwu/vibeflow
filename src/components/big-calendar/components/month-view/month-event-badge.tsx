@@ -84,10 +84,13 @@ export function MonthEventBadge({
 }: IProps) {
 	const [badgeVariant] = useCalendar((s) => s.context.badgeVariant);
 
-	const itemStart = startOfDay(parseISO(event.startDate));
-	const itemEnd = endOfDay(parseISO(event.endDate));
-
-	if (cellDate < itemStart || cellDate > itemEnd) return null;
+	// Use Notion-style dates for all-day events, fallback to timestamp-based for timed events
+	const itemStart = event.startDateStr
+		? new Date(event.startDateStr + "T00:00:00")
+		: startOfDay(parseISO(event.startDate));
+	const itemEnd = event.endDateStr
+		? new Date(event.endDateStr + "T00:00:00")
+		: endOfDay(parseISO(event.endDate));
 
 	let position: "first" | "middle" | "last" | "none" | undefined;
 
@@ -111,9 +114,7 @@ export function MonthEventBadge({
 		badgeVariant === "dot" ? `${event.color}-dot` : event.color
 	) as VariantProps<typeof eventBadgeVariants>["color"];
 
-	const eventBadgeClasses = cn(
-		eventBadgeVariants({ color, multiDayPosition: position, className }),
-	);
+	const eventBadgeClasses = cn(eventBadgeVariants({ color, className }));
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter" || e.key === " ") {
@@ -135,12 +136,12 @@ export function MonthEventBadge({
 			<EventDetailsDialog event={event}>
 				<Tooltip>
 					<TooltipTrigger
-						render={(props) => {
+						render={({ className, ...props }) => {
 							return (
 								<button
 									type="button"
 									tabIndex={0}
-									className={eventBadgeClasses}
+									className={cn(eventBadgeClasses, className)}
 									onKeyDown={handleKeyDown}
 									{...props}
 								>

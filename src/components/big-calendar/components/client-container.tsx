@@ -1,8 +1,8 @@
 "use client";
 
-import { CalendarAgendaView } from "@/components/big-calendar/components/agenda-view/calendar-agenda-view";
 import { isSameDay, parseISO } from "date-fns";
 import { useMemo } from "react";
+import { CalendarAgendaView } from "@/components/big-calendar/components/agenda-view/calendar-agenda-view";
 
 import { DndProviderWrapper } from "@/components/big-calendar/components/dnd/dnd-provider";
 
@@ -28,6 +28,10 @@ export function ClientContainer({ view }: IProps) {
 		return events.filter((event) => {
 			const eventStartDate = parseISO(event.startDate);
 			const eventEndDate = parseISO(event.endDate);
+			const isUserMatch =
+				selectedUserId === "all" || event.user.id === selectedUserId;
+
+			if (!isUserMatch) return false;
 
 			if (view === "year") {
 				const yearStart = new Date(selectedDate.getFullYear(), 0, 1);
@@ -40,11 +44,7 @@ export function ClientContainer({ view }: IProps) {
 					59,
 					999,
 				);
-				const isInSelectedYear =
-					eventStartDate <= yearEnd && eventEndDate >= yearStart;
-				const isUserMatch =
-					selectedUserId === "all" || event.user.id === selectedUserId;
-				return isInSelectedYear && isUserMatch;
+				return eventStartDate <= yearEnd && eventEndDate >= yearStart;
 			}
 
 			if (view === "month" || view === "agenda") {
@@ -62,11 +62,7 @@ export function ClientContainer({ view }: IProps) {
 					59,
 					999,
 				);
-				const isInSelectedMonth =
-					eventStartDate <= monthEnd && eventEndDate >= monthStart;
-				const isUserMatch =
-					selectedUserId === "all" || event.user.id === selectedUserId;
-				return isInSelectedMonth && isUserMatch;
+				return eventStartDate <= monthEnd && eventEndDate >= monthStart;
 			}
 
 			if (view === "week") {
@@ -80,11 +76,7 @@ export function ClientContainer({ view }: IProps) {
 				weekEnd.setDate(weekStart.getDate() + 6);
 				weekEnd.setHours(23, 59, 59, 999);
 
-				const isInSelectedWeek =
-					eventStartDate <= weekEnd && eventEndDate >= weekStart;
-				const isUserMatch =
-					selectedUserId === "all" || event.user.id === selectedUserId;
-				return isInSelectedWeek && isUserMatch;
+				return eventStartDate <= weekEnd && eventEndDate >= weekStart;
 			}
 
 			if (view === "day") {
@@ -104,12 +96,10 @@ export function ClientContainer({ view }: IProps) {
 					59,
 					59,
 				);
-				const isInSelectedDay =
-					eventStartDate <= dayEnd && eventEndDate >= dayStart;
-				const isUserMatch =
-					selectedUserId === "all" || event.user.id === selectedUserId;
-				return isInSelectedDay && isUserMatch;
+				return eventStartDate <= dayEnd && eventEndDate >= dayStart;
 			}
+
+			return false;
 		});
 	}, [selectedDate, selectedUserId, events, view]);
 

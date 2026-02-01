@@ -25,16 +25,21 @@ export default defineSchema({
 	events: defineTable({
 		title: v.string(),
 		description: v.optional(v.string()),
-		startDate: v.number(),
-		endDate: v.number(),
+		startTimestamp: v.number(),
+		endTimestamp: v.number(),
 		userId: v.id("users"),
 		calendarId: v.optional(v.id("calendars")),
 		color: v.optional(v.string()),
 		location: v.optional(v.string()),
 		allDay: v.boolean(),
+		startDateStr: v.optional(v.string()),
+		endDateStr: v.optional(v.string()),
+		startTime: v.optional(v.string()),
+		endTime: v.optional(v.string()),
+		timeZone: v.optional(v.string()),
 	})
 		.index("by_user", ["userId"])
-		.index("by_user_and_date", ["userId", "startDate"])
+		.index("by_user_and_date", ["userId", "startTimestamp"])
 		.index("by_calendar", ["calendarId"]),
 
 	calendars: defineTable({

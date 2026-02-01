@@ -5,20 +5,61 @@ export const createEvent = authMutation({
 	args: {
 		title: v.string(),
 		description: v.optional(v.string()),
-		startDate: v.number(),
-		endDate: v.number(),
+		startTimestamp: v.optional(v.number()),
+		endTimestamp: v.optional(v.number()),
 		calendarId: v.optional(v.id("calendars")),
 		color: v.optional(v.string()),
 		location: v.optional(v.string()),
 		allDay: v.boolean(),
+		startDateStr: v.optional(v.string()),
+		endDateStr: v.optional(v.string()),
+		startTime: v.optional(v.string()),
+		endTime: v.optional(v.string()),
+		timeZone: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
-		if (args.endDate < args.startDate) {
+		// Derive numeric timestamps from Notion-style fields
+		let derivedStartTimestamp = args.startTimestamp;
+		let derivedEndTimestamp = args.endTimestamp;
+
+		if (args.allDay && args.startDateStr && args.endDateStr) {
+			// All-day: UTC midnight of the dates
+			const startDateObj = new Date(args.startDateStr + "T00:00:00Z");
+			const endDateObj = new Date(args.endDateStr + "T00:00:00Z");
+			derivedStartTimestamp = startDateObj.getTime();
+			derivedEndTimestamp = endDateObj.getTime();
+		} else if (
+			!args.allDay &&
+			args.startDateStr &&
+			args.startTime &&
+			args.endDateStr &&
+			args.endTime &&
+			args.timeZone
+		) {
+			// Timed: Parse in timezone and convert to UTC
+			// For now, use a simpler approach - interpret as UTC (proper timezone handling can be added later)
+			const startDateObj = new Date(`${args.startDateStr}T${args.startTime}:00Z`);
+			const endDateObj = new Date(`${args.endDateStr}T${args.endTime}:00Z`);
+			derivedStartTimestamp = startDateObj.getTime();
+			derivedEndTimestamp = endDateObj.getTime();
+		}
+
+		// Validate we have timestamps
+		if (derivedStartTimestamp === undefined || derivedEndTimestamp === undefined) {
+			throw new Error(
+				"Must provide either numeric startTimestamp/endTimestamp or Notion-style date fields"
+			);
+		}
+
+		// Validate end timestamp is after start timestamp
+		if (derivedEndTimestamp < derivedStartTimestamp) {
 			throw new Error("End date must be after start date");
 		}
 
 		return await ctx.db.insert("events", {
 			...args,
+			startTimestamp: derivedStartTimestamp,
+			endTimestamp: derivedEndTimestamp,
 			userId: ctx.user._id,
 		});
 	},
@@ -29,12 +70,17 @@ export const updateEvent = authMutation({
 		id: v.id("events"),
 		title: v.optional(v.string()),
 		description: v.optional(v.string()),
-		startDate: v.optional(v.number()),
-		endDate: v.optional(v.number()),
+		startTimestamp: v.optional(v.number()),
+		endTimestamp: v.optional(v.number()),
 		calendarId: v.optional(v.id("calendars")),
 		color: v.optional(v.string()),
 		location: v.optional(v.string()),
 		allDay: v.optional(v.boolean()),
+		startDateStr: v.optional(v.string()),
+		endDateStr: v.optional(v.string()),
+		startTime: v.optional(v.string()),
+		endTime: v.optional(v.string()),
+		timeZone: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
 		const { id, ...updates } = args;
@@ -47,15 +93,54 @@ export const updateEvent = authMutation({
 			throw new Error("Not authorized to update this event");
 		}
 
-		const newStartDate = updates.startDate ?? event.startDate;
-		const newEndDate = updates.endDate ?? event.endDate;
-		if (newEndDate < newStartDate) {
+		const allDay = updates.allDay ?? event.allDay;
+
+		let derivedStartTimestamp = updates.startTimestamp;
+		let derivedEndTimestamp = updates.endTimestamp;
+
+		if (
+			updates.startDateStr ||
+			updates.endDateStr ||
+			updates.startTime ||
+			updates.endTime ||
+			updates.timeZone
+		) {
+			const startDateStr = updates.startDateStr ?? event.startDateStr;
+			const endDateStr = updates.endDateStr ?? event.endDateStr;
+			const startTime = updates.startTime ?? event.startTime;
+			const endTime = updates.endTime ?? event.endTime;
+			const timeZone = updates.timeZone ?? event.timeZone;
+
+			if (allDay && startDateStr && endDateStr) {
+				const startDateObj = new Date(startDateStr + "T00:00:00Z");
+				const endDateObj = new Date(endDateStr + "T00:00:00Z");
+				derivedStartTimestamp = startDateObj.getTime();
+				derivedEndTimestamp = endDateObj.getTime();
+			} else if (!allDay && startDateStr && startTime && endDateStr && endTime && timeZone) {
+				const startDateObj = new Date(`${startDateStr}T${startTime}:00Z`);
+				const endDateObj = new Date(`${endDateStr}T${endTime}:00Z`);
+				derivedStartTimestamp = startDateObj.getTime();
+				derivedEndTimestamp = endDateObj.getTime();
+			}
+		}
+
+		const newStartTimestamp = derivedStartTimestamp ?? updates.startTimestamp ?? event.startTimestamp;
+		const newEndTimestamp = derivedEndTimestamp ?? updates.endTimestamp ?? event.endTimestamp;
+
+		if (newEndTimestamp < newStartTimestamp) {
 			throw new Error("End date must be after start date");
 		}
 
 		const cleanUpdates = Object.fromEntries(
 			Object.entries(updates).filter(([_, v]) => v !== undefined)
 		);
+
+		if (derivedStartTimestamp !== undefined) {
+			cleanUpdates.startTimestamp = derivedStartTimestamp;
+		}
+		if (derivedEndTimestamp !== undefined) {
+			cleanUpdates.endTimestamp = derivedEndTimestamp;
+		}
 
 		return await ctx.db.patch(id, cleanUpdates);
 	},
@@ -91,18 +176,22 @@ export const getEventsByUser = authQuery({
 
 export const getEventsByDateRange = authQuery({
 	args: {
-		startDate: v.number(),
-		endDate: v.number(),
+		startTimestamp: v.number(),
+		endTimestamp: v.number(),
 	},
 	handler: async (ctx, args) => {
+		const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+		const bufferedStart = args.startTimestamp - ONE_DAY_MS;
+		const bufferedEnd = args.endTimestamp + ONE_DAY_MS;
+
 		const events = await ctx.db
 			.query("events")
 			.withIndex("by_user_and_date", (q) =>
-				q.eq("userId", ctx.user._id).gte("startDate", args.startDate)
+				q.eq("userId", ctx.user._id).gte("startTimestamp", bufferedStart)
 			)
 			.collect();
 
-		return events.filter((event) => event.startDate <= args.endDate);
+		return events.filter((event) => event.startTimestamp <= bufferedEnd);
 	},
 });
 
