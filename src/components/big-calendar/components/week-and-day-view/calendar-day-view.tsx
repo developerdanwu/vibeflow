@@ -1,10 +1,11 @@
 import { DroppableTimeBlock } from "@/components/big-calendar/components/dnd/droppable-time-block";
+import { EventPopover } from "@/components/big-calendar/components/event-popover";
+import { eventBadgeVariants } from "@/components/big-calendar/components/month-view/month-event-badge";
 import { CalendarTimeline } from "@/components/big-calendar/components/week-and-day-view/calendar-time-line";
 import { DayViewMultiDayEventsRow } from "@/components/big-calendar/components/week-and-day-view/day-view-multi-day-events-row";
 import { EventBlock } from "@/components/big-calendar/components/week-and-day-view/event-block";
 import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
 import {
-	getCurrentEvents,
 	getEventBlockStyle,
 	getVisibleHours,
 	groupEvents,
@@ -13,37 +14,49 @@ import {
 import type { IEvent } from "@/components/big-calendar/interfaces";
 import { PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { SingleCalendar } from "@/components/ui/single-calendar";
 import { cn } from "@/lib/utils";
 import { Route } from "@/routes/_authenticated/calendar";
-import type { PopoverRootProps } from "@base-ui/react";
-import { useNavigate } from "@tanstack/react-router";
+import { Popover as PopoverBase } from "@base-ui/react";
+import type { VariantProps } from "class-variance-authority";
 import { areIntervalsOverlapping, format, parseISO } from "date-fns";
-import { Calendar, Clock, User } from "lucide-react";
+import { useMemo } from "react";
 
 interface IProps {
 	singleDayEvents: IEvent[];
 	multiDayEvents: IEvent[];
-	handle: NonNullable<PopoverRootProps["handle"]>;
 }
 
-export function CalendarDayView({
-	singleDayEvents,
-	multiDayEvents,
-	handle,
-}: IProps) {
-	const navigate = useNavigate();
+export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
+	const quickAddEventPopoverHandle = useMemo(
+		() => PopoverBase.createHandle(),
+		[],
+	);
 	const { date: selectedDate } = Route.useSearch();
-	const [users] = useCalendar((s) => s.context.users);
-	const [visibleHours] = useCalendar((s) => s.context.visibleHours);
 	const [workingHours] = useCalendar((s) => s.context.workingHours);
+	const [badgeVariant] = useCalendar((s) => s.context.badgeVariant);
+	const [newEventTitle] = useCalendar((s) => s.context.newEventTitle);
+	const [newEventStartTime] = useCalendar((s) => s.context.newEventStartTime);
+	const [newEventAllDay] = useCalendar((s) => s.context.newEventAllDay);
+
+	const formattedStartTime = useMemo(() => {
+		if (!newEventStartTime) return null;
+		return format(
+			new Date(1970, 0, 1, newEventStartTime.hour, newEventStartTime.minute),
+			"h:mm a",
+		);
+	}, [newEventStartTime]);
+
+	const isOpen = quickAddEventPopoverHandle.store.useState("open");
+	const activeTriggerId =
+		quickAddEventPopoverHandle.store.useState("activeTriggerId");
+	const addEventColor = (
+		badgeVariant === "dot" ? "gray-dot" : "gray"
+	) as VariantProps<typeof eventBadgeVariants>["color"];
 
 	const { hours, earliestEventHour, latestEventHour } = getVisibleHours(
-		visibleHours,
+		{ from: 0, to: 24 },
 		singleDayEvents,
 	);
-
-	const currentEvents = getCurrentEvents(singleDayEvents);
 
 	const dayEvents = singleDayEvents.filter((event) => {
 		const eventDate = parseISO(event.startDate);
@@ -57,12 +70,13 @@ export function CalendarDayView({
 	const groupedEvents = groupEvents(dayEvents);
 
 	return (
-		<div className="flex">
-			<div className="flex flex-1 flex-col">
-				<div>
+		<>
+			<div className="flex min-h-0 flex-1 flex-col">
+				<div className="shrink-0">
 					<DayViewMultiDayEventsRow
 						selectedDate={selectedDate}
 						multiDayEvents={multiDayEvents}
+						handle={quickAddEventPopoverHandle}
 					/>
 
 					{/* Day header */}
@@ -76,8 +90,7 @@ export function CalendarDayView({
 						</span>
 					</div>
 				</div>
-
-				<ScrollArea className="h-[800px]" type="always">
+				<ScrollArea className="h-0 flex-[1_1_0px]" type="auto">
 					<div className="flex">
 						{/* Hours column */}
 						<div className="relative w-18">
@@ -123,15 +136,51 @@ export function CalendarDayView({
 												minute={0}
 											>
 												<PopoverTrigger
-													handle={handle}
+													handle={quickAddEventPopoverHandle}
 													id={`day-slot-${hour}-0`}
 													payload={{
 														date: selectedDate,
 														time: { hour, minute: 0 },
 													}}
-												>
-													<div className="absolute inset-x-0 top-0 h-[24px] cursor-pointer transition-colors hover:bg-accent" />
-												</PopoverTrigger>
+													nativeButton={false}
+													render={({ className, onClick, ...props }) => {
+														const triggerId = `day-slot-${hour}-0`;
+														const isActive =
+															isOpen && activeTriggerId === triggerId;
+														return (
+															<button
+																type="button"
+																className={cn(
+																	isActive &&
+																		eventBadgeVariants({
+																			color: addEventColor,
+																		}),
+																	"absolute inset-x-0 top-0 h-[24px] cursor-pointer transition-colors hover:bg-accent",
+																	isActive && "min-h-6",
+																	className,
+																)}
+																onClick={(e) => {
+																	e.stopPropagation();
+																	onClick?.(e);
+																}}
+																{...props}
+															>
+																{isActive ? (
+																	<div className="flex w-full min-w-0 items-center justify-between gap-1.5 truncate text-xs">
+																		<p className="min-w-0 truncate font-semibold">
+																			{newEventTitle || "(No title)"}
+																		</p>
+																		{!newEventAllDay && newEventStartTime ? (
+																			<p className="shrink-0">
+																				{formattedStartTime}
+																			</p>
+																		) : null}
+																	</div>
+																) : null}
+															</button>
+														);
+													}}
+												/>
 											</DroppableTimeBlock>
 
 											<DroppableTimeBlock
@@ -140,15 +189,51 @@ export function CalendarDayView({
 												minute={15}
 											>
 												<PopoverTrigger
-													handle={handle}
+													handle={quickAddEventPopoverHandle}
 													id={`day-slot-${hour}-15`}
 													payload={{
 														date: selectedDate,
 														time: { hour, minute: 15 },
 													}}
-												>
-													<div className="absolute inset-x-0 top-[24px] h-[24px] cursor-pointer transition-colors hover:bg-accent" />
-												</PopoverTrigger>
+													nativeButton={false}
+													render={({ className, onClick, ...props }) => {
+														const triggerId = `day-slot-${hour}-15`;
+														const isActive =
+															isOpen && activeTriggerId === triggerId;
+														return (
+															<button
+																type="button"
+																className={cn(
+																	isActive &&
+																		eventBadgeVariants({
+																			color: addEventColor,
+																		}),
+																	"absolute inset-x-0 top-[24px] h-[24px] cursor-pointer transition-colors hover:bg-accent",
+																	isActive && "min-h-6",
+																	className,
+																)}
+																onClick={(e) => {
+																	e.stopPropagation();
+																	onClick?.(e);
+																}}
+																{...props}
+															>
+																{isActive ? (
+																	<div className="flex w-full min-w-0 items-center justify-between gap-1.5 truncate text-xs">
+																		<p className="min-w-0 truncate font-semibold">
+																			{newEventTitle || "(No title)"}
+																		</p>
+																		{!newEventAllDay && newEventStartTime ? (
+																			<p className="shrink-0">
+																				{formattedStartTime}
+																			</p>
+																		) : null}
+																	</div>
+																) : null}
+															</button>
+														);
+													}}
+												/>
 											</DroppableTimeBlock>
 
 											<div className="pointer-events-none absolute inset-x-0 top-1/2 border-b border-dashed"></div>
@@ -159,15 +244,51 @@ export function CalendarDayView({
 												minute={30}
 											>
 												<PopoverTrigger
-													handle={handle}
+													handle={quickAddEventPopoverHandle}
 													id={`day-slot-${hour}-30`}
 													payload={{
 														date: selectedDate,
 														time: { hour, minute: 30 },
 													}}
-												>
-													<div className="absolute inset-x-0 top-[48px] h-[24px] cursor-pointer transition-colors hover:bg-accent" />
-												</PopoverTrigger>
+													nativeButton={false}
+													render={({ className, onClick, ...props }) => {
+														const triggerId = `day-slot-${hour}-30`;
+														const isActive =
+															isOpen && activeTriggerId === triggerId;
+														return (
+															<button
+																type="button"
+																className={cn(
+																	isActive &&
+																		eventBadgeVariants({
+																			color: addEventColor,
+																		}),
+																	"absolute inset-x-0 top-[48px] h-[24px] cursor-pointer transition-colors hover:bg-accent",
+																	isActive && "min-h-6",
+																	className,
+																)}
+																onClick={(e) => {
+																	e.stopPropagation();
+																	onClick?.(e);
+																}}
+																{...props}
+															>
+																{isActive ? (
+																	<div className="flex w-full min-w-0 items-center justify-between gap-1.5 truncate text-xs">
+																		<p className="min-w-0 truncate font-semibold">
+																			{newEventTitle || "(No title)"}
+																		</p>
+																		{!newEventAllDay && newEventStartTime ? (
+																			<p className="shrink-0">
+																				{formattedStartTime}
+																			</p>
+																		) : null}
+																	</div>
+																) : null}
+															</button>
+														);
+													}}
+												/>
 											</DroppableTimeBlock>
 
 											<DroppableTimeBlock
@@ -176,15 +297,51 @@ export function CalendarDayView({
 												minute={45}
 											>
 												<PopoverTrigger
-													handle={handle}
+													handle={quickAddEventPopoverHandle}
 													id={`day-slot-${hour}-45`}
 													payload={{
 														date: selectedDate,
 														time: { hour, minute: 45 },
 													}}
-												>
-													<div className="absolute inset-x-0 top-[72px] h-[24px] cursor-pointer transition-colors hover:bg-accent" />
-												</PopoverTrigger>
+													nativeButton={false}
+													render={({ className, onClick, ...props }) => {
+														const triggerId = `day-slot-${hour}-45`;
+														const isActive =
+															isOpen && activeTriggerId === triggerId;
+														return (
+															<button
+																type="button"
+																className={cn(
+																	isActive &&
+																		eventBadgeVariants({
+																			color: addEventColor,
+																		}),
+																	"absolute inset-x-0 top-[72px] h-[24px] cursor-pointer transition-colors hover:bg-accent",
+																	isActive && "min-h-6",
+																	className,
+																)}
+																onClick={(e) => {
+																	e.stopPropagation();
+																	onClick?.(e);
+																}}
+																{...props}
+															>
+																{isActive ? (
+																	<div className="flex w-full min-w-0 items-center justify-between gap-1.5 truncate text-xs">
+																		<p className="min-w-0 truncate font-semibold">
+																			{newEventTitle || "(No title)"}
+																		</p>
+																		{!newEventAllDay && newEventStartTime ? (
+																			<p className="shrink-0">
+																				{formattedStartTime}
+																			</p>
+																		) : null}
+																	</div>
+																) : null}
+															</button>
+														);
+													}}
+												/>
 											</DroppableTimeBlock>
 										</div>
 									);
@@ -225,7 +382,10 @@ export function CalendarDayView({
 												className="absolute p-1"
 												style={style}
 											>
-												<EventBlock event={event} />
+												<EventBlock
+													event={event}
+													handle={quickAddEventPopoverHandle}
+												/>
 											</div>
 										);
 									}),
@@ -240,78 +400,7 @@ export function CalendarDayView({
 					</div>
 				</ScrollArea>
 			</div>
-
-			<div className="hidden w-64 divide-y border-l md:block">
-				<SingleCalendar
-					className="mx-auto w-fit"
-					mode="single"
-					selected={selectedDate}
-					onSelect={(date) =>
-						date &&
-						navigate({ to: "/calendar", search: (prev) => ({ ...prev, date }) })
-					}
-					initialFocus
-				/>
-
-				<div className="flex-1 space-y-3">
-					{currentEvents.length > 0 ? (
-						<div className="flex items-start gap-2 px-4 pt-4">
-							<span className="relative mt-[5px] flex size-2.5">
-								<span className="absolute inline-flex size-full animate-ping rounded-full bg-green-400 opacity-75"></span>
-								<span className="relative inline-flex size-2.5 rounded-full bg-green-600"></span>
-							</span>
-
-							<p className="font-semibold text-foreground text-sm">
-								Happening now
-							</p>
-						</div>
-					) : (
-						<p className="p-4 text-center text-muted-foreground text-sm italic">
-							No appointments or consultations at the moment
-						</p>
-					)}
-
-					{currentEvents.length > 0 && (
-						<ScrollArea className="h-[422px] px-4" type="always">
-							<div className="space-y-6 pb-4">
-								{currentEvents.map((event) => {
-									const user = users.find((user) => user.id === event.user.id);
-
-									return (
-										<div key={event.id} className="space-y-1.5">
-											<p className="line-clamp-2 font-semibold text-sm">
-												{event.title}
-											</p>
-
-											{user && (
-												<div className="flex items-center gap-1.5 text-muted-foreground">
-													<User className="size-3.5" />
-													<span className="text-sm">{user.name}</span>
-												</div>
-											)}
-
-											<div className="flex items-center gap-1.5 text-muted-foreground">
-												<Calendar className="size-3.5" />
-												<span className="text-sm">
-													{format(new Date(), "MMM d, yyyy")}
-												</span>
-											</div>
-
-											<div className="flex items-center gap-1.5 text-muted-foreground">
-												<Clock className="size-3.5" />
-												<span className="text-sm">
-													{format(parseISO(event.startDate), "h:mm a")} -{" "}
-													{format(parseISO(event.endDate), "h:mm a")}
-												</span>
-											</div>
-										</div>
-									);
-								})}
-							</div>
-						</ScrollArea>
-					)}
-				</div>
-			</div>
-		</div>
+			<EventPopover handle={quickAddEventPopoverHandle} />
+		</>
 	);
 }

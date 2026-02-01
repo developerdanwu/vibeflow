@@ -1,12 +1,14 @@
-import type { VariantProps } from "class-variance-authority";
-import { cva } from "class-variance-authority";
-import { differenceInMinutes, format, parseISO } from "date-fns";
-import type { HTMLAttributes } from "react";
 import { EventDetailsDialog } from "@/components/big-calendar/components/dialogs/event-details-dialog";
 import { DraggableEvent } from "@/components/big-calendar/components/dnd/draggable-event";
 import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
 import type { IEvent } from "@/components/big-calendar/interfaces";
+import { PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import type { PopoverRootProps } from "@base-ui/react";
+import type { VariantProps } from "class-variance-authority";
+import { cva } from "class-variance-authority";
+import { differenceInMinutes, format, parseISO } from "date-fns";
+import type { HTMLAttributes } from "react";
 
 const calendarWeekEventCardVariants = cva(
 	"flex select-none flex-col gap-0.5 truncate whitespace-nowrap rounded-md border px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
@@ -53,9 +55,10 @@ interface IProps
 	extends HTMLAttributes<HTMLDivElement>,
 		Omit<VariantProps<typeof calendarWeekEventCardVariants>, "color"> {
 	event: IEvent;
+	handle?: NonNullable<PopoverRootProps["handle"]>;
 }
 
-export function EventBlock({ event, className }: IProps) {
+export function EventBlock({ event, className, handle }: IProps) {
 	const [badgeVariant] = useCalendar((s) => s.context.badgeVariant);
 
 	const start = parseISO(event.startDate);
@@ -79,38 +82,91 @@ export function EventBlock({ event, className }: IProps) {
 		}
 	};
 
+	const innerContent = (
+		<div
+			role="button"
+			tabIndex={0}
+			className={calendarWeekEventCardClasses}
+			style={{ height: `${heightInPixels}px` }}
+			onKeyDown={handleKeyDown}
+		>
+			<div className="flex items-center gap-1.5 truncate">
+				{["mixed", "dot"].includes(badgeVariant) && (
+					<svg
+						width="8"
+						height="8"
+						viewBox="0 0 8 8"
+						className="event-dot shrink-0"
+					>
+						<circle cx="4" cy="4" r="4" />
+					</svg>
+				)}
+
+				<p className="truncate font-semibold">{event.title}</p>
+			</div>
+
+			{durationInMinutes > 25 && (
+				<p>
+					{format(start, "h:mm a")} - {format(end, "h:mm a")}
+				</p>
+			)}
+		</div>
+	);
+
+	if (handle) {
+		return (
+			<DraggableEvent event={event}>
+				<PopoverTrigger
+					handle={handle}
+					id={`day-event-${event.id}`}
+					payload={{
+						date: parseISO(event.startDate),
+						mode: "edit",
+						event,
+					}}
+					render={({ className: triggerClassName, onClick, ...props }) => (
+						<div
+							className={cn(calendarWeekEventCardClasses, triggerClassName)}
+							style={{ height: `${heightInPixels}px` }}
+							role="button"
+							tabIndex={0}
+							onKeyDown={handleKeyDown}
+							onClick={(e) => {
+								e.stopPropagation();
+								onClick?.(e);
+							}}
+							{...props}
+						>
+							<div className="flex items-center gap-1.5 truncate">
+								{["mixed", "dot"].includes(badgeVariant) && (
+									<svg
+										width="8"
+										height="8"
+										viewBox="0 0 8 8"
+										className="event-dot shrink-0"
+									>
+										<circle cx="4" cy="4" r="4" />
+									</svg>
+								)}
+
+								<p className="truncate font-semibold">{event.title}</p>
+							</div>
+
+							{durationInMinutes > 25 && (
+								<p>
+									{format(start, "h:mm a")} - {format(end, "h:mm a")}
+								</p>
+							)}
+						</div>
+					)}
+				/>
+			</DraggableEvent>
+		);
+	}
+
 	return (
 		<DraggableEvent event={event}>
-			<EventDetailsDialog event={event}>
-				<div
-					role="button"
-					tabIndex={0}
-					className={calendarWeekEventCardClasses}
-					style={{ height: `${heightInPixels}px` }}
-					onKeyDown={handleKeyDown}
-				>
-					<div className="flex items-center gap-1.5 truncate">
-						{["mixed", "dot"].includes(badgeVariant) && (
-							<svg
-								width="8"
-								height="8"
-								viewBox="0 0 8 8"
-								className="event-dot shrink-0"
-							>
-								<circle cx="4" cy="4" r="4" />
-							</svg>
-						)}
-
-						<p className="truncate font-semibold">{event.title}</p>
-					</div>
-
-					{durationInMinutes > 25 && (
-						<p>
-							{format(start, "h:mm a")} - {format(end, "h:mm a")}
-						</p>
-					)}
-				</div>
-			</EventDetailsDialog>
+			<EventDetailsDialog event={event}>{innerContent}</EventDetailsDialog>
 		</DraggableEvent>
 	);
 }

@@ -1,3 +1,6 @@
+import { MonthEventBadge } from "@/components/big-calendar/components/month-view/month-event-badge";
+import type { IEvent } from "@/components/big-calendar/interfaces";
+import type { PopoverRootProps } from "@base-ui/react";
 import {
 	differenceInDays,
 	endOfDay,
@@ -6,18 +9,16 @@ import {
 	startOfDay,
 } from "date-fns";
 
-import { MonthEventBadge } from "@/components/big-calendar/components/month-view/month-event-badge";
-
-import type { IEvent } from "@/components/big-calendar/interfaces";
-
 interface IProps {
 	selectedDate: Date;
 	multiDayEvents: IEvent[];
+	handle: NonNullable<PopoverRootProps["handle"]>;
 }
 
 export function DayViewMultiDayEventsRow({
 	selectedDate,
 	multiDayEvents,
+	handle,
 }: IProps) {
 	const dayStart = startOfDay(selectedDate);
 	const dayEnd = endOfDay(selectedDate);
@@ -63,6 +64,7 @@ export function DayViewMultiDayEventsRow({
 					return (
 						<MonthEventBadge
 							key={event.id}
+							handle={handle}
 							event={event}
 							cellDate={selectedDate}
 							eventCurrentDay={eventCurrentDay}

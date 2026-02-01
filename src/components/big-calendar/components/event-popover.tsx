@@ -25,15 +25,9 @@ import type { Id } from "@convex/_generated/dataModel";
 import { Time } from "@internationalized/date";
 import { formOptions, useStore } from "@tanstack/react-form-start";
 import { useMutation } from "convex/react";
-import { addDays, format, parseISO } from "date-fns";
+import { addDays, format, parseISO, subDays } from "date-fns";
 import { InfoIcon, Trash2 } from "lucide-react";
-import {
-	forwardRef,
-	useEffect,
-	useId,
-	useImperativeHandle,
-	useRef,
-} from "react";
+import { forwardRef, useId, useImperativeHandle, useRef } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -123,7 +117,7 @@ export const eventFormSchema = z
 		startDateTime.setHours(data.startTime.hour, data.startTime.minute, 0, 0);
 		const endDateTime = new Date(data.endDate);
 		endDateTime.setHours(data.endTime.hour, data.endTime.minute, 0, 0);
-		if (startDateTime >= endDateTime) {
+		if (startDateTime > endDateTime) {
 			ctx.addIssue({
 				code: "custom",
 				message: "Start must be before end",
@@ -161,7 +155,8 @@ function getCreateDefaultValues(
 
 function getEditDefaultValues(event: IEvent): TEventFormData {
 	const startDate = parseISO(event.startDate);
-	const endDate = parseISO(event.endDate);
+	const rawEndDate = parseISO(event.endDate);
+	const endDate = event.allDay ? subDays(rawEndDate, 1) : rawEndDate;
 
 	let startTime: Time | undefined;
 	let endTime: Time | undefined;
@@ -173,7 +168,7 @@ function getEditDefaultValues(event: IEvent): TEventFormData {
 		endTime = new Time(endHour, endMin);
 	} else if (!event.allDay) {
 		startTime = new Time(startDate.getHours(), startDate.getMinutes());
-		endTime = new Time(endDate.getHours(), endDate.getMinutes());
+		endTime = new Time(rawEndDate.getHours(), rawEndDate.getMinutes());
 	}
 
 	const colorHex = colorNameToHex[event.color] ?? "#3B82F6";
@@ -230,9 +225,9 @@ const EventPopoverContent = forwardRef<
 			return;
 		}
 		try {
+			onClose();
 			await deleteEvent({ id: event.convexId as Id<"events"> });
 			toast.success("Event deleted");
-			onClose();
 		} catch (error) {
 			console.error("Failed to delete event:", error);
 			toast.error("Failed to delete event");
@@ -365,14 +360,6 @@ const EventPopoverContent = forwardRef<
 		[isDirty],
 	);
 
-	useEffect(() => {
-		return () => {
-			if (isDirty) {
-				form.handleSubmit();
-			}
-		};
-	}, [isDirty, form]);
-
 	return (
 		<PopoverContent
 			className="w-[480px] p-0"
@@ -384,6 +371,7 @@ const EventPopoverContent = forwardRef<
 				ref={formRef}
 				id={formId}
 				onSubmit={(e) => {
+					console.log("onSubmit");
 					e.preventDefault();
 					form.handleSubmit();
 				}}
