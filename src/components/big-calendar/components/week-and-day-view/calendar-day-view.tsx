@@ -15,7 +15,9 @@ import { PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SingleCalendar } from "@/components/ui/single-calendar";
 import { cn } from "@/lib/utils";
+import { Route } from "@/routes/_authenticated/calendar";
 import type { PopoverRootProps } from "@base-ui/react";
+import { useNavigate } from "@tanstack/react-router";
 import { areIntervalsOverlapping, format, parseISO } from "date-fns";
 import { Calendar, Clock, User } from "lucide-react";
 
@@ -30,7 +32,8 @@ export function CalendarDayView({
 	multiDayEvents,
 	handle,
 }: IProps) {
-	const [selectedDate, store] = useCalendar((s) => s.context.selectedDate);
+	const navigate = useNavigate();
+	const { date: selectedDate } = Route.useSearch();
 	const [users] = useCalendar((s) => s.context.users);
 	const [visibleHours] = useCalendar((s) => s.context.visibleHours);
 	const [workingHours] = useCalendar((s) => s.context.workingHours);
@@ -244,7 +247,8 @@ export function CalendarDayView({
 					mode="single"
 					selected={selectedDate}
 					onSelect={(date) =>
-						date && store.send({ type: "setSelectedDate", date })
+						date &&
+						navigate({ to: "/calendar", search: (prev) => ({ ...prev, date }) })
 					}
 					initialFocus
 				/>

@@ -1,10 +1,10 @@
+import { AgendaDayGroup } from "@/components/big-calendar/components/agenda-view/agenda-day-group";
+import type { IEvent } from "@/components/big-calendar/interfaces";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Route } from "@/routes/_authenticated/calendar";
 import { endOfDay, format, isSameMonth, parseISO, startOfDay } from "date-fns";
 import { CalendarX2 } from "lucide-react";
 import { useMemo } from "react";
-import { AgendaDayGroup } from "@/components/big-calendar/components/agenda-view/agenda-day-group";
-import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
-import type { IEvent } from "@/components/big-calendar/interfaces";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface IProps {
 	singleDayEvents: IEvent[];
@@ -15,7 +15,7 @@ export function CalendarAgendaView({
 	singleDayEvents,
 	multiDayEvents,
 }: IProps) {
-	const [selectedDate] = useCalendar((s) => s.context.selectedDate);
+	const { date: selectedDate } = Route.useSearch();
 
 	const eventsByDay = useMemo(() => {
 		const allDates = new Map<

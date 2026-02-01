@@ -21,6 +21,8 @@ export interface IEvent {
 	startTime?: string;
 	endTime?: string;
 	timeZone?: string;
+	createdAt?: number;
+	updatedAt?: number;
 }
 
 export interface ICalendarCell {

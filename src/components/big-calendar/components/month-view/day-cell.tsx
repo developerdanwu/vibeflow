@@ -94,9 +94,10 @@ export function DayCell({ cell, events, eventPositions, handle }: IProps) {
 						handle={handle}
 						id={triggerId}
 						payload={{ date }}
-						render={({ className, ...props }) => {
+						render={({ className, onClick, ...props }) => {
 							return (
-								<div
+								<button
+									type="button"
 									className={cn(
 										eventBadgeVariants({
 											color: addEventColor,
@@ -107,6 +108,10 @@ export function DayCell({ cell, events, eventPositions, handle }: IProps) {
 											"visible relative h-auto min-h-6",
 										className,
 									)}
+									onClick={(e) => {
+										e.stopPropagation();
+										onClick?.(e);
+									}}
 									{...props}
 								>
 									<div className="flex w-full items-center justify-between gap-1.5 truncate">
@@ -117,7 +122,7 @@ export function DayCell({ cell, events, eventPositions, handle }: IProps) {
 											<p>{formattedStartTime}</p>
 										) : null}
 									</div>
-								</div>
+								</button>
 							);
 						}}
 					/>
@@ -137,6 +142,7 @@ export function DayCell({ cell, events, eventPositions, handle }: IProps) {
 							<div key={eventKey} className="w-full">
 								{event && (
 									<MonthEventBadge
+										handle={handle}
 										className="flex"
 										event={event}
 										cellDate={cellDate}

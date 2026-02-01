@@ -132,7 +132,7 @@ Task 6: Delete EventDetailsDialog and cleanup
 
 ## TODOs
 
-- [ ] 1. Refactor QuickAddEventPopover to support edit mode
+- [x] 1. Refactor QuickAddEventPopover to support edit mode
 
   **What to do**:
   - Rename component from `QuickAddEventPopover` to `EventPopover`
@@ -221,7 +221,7 @@ Task 6: Delete EventDetailsDialog and cleanup
 
 ---
 
-- [ ] 2. Add delete button to edit popover
+- [x] 2. Add delete button to edit popover
 
   **What to do**:
   - Add delete button (Trash2 icon from lucide-react) in top-right corner of popover

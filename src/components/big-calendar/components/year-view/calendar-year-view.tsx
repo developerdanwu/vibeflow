@@ -1,16 +1,15 @@
+import { YearViewMonth } from "@/components/big-calendar/components/year-view/year-view-month";
+import type { IEvent } from "@/components/big-calendar/interfaces";
+import { Route } from "@/routes/_authenticated/calendar";
 import { addMonths, startOfYear } from "date-fns";
 import { useMemo } from "react";
-import { YearViewMonth } from "@/components/big-calendar/components/year-view/year-view-month";
-import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
-
-import type { IEvent } from "@/components/big-calendar/interfaces";
 
 interface IProps {
 	allEvents: IEvent[];
 }
 
 export function CalendarYearView({ allEvents }: IProps) {
-	const [selectedDate] = useCalendar((s) => s.context.selectedDate);
+	const { date: selectedDate } = Route.useSearch();
 
 	const months = useMemo(() => {
 		const yearStart = startOfYear(selectedDate);

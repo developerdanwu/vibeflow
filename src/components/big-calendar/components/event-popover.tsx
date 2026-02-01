@@ -1,5 +1,24 @@
 "use client";
 
+import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
+import type { IEvent } from "@/components/big-calendar/interfaces";
+import type { TEventColor } from "@/components/big-calendar/types";
+import { Button } from "@/components/ui/button";
+import ColorPickerCompact from "@/components/ui/color-picker-compact";
+import { DayPicker } from "@/components/ui/day-picker";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import { useAppForm } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { TimeInput } from "@/components/ui/time-input";
+import { useDisclosure } from "@/hooks/use-disclosure";
 import type { PopoverRootProps } from "@base-ui/react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
@@ -7,7 +26,7 @@ import { Time } from "@internationalized/date";
 import { formOptions, useStore } from "@tanstack/react-form-start";
 import { useMutation } from "convex/react";
 import { addDays, format, parseISO } from "date-fns";
-import { Trash2 } from "lucide-react";
+import { InfoIcon, Trash2 } from "lucide-react";
 import {
 	forwardRef,
 	useEffect,
@@ -17,21 +36,6 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
-import type { IEvent } from "@/components/big-calendar/interfaces";
-import type { TEventColor } from "@/components/big-calendar/types";
-import ColorPickerCompact from "@/components/ui/color-picker-compact";
-import { DayPicker } from "@/components/ui/day-picker";
-import { Field, FieldError, FieldLabel } from "@/components/ui/field";
-import { useAppForm } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent } from "@/components/ui/popover";
-import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { TimeInput } from "@/components/ui/time-input";
-import { useDisclosure } from "@/hooks/use-disclosure";
-import { dialogStore } from "@/lib/dialog-store";
 
 const colorNameToHex: Record<TEventColor, string> = {
 	blue: "#3B82F6",
@@ -220,30 +224,19 @@ const EventPopoverContent = forwardRef<
 	const deleteEvent = useMutation(api.events.deleteEvent);
 	const [_, calendarStore] = useCalendar();
 
-	const handleDelete = () => {
+	const handleDelete = async () => {
 		if (!event?.convexId) {
 			console.error("Cannot delete event without convexId");
 			return;
 		}
-
-		dialogStore.send({
-			type: "openConfirmDialog",
-			title: "Delete Event",
-			description:
-				"Are you sure you want to delete this event? This action cannot be undone.",
-			confirmText: "Delete",
-			cancelText: "Cancel",
-			onConfirm: async () => {
-				try {
-					await deleteEvent({ id: event.convexId as Id<"events"> });
-					toast.success("Event deleted");
-					onClose();
-				} catch (error) {
-					console.error("Failed to delete event:", error);
-					toast.error("Failed to delete event");
-				}
-			},
-		});
+		try {
+			await deleteEvent({ id: event.convexId as Id<"events"> });
+			toast.success("Event deleted");
+			onClose();
+		} catch (error) {
+			console.error("Failed to delete event:", error);
+			toast.error("Failed to delete event");
+		}
 	};
 
 	const defaults =
@@ -396,6 +389,47 @@ const EventPopoverContent = forwardRef<
 				}}
 				className="grid"
 			>
+				{mode === "edit" && (
+					<div className="absolute -top-9 right-0 flex rounded-md border bg-background">
+						<Popover>
+							<PopoverTrigger
+								render={
+									<Button variant="ghost" size="icon-sm" type="button">
+										<InfoIcon />
+									</Button>
+								}
+							/>
+							<PopoverContent side="bottom" align="end" className="w-56 p-3">
+								<div className="space-y-1.5 text-muted-foreground text-xs">
+									<p>
+										<span className="font-medium text-foreground">
+											Created:
+										</span>{" "}
+										{event?.createdAt
+											? format(new Date(event.createdAt), "PPp")
+											: "—"}
+									</p>
+									<p>
+										<span className="font-medium text-foreground">
+											Updated:
+										</span>{" "}
+										{event?.updatedAt
+											? format(new Date(event.updatedAt), "PPp")
+											: "—"}
+									</p>
+								</div>
+							</PopoverContent>
+						</Popover>
+						<Button
+							variant="destructive-ghost"
+							size="icon-sm"
+							type="button"
+							onClick={handleDelete}
+						>
+							<Trash2 />
+						</Button>
+					</div>
+				)}
 				<div className="flex w-full items-center justify-between p-2">
 					<div className="flex gap-1">
 						<form.AppField name="startDate">
@@ -546,16 +580,6 @@ const EventPopoverContent = forwardRef<
 							);
 						}}
 					</form.AppField>
-					{mode === "edit" && event?.convexId && (
-						<button
-							type="button"
-							onClick={handleDelete}
-							className="ml-auto rounded p-1 text-destructive transition-colors hover:bg-destructive/10"
-							title="Delete event"
-						>
-							<Trash2 size={18} />
-						</button>
-					)}
 				</div>
 				<Separator />
 				<div className="flex items-center px-2 py-1">

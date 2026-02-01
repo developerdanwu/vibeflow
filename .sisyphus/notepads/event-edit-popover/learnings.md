@@ -99,3 +99,136 @@ Called when `mode === "create"` with:
 ### Next Steps
 - Task 2: Update EventDetailsDialog to use EventPopover in edit mode
 - Task 3-5: Integrate edit mode with event details flow
+
+## [2026-02-01] Task 2: Delete Button Addition
+
+### Pattern: Delete Button with Confirmation Dialog
+- Location: `src/components/big-calendar/components/event-popover.tsx`
+- Icon: `Trash2` from lucide-react
+- Positioned in popover header (top-right corner with `ml-auto`)
+- Only renders when `mode === 'edit' && event?.convexId` exists
+
+### Pattern: Confirmation Dialog with dialogStore
+- Import: `import { dialogStore } from "@/lib/dialog-store"`
+- Usage: `dialogStore.send({ type: "openConfirmDialog", ... })`
+- Properties:
+  - `title`: "Delete Event"
+  - `description`: "Are you sure you want to delete this event? This action cannot be undone."
+  - `confirmText`: "Delete"
+  - `cancelText`: "Cancel"
+  - `onConfirm`: async callback that calls deleteEvent mutation
+
+### Mutation: deleteEvent
+- Import: `const deleteEvent = useMutation(api.events.deleteEvent)`
+- Args: `{ id: event.convexId as Id<"events"> }`
+- Called inside `onConfirm` callback with try/catch
+- Shows toast on success: `toast.success("Event deleted")`
+- Shows toast on error: `toast.error("Failed to delete event")`
+- Closes popover after successful delete: `onClose()`
+
+### Implementation Details
+- Delete button is a `<button type="button">` with `onClick={handleDelete}`
+- Button styling: `className="ml-auto rounded p-1 text-destructive transition-colors hover:bg-destructive/10"`
+- `ml-auto` positions button to the right side of the flex container
+- Trash2 icon size: `size={18}`
+- Button title: `title="Delete event"` for accessibility
+
+### Conditional Rendering
+```typescript
+{mode === "edit" && event?.convexId && (
+  <button type="button" onClick={handleDelete} ...>
+    <Trash2 size={18} />
+  </button>
+)}
+```
+
+### Error Handling
+- Runtime check: `if (!event?.convexId) { console.error(...); return; }`
+- Try/catch in onConfirm callback
+- Toast notifications for success and error states
+
+
+## [2026-02-01] Task 3: Migrate month-event-badge.tsx to EventPopover
+
+### Migration Pattern: EventDetailsDialog → EventPopover + PopoverTrigger
+- Location: `src/components/big-calendar/components/month-view/month-event-badge.tsx`
+- Removed: EventDetailsDialog wrapper component
+- Added: PopoverTrigger + EventPopover pattern
+
+### Implementation Details
+
+#### Handle Creation
+```typescript
+const eventPopoverHandle = useMemo(
+  () => PopoverBase.createHandle(),
+  [],
+);
+```
+- Creates a local handle for each badge instance
+- Used to control the popover open/close state
+
+#### PopoverTrigger Props
+- `handle={eventPopoverHandle}` - Controls the popover
+- `id={triggerId}` - Unique identifier for the trigger
+- `payload={{ date, mode, event }}` - Data passed to EventPopover
+  - `date: parseISO(event.startDate)` - Parsed date for form initialization
+  - `mode: "edit"` - Always edit mode for existing events
+  - `event: event` - The IEvent object for pre-filling form
+
+#### Payload Structure
+```typescript
+payload={{
+  date: parseISO(event.startDate),
+  mode: "edit",
+  event,
+}}
+```
+- Passed through PopoverTrigger to EventPopover
+- EventPopover receives payload in render function: `{({ payload: _payload }) => ...}`
+
+#### JSX Structure
+```
+<>
+  <DraggableEvent>
+    <PopoverTrigger>
+      <Tooltip>
+        <TooltipTrigger>
+          <button>Badge Content</button>
+        </TooltipTrigger>
+        <TooltipContent>Tooltip</TooltipContent>
+      </Tooltip>
+    </PopoverTrigger>
+  </DraggableEvent>
+  <EventPopover handle={eventPopoverHandle} />
+</>
+```
+
+### Preserved Functionality
+- ✓ DraggableEvent wrapper intact (drag-and-drop works)
+- ✓ Tooltip behavior preserved
+- ✓ Badge styling unchanged
+- ✓ Keyboard navigation (Enter/Space) preserved
+- ✓ Badge click opens EventPopover in edit mode
+
+### Import Changes
+- Removed: `import { EventDetailsDialog } from "..."`
+- Added: `import { EventPopover } from "@/components/big-calendar/components/event-popover"`
+- Added: `import { PopoverTrigger } from "@/components/ui/popover"`
+- Added: `import { Popover as PopoverBase } from "@base-ui/react"`
+- Added: `useMemo` to React imports
+
+### Key Differences from EventDetailsDialog
+- EventDetailsDialog: Wrapper component that takes children
+- EventPopover: Controlled component that uses handle + payload pattern
+- Each badge now has its own popover instance (not shared)
+- Payload passed through PopoverTrigger, not as component props
+
+### Verification
+- ✓ EventDetailsDialog import removed
+- ✓ EventPopover imported and used
+- ✓ PopoverTrigger wraps badge content
+- ✓ Payload includes mode="edit" and event data
+- ✓ DraggableEvent wrapper preserved
+- ✓ No TypeScript errors in month-event-badge.tsx
+- ✓ Drag-and-drop functionality preserved
+

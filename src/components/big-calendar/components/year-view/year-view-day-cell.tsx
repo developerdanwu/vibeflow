@@ -1,7 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { isToday } from "date-fns";
 
-import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
 import type { IEvent } from "@/components/big-calendar/interfaces";
 import { cn } from "@/lib/utils";
 
@@ -13,15 +12,15 @@ interface IProps {
 
 export function YearViewDayCell({ day, date, events }: IProps) {
 	const navigate = useNavigate();
-	const [, store] = useCalendar();
 
 	const maxIndicators = 3;
 	const eventCount = events.length;
 
-	const handleClick = () => {
-		store.send({ type: "setSelectedDate", date });
-		navigate({ to: "/day" });
-	};
+	const handleClick = () =>
+		navigate({
+			to: "/calendar",
+			search: (prev) => ({ ...prev, view: "day", date }),
+		});
 
 	return (
 		<button

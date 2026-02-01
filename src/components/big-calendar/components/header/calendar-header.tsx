@@ -1,13 +1,11 @@
-import { Link, useNavigate } from "@tanstack/react-router";
-import { addMonths, subMonths } from "date-fns";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { DateNavigator } from "@/components/big-calendar/components/header/date-navigator";
 import type { IEvent } from "@/components/big-calendar/interfaces";
 import type { TCalendarView } from "@/components/big-calendar/types";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
-import { navigateDate } from "@/components/big-calendar/helpers";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { addMonths, subMonths } from "date-fns";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface IProps {
 	view: TCalendarView;
@@ -17,20 +15,12 @@ interface IProps {
 
 export function CalendarHeader({ view, events }: IProps) {
 	const navigate = useNavigate();
-	const [selectedDate, store] = useCalendar((s) => s.context.selectedDate);
 
-	const handlePrevious = () =>
-		store.send({
-			type: "setSelectedDate",
-			date: navigateDate(selectedDate, view, "previous"),
-		});
-	const handleNext = () =>
-		store.send({
-			type: "setSelectedDate",
-			date: navigateDate(selectedDate, view, "next"),
-		});
 	const handleToday = () =>
-		store.send({ type: "setSelectedDate", date: new Date() });
+		navigate({
+			to: "/calendar",
+			search: (prev) => ({ ...prev, date: new Date() }),
+		});
 
 	const handleViewChange = (newView: TCalendarView) => {
 		navigate({
@@ -54,7 +44,7 @@ export function CalendarHeader({ view, events }: IProps) {
 						from="/calendar"
 						search={({ date }) => ({ date: subMonths(date, 1) })}
 					>
-						<Button variant="ghost" size="icon-sm" onClick={handlePrevious}>
+						<Button variant="ghost" size="icon-sm">
 							<ChevronLeft />
 						</Button>
 					</Link>
@@ -63,7 +53,7 @@ export function CalendarHeader({ view, events }: IProps) {
 						from="/calendar"
 						search={({ date }) => ({ date: addMonths(date, 1) })}
 					>
-						<Button variant="ghost" size="icon-sm" onClick={handleNext}>
+						<Button variant="ghost" size="icon-sm">
 							<ChevronRight />
 						</Button>
 					</Link>

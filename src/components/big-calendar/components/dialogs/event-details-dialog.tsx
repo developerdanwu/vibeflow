@@ -12,11 +12,11 @@ import {
 } from "@/components/ui/dialog";
 import { dialogStore } from "@/lib/dialog-store";
 import { useConvexMutation } from "@convex-dev/react-query";
+import { api } from "@convex/_generated/api";
+import type { Id } from "@convex/_generated/dataModel";
 import { useMutation } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import { Calendar, Clock, Text, User } from "lucide-react";
-import { api } from "convex/_generated/api";
-import type { Id } from "convex/_generated/dataModel";
 
 interface IProps {
 	event: IEvent;

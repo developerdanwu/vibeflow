@@ -7,12 +7,12 @@ import type { IEvent, IUser } from "@/components/big-calendar/interfaces";
 import type { TEventColor } from "@/components/big-calendar/types";
 import "@/styles/calendar.css";
 import { convexQuery } from "@convex-dev/react-query";
+import { api } from "@convex/_generated/api";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAuth } from "@workos/authkit-tanstack-react-start/client";
 import { useMemo } from "react";
 import { z } from "zod";
-import { api } from "convex/_generated/api";
 
 const calendarSearchSchema = z.object({
 	view: z.enum(["month", "week", "day", "year", "agenda"]).default("month"),
@@ -45,9 +45,8 @@ const validColors: TEventColor[] = [
 ];
 
 function CalendarRoute() {
-	const { date: initialDate } = Route.useSearch();
 	return (
-		<CalendarProvider initialDate={initialDate}>
+		<CalendarProvider>
 			<CalendarContent />
 		</CalendarProvider>
 	);
@@ -88,6 +87,7 @@ function CalendarContent() {
 			startTime: event.startTime,
 			endTime: event.endTime,
 			timeZone: event.timeZone,
+			createdAt: event._creationTime,
 		}));
 	}, [convexEvents, currentUser]);
 

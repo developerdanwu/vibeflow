@@ -1,20 +1,8 @@
 "use client";
 
-import { type ReactNode, useEffect } from "react";
-import { useCalendar } from "@/components/big-calendar/store/calendarStore";
+import type { ReactNode } from "react";
 
-export function CalendarProvider({
-	children,
-	initialDate,
-}: {
-	children: ReactNode;
-	initialDate: Date;
-}) {
-	const [, store] = useCalendar();
-	useEffect(() => {
-		store.send({ type: "setSelectedDate", date: initialDate });
-	}, [initialDate, store]);
-
+export function CalendarProvider({ children }: { children: ReactNode }) {
 	return <>{children}</>;
 }
 

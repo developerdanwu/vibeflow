@@ -1,15 +1,13 @@
-import { Popover as PopoverBase } from "@base-ui/react";
-import { useMemo } from "react";
+import { EventPopover } from "@/components/big-calendar/components/event-popover";
 import { DayCell } from "@/components/big-calendar/components/month-view/day-cell";
-
 import {
 	calculateMonthEventPositions,
 	getCalendarCells,
 } from "@/components/big-calendar/helpers";
-
 import type { IEvent } from "@/components/big-calendar/interfaces";
 import { Route } from "@/routes/_authenticated/calendar";
-import { EventPopover } from "@/components/big-calendar/components/event-popover";
+import { Popover as PopoverBase } from "@base-ui/react";
+import { useMemo } from "react";
 
 interface IProps {
 	singleDayEvents: IEvent[];

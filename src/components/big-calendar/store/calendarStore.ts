@@ -1,5 +1,3 @@
-import type { Time } from "@internationalized/date";
-import { createStoreHook } from "@xstate/store-react";
 import type { IEvent, IUser } from "@/components/big-calendar/interfaces";
 import type {
 	TBadgeVariant,
@@ -7,6 +5,8 @@ import type {
 	TVisibleHours,
 	TWorkingHours,
 } from "@/components/big-calendar/types";
+import type { Time } from "@internationalized/date";
+import { createStoreHook } from "@xstate/store-react";
 
 const WORKING_HOURS: TWorkingHours = {
 	0: { from: 0, to: 0 },
@@ -22,7 +22,6 @@ const VISIBLE_HOURS: TVisibleHours = { from: 7, to: 18 };
 
 export const useCalendar = createStoreHook({
 	context: {
-		selectedDate: new Date(),
 		selectedUserId: "all" as IUser["id"] | "all",
 		badgeVariant: "colored" as TBadgeVariant,
 		density: "small" as TDensity,
@@ -52,10 +51,6 @@ export const useCalendar = createStoreHook({
 		setNewEventTitle: (context, event: { title: string }) => ({
 			...context,
 			newEventTitle: event.title,
-		}),
-		setSelectedDate: (context, event: { date: Date }) => ({
-			...context,
-			selectedDate: event.date,
 		}),
 		setSelectedUserId: (context, event: { userId: IUser["id"] | "all" }) => ({
 			...context,

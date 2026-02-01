@@ -1,13 +1,14 @@
-import { EventDetailsDialog } from "@/components/big-calendar/components/dialogs/event-details-dialog";
 import { DraggableEvent } from "@/components/big-calendar/components/dnd/draggable-event";
 import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
 import type { IEvent } from "@/components/big-calendar/interfaces";
+import { PopoverTrigger } from "@/components/ui/popover";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import type { PopoverRootProps } from "@base-ui/react";
 import type { VariantProps } from "class-variance-authority";
 import { cva } from "class-variance-authority";
 import { endOfDay, format, isSameDay, parseISO, startOfDay } from "date-fns";
@@ -66,6 +67,7 @@ interface IProps
 		VariantProps<typeof eventBadgeVariants>,
 		"color" | "multiDayPosition"
 	> {
+	handle: NonNullable<PopoverRootProps["handle"]>;
 	event: IEvent;
 	cellDate: Date;
 	eventCurrentDay?: number;
@@ -75,6 +77,7 @@ interface IProps
 }
 
 export function MonthEventBadge({
+	handle,
 	event,
 	cellDate,
 	eventCurrentDay,
@@ -131,47 +134,72 @@ export function MonthEventBadge({
 		end.getMinutes() === 0 ? format(end, "h a") : format(end, "h:mm a");
 	const timeRange = `${startStr} - ${endStr}`;
 
+	const triggerId = `event-badge-${event.id}`;
+
 	return (
 		<DraggableEvent event={event}>
-			<EventDetailsDialog event={event}>
-				<Tooltip>
-					<TooltipTrigger
-						render={({ className, ...props }) => {
-							return (
-								<button
-									type="button"
-									tabIndex={0}
-									className={cn(eventBadgeClasses, className)}
-									onKeyDown={handleKeyDown}
-									{...props}
-								>
-									<div className="flex items-center gap-1.5 truncate">
-										{renderBadgeText && (
-											<p className="flex-1 truncate font-semibold">
-												{eventCurrentDay && (
-													<span className="text-xs">
-														Day {eventCurrentDay} of {eventTotalDays} •{" "}
-													</span>
+			<PopoverTrigger
+				handle={handle}
+				id={triggerId}
+				payload={{
+					date: parseISO(event.startDate),
+					mode: "edit",
+					event,
+				}}
+				render={({ className, onClick: onClickBadge, ...props }) => {
+					return (
+						<Tooltip>
+							<TooltipTrigger
+								render={({
+									className: tooltipClassName,
+									onClick: onClickTooltip,
+									...tooltipProps
+								}) => {
+									return (
+										<button
+											type="button"
+											tabIndex={0}
+											className={cn(eventBadgeClasses, tooltipClassName)}
+											onKeyDown={handleKeyDown}
+											{...tooltipProps}
+											{...props}
+											onClick={(e) => {
+												e.stopPropagation();
+												onClickTooltip?.(e);
+												onClickBadge?.(e);
+											}}
+										>
+											<div className="flex items-center gap-1.5 truncate">
+												{renderBadgeText && (
+													<p className="flex-1 truncate font-semibold">
+														{eventCurrentDay && (
+															<span className="text-xs">
+																Day {eventCurrentDay} of {eventTotalDays} •{" "}
+															</span>
+														)}
+														{event.title}
+													</p>
 												)}
-												{event.title}
-											</p>
-										)}
-									</div>
+											</div>
 
-									{renderBadgeText && <span>{format(start, "h:mm a")}</span>}
-								</button>
-							);
-						}}
-					/>
-					<TooltipContent
-						side="top"
-						className="max-w-xs border bg-popover px-3 py-2 text-popover-foreground shadow-md"
-					>
-						<p className="font-semibold">{event.title}</p>
-						<p className="text-2xs text-muted-foreground">{timeRange}</p>
-					</TooltipContent>
-				</Tooltip>
-			</EventDetailsDialog>
+											{renderBadgeText && (
+												<span>{format(start, "h:mm a")}</span>
+											)}
+										</button>
+									);
+								}}
+							/>
+							<TooltipContent
+								side="top"
+								className="max-w-xs border bg-popover px-3 py-2 text-popover-foreground shadow-md"
+							>
+								<p className="font-semibold">{event.title}</p>
+								<p className="text-2xs text-muted-foreground">{timeRange}</p>
+							</TooltipContent>
+						</Tooltip>
+					);
+				}}
+			/>
 		</DraggableEvent>
 	);
 }

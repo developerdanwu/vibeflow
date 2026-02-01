@@ -1,6 +1,6 @@
-import { useMutation } from "convex/react";
 import type { TEventFormData } from "@/components/big-calendar/schemas";
-import { api } from "convex/_generated/api";
+import { api } from "@convex/_generated/api";
+import { useMutation } from "convex/react";
 
 export function useAddEvent() {
 	const createEvent = useMutation(api.events.createEvent);

@@ -1,13 +1,12 @@
+import { useNavigate } from "@tanstack/react-router";
 import { formatDate } from "date-fns";
 
-import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
-
 export function TodayButton() {
-	const [, store] = useCalendar();
+	const navigate = useNavigate();
 
 	const today = new Date();
 	const handleClick = () =>
-		store.send({ type: "setSelectedDate", date: today });
+		navigate({ to: "/calendar", search: (prev) => ({ ...prev, date: today }) });
 
 	return (
 		<button

@@ -13,6 +13,7 @@ import {
 import type { IEvent } from "@/components/big-calendar/interfaces";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { Route } from "@/routes/_authenticated/calendar";
 import {
 	addDays,
 	areIntervalsOverlapping,
@@ -28,7 +29,7 @@ interface IProps {
 }
 
 export function CalendarWeekView({ singleDayEvents, multiDayEvents }: IProps) {
-	const [selectedDate] = useCalendar((s) => s.context.selectedDate);
+	const { date: selectedDate } = Route.useSearch();
 	const [workingHours] = useCalendar((s) => s.context.workingHours);
 	const [visibleHours] = useCalendar((s) => s.context.visibleHours);
 

@@ -1,8 +1,8 @@
 "use client";
 
+import { CalendarAgendaView } from "@/components/big-calendar/components/agenda-view/calendar-agenda-view";
 import { isSameDay, parseISO } from "date-fns";
 import { useMemo } from "react";
-import { CalendarAgendaView } from "@/components/big-calendar/components/agenda-view/calendar-agenda-view";
 
 import { DndProviderWrapper } from "@/components/big-calendar/components/dnd/dnd-provider";
 
@@ -12,15 +12,15 @@ import { CalendarDayView } from "@/components/big-calendar/components/week-and-d
 import { CalendarWeekView } from "@/components/big-calendar/components/week-and-day-view/calendar-week-view";
 import { CalendarYearView } from "@/components/big-calendar/components/year-view/calendar-year-view";
 import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
-
 import type { TCalendarView } from "@/components/big-calendar/types";
+import { Route } from "@/routes/_authenticated/calendar";
 
 interface IProps {
 	view: TCalendarView;
 }
 
 export function ClientContainer({ view }: IProps) {
-	const [selectedDate] = useCalendar((s) => s.context.selectedDate);
+	const { date: selectedDate } = Route.useSearch();
 	const [selectedUserId] = useCalendar((s) => s.context.selectedUserId);
 	const [events] = useCalendar((s) => s.context.events);
 

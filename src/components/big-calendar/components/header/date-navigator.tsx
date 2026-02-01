@@ -1,8 +1,8 @@
 import { formatDate } from "date-fns";
 
-import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
 import type { IEvent } from "@/components/big-calendar/interfaces";
 import type { TCalendarView } from "@/components/big-calendar/types";
+import { Route } from "@/routes/_authenticated/calendar";
 
 interface IProps {
 	view: TCalendarView;
@@ -10,7 +10,7 @@ interface IProps {
 }
 
 export function DateNavigator({ view: _view, events: _events }: IProps) {
-	const [selectedDate] = useCalendar((s) => s.context.selectedDate);
+	const { date: selectedDate } = Route.useSearch();
 
 	const month = formatDate(selectedDate, "MMM");
 	const year = selectedDate.getFullYear();

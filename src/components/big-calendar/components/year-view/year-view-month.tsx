@@ -1,3 +1,5 @@
+import { YearViewDayCell } from "@/components/big-calendar/components/year-view/year-view-day-cell";
+import type { IEvent } from "@/components/big-calendar/interfaces";
 import { useNavigate } from "@tanstack/react-router";
 import {
 	format,
@@ -7,10 +9,6 @@ import {
 	startOfMonth,
 } from "date-fns";
 import { useMemo } from "react";
-import { YearViewDayCell } from "@/components/big-calendar/components/year-view/year-view-day-cell";
-import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
-
-import type { IEvent } from "@/components/big-calendar/interfaces";
 
 interface IProps {
 	month: Date;
@@ -19,7 +17,6 @@ interface IProps {
 
 export function YearViewMonth({ month, events }: IProps) {
 	const navigate = useNavigate();
-	const [, store] = useCalendar();
 
 	const monthName = format(month, "MMMM");
 
@@ -35,13 +32,15 @@ export function YearViewMonth({ month, events }: IProps) {
 
 	const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-	const handleClick = () => {
-		store.send({
-			type: "setSelectedDate",
-			date: new Date(month.getFullYear(), month.getMonth(), 1),
+	const handleClick = () =>
+		navigate({
+			to: "/calendar",
+			search: (prev) => ({
+				...prev,
+				view: "month",
+				date: new Date(month.getFullYear(), month.getMonth(), 1),
+			}),
 		});
-		navigate({ to: "/month-view" });
-	};
 
 	return (
 		<div className="flex flex-col">
