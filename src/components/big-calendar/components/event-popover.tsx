@@ -1,10 +1,13 @@
 "use client";
 
 import type { PopoverRootProps } from "@base-ui/react";
+import { api } from "@convex/_generated/api";
+import type { Id } from "@convex/_generated/dataModel";
 import { Time } from "@internationalized/date";
 import { formOptions, useStore } from "@tanstack/react-form-start";
 import { useMutation } from "convex/react";
 import { addDays, format, parseISO } from "date-fns";
+import { Trash2 } from "lucide-react";
 import {
 	forwardRef,
 	useEffect,
@@ -14,6 +17,9 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
+import type { IEvent } from "@/components/big-calendar/interfaces";
+import type { TEventColor } from "@/components/big-calendar/types";
 import ColorPickerCompact from "@/components/ui/color-picker-compact";
 import { DayPicker } from "@/components/ui/day-picker";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
@@ -25,11 +31,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { TimeInput } from "@/components/ui/time-input";
 import { useDisclosure } from "@/hooks/use-disclosure";
-import { api } from "convex/_generated/api";
-import type { Id } from "convex/_generated/dataModel";
-import type { IEvent } from "@/components/big-calendar/interfaces";
-import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
-import type { TEventColor } from "@/components/big-calendar/types";
+import { dialogStore } from "@/lib/dialog-store";
 
 const colorNameToHex: Record<TEventColor, string> = {
 	blue: "#3B82F6",
@@ -215,7 +217,34 @@ const EventPopoverContent = forwardRef<
 
 	const createEvent = useMutation(api.events.createEvent);
 	const updateEvent = useMutation(api.events.updateEvent);
+	const deleteEvent = useMutation(api.events.deleteEvent);
 	const [_, calendarStore] = useCalendar();
+
+	const handleDelete = () => {
+		if (!event?.convexId) {
+			console.error("Cannot delete event without convexId");
+			return;
+		}
+
+		dialogStore.send({
+			type: "openConfirmDialog",
+			title: "Delete Event",
+			description:
+				"Are you sure you want to delete this event? This action cannot be undone.",
+			confirmText: "Delete",
+			cancelText: "Cancel",
+			onConfirm: async () => {
+				try {
+					await deleteEvent({ id: event.convexId as Id<"events"> });
+					toast.success("Event deleted");
+					onClose();
+				} catch (error) {
+					console.error("Failed to delete event:", error);
+					toast.error("Failed to delete event");
+				}
+			},
+		});
+	};
 
 	const defaults =
 		mode === "edit" && event
@@ -517,6 +546,16 @@ const EventPopoverContent = forwardRef<
 							);
 						}}
 					</form.AppField>
+					{mode === "edit" && event?.convexId && (
+						<button
+							type="button"
+							onClick={handleDelete}
+							className="ml-auto rounded p-1 text-destructive transition-colors hover:bg-destructive/10"
+							title="Delete event"
+						>
+							<Trash2 size={18} />
+						</button>
+					)}
 				</div>
 				<Separator />
 				<div className="flex items-center px-2 py-1">
