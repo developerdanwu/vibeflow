@@ -1,7 +1,7 @@
-import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { authMutation, authQuery } from "./helpers";
 
-export const createEvent = mutation({
+export const createEvent = authMutation({
 	args: {
 		title: v.string(),
 		description: v.optional(v.string()),
@@ -13,23 +13,18 @@ export const createEvent = mutation({
 		allDay: v.boolean(),
 	},
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Not authenticated");
-		}
-
 		if (args.endDate < args.startDate) {
 			throw new Error("End date must be after start date");
 		}
 
 		return await ctx.db.insert("events", {
 			...args,
-			userId: identity.subject,
+			userId: ctx.user._id,
 		});
 	},
 });
 
-export const updateEvent = mutation({
+export const updateEvent = authMutation({
 	args: {
 		id: v.id("events"),
 		title: v.optional(v.string()),
@@ -42,18 +37,13 @@ export const updateEvent = mutation({
 		allDay: v.optional(v.boolean()),
 	},
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Not authenticated");
-		}
-
 		const { id, ...updates } = args;
 		const event = await ctx.db.get(id);
 
 		if (!event) {
 			throw new Error("Event not found");
 		}
-		if (event.userId !== identity.subject) {
+		if (event.userId !== ctx.user._id) {
 			throw new Error("Not authorized to update this event");
 		}
 
@@ -71,22 +61,17 @@ export const updateEvent = mutation({
 	},
 });
 
-export const deleteEvent = mutation({
+export const deleteEvent = authMutation({
 	args: {
 		id: v.id("events"),
 	},
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Not authenticated");
-		}
-
 		const event = await ctx.db.get(args.id);
 
 		if (!event) {
 			throw new Error("Event not found");
 		}
-		if (event.userId !== identity.subject) {
+		if (event.userId !== ctx.user._id) {
 			throw new Error("Not authorized to delete this event");
 		}
 
@@ -94,36 +79,26 @@ export const deleteEvent = mutation({
 	},
 });
 
-export const getEventsByUser = query({
+export const getEventsByUser = authQuery({
 	args: {},
 	handler: async (ctx) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			return [];
-		}
-
 		return await ctx.db
 			.query("events")
-			.withIndex("by_user", (q) => q.eq("userId", identity.subject))
+			.withIndex("by_user", (q) => q.eq("userId", ctx.user._id))
 			.collect();
 	},
 });
 
-export const getEventsByDateRange = query({
+export const getEventsByDateRange = authQuery({
 	args: {
 		startDate: v.number(),
 		endDate: v.number(),
 	},
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			return [];
-		}
-
 		const events = await ctx.db
 			.query("events")
 			.withIndex("by_user_and_date", (q) =>
-				q.eq("userId", identity.subject).gte("startDate", args.startDate)
+				q.eq("userId", ctx.user._id).gte("startDate", args.startDate)
 			)
 			.collect();
 
@@ -131,22 +106,17 @@ export const getEventsByDateRange = query({
 	},
 });
 
-export const getEventById = query({
+export const getEventById = authQuery({
 	args: {
 		id: v.id("events"),
 	},
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			return null;
-		}
-
 		const event = await ctx.db.get(args.id);
 
 		if (!event) {
 			return null;
 		}
-		if (event.userId !== identity.subject) {
+		if (event.userId !== ctx.user._id) {
 			throw new Error("Not authorized to view this event");
 		}
 

@@ -41,7 +41,7 @@ function SingleDayPicker({
 
 	return (
 		<Popover open={isOpen} onOpenChange={onToggle} modal>
-			<PopoverTrigger asChild>
+			<PopoverTrigger>
 				<Button
 					id={id}
 					variant="outline"
@@ -63,7 +63,6 @@ function SingleDayPicker({
 					mode="single"
 					selected={value}
 					onSelect={handleSelect}
-					initialFocus
 				/>
 			</PopoverContent>
 		</Popover>

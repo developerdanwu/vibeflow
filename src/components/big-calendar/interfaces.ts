@@ -7,7 +7,7 @@ export interface IUser {
 }
 
 export interface IEvent {
-	id: number;
+	id: string;
 	convexId?: string;
 	startDate: string;
 	endDate: string;

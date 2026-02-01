@@ -43,10 +43,11 @@ pnpm preview
 # Run tests
 pnpm test
 
-# Linting and formatting
-pnpm lint          # Run Biome linter
-pnpm format        # Format code with Biome
-pnpm check         # Run all Biome checks
+# Type checking and linting
+pnpm check         # Run typecheck + lint + format (recommended before commits)
+pnpm typecheck     # Check TypeScript types only
+pnpm lint          # Run Biome linter only
+pnpm format        # Format code with Biome only
 
 # Deploy to Cloudflare
 pnpm deploy        # Builds and deploys to Cloudflare
@@ -133,6 +134,21 @@ vibeflow/
 - **Semicolons:** Required
 - **Import Order:** Auto-organized by Biome on save
 
+### Imports
+- **Use import aliases where possible** - Prefer `@/` over relative paths
+- `@/*` maps to `src/*` directory
+
+```tsx
+// ✅ Correct - Use import aliases
+import { Button } from "@/components/ui/button";
+import { useUser } from "@/hooks/useUser";
+import { formatDate } from "@/lib/utils";
+
+// ❌ Wrong - Avoid relative paths when alias is available
+import { Button } from "../../../components/ui/button";
+import { useUser } from "../../hooks/useUser";
+```
+
 ### Convex Patterns
 - Follow schema patterns in `.cursorrules`
 - Use `v` validators for all schema fields
@@ -149,11 +165,16 @@ vibeflow/
 ## Testing and Verification Rules
 
 ### Required Before Marking Complete
-1. **Unit Tests:** Run `pnpm test` - all tests must pass
-2. **Type Check:** No TypeScript errors in changed files
-3. **Linting:** Run `pnpm check` - must pass with no errors
-4. **Build Verification:** `pnpm build` must complete successfully
-5. **Convex Functions:** Test mutations/queries in Convex dashboard
+1. **Full Check:** Run `pnpm check` - MUST pass (includes typecheck, lint, format)
+2. **Unit Tests:** Run `pnpm test` - all tests must pass
+3. **Build Verification:** `pnpm build` must complete successfully
+4. **Convex Functions:** Test mutations/queries in Convex dashboard
+
+**IMPORTANT:** Always run `pnpm check` after:
+- Adding/modifying components
+- Changing type definitions
+- Updating dependencies
+- Refactoring existing code
 
 ### Test Coverage Requirements
 - **New Features:** Must include tests for critical paths
@@ -165,6 +186,10 @@ vibeflow/
 - **Small Changes:** Run `pnpm check` and relevant unit tests
 - **Large Changes:** Full test suite (`pnpm test`) + build verification
 - **Before PR:** All checks must pass
+
+### UI and Browser Testing
+- **Cursor Browser:** Use the Cursor browser for UI-related work and testing. Validate and correct the UI by running the app and verifying layout, interactions, and behavior in the browser.
+- **Auth for testing:** When testing flows that require login, use **developerdanwu@gmail.com** as the Google login account.
 
 ---
 
@@ -208,6 +233,7 @@ vibeflow/
 3. **Use Existing Patterns:** Follow conventions already in the codebase
 4. **Explain Significant Changes:** Document why, not just what
 5. **Test Locally:** Verify changes work before marking complete
+6. **Learn and Document:** Use coding sessions as learning opportunities; when mistakes or corrections are made during coding, update relevant docs (e.g. AGENTS.md, src/docs/*.md) so future sessions benefit
 
 ### When Working on Features
 1. **Check spec.md** for requirements and acceptance criteria
@@ -228,7 +254,7 @@ vibeflow/
 - **Google Calendar:** Use existing OAuth flow in WorkOS
 - **Styling:** Use Tailwind classes, avoid inline styles
 - **State Management:** Use TanStack Query for server state, XState Store for client state
-- **Forms:** Leverage React Hook Form if complex validation needed
+- **Forms:** Use TanStack Form via `useAppForm` from `@/components/ui/form`. Use registered field components (e.g. `field.TextField`) inside `form.AppField` and form components (e.g. `form.SubmitButton`) inside `form.AppForm`. See [src/docs/ui.md](src/docs/ui.md) for TanStack Form.
 - **Time/Date:** Use existing date utilities, maintain timezone consistency
 
 ### Error Handling
@@ -255,6 +281,7 @@ vibeflow/
 - **Product Requirements:** Refer to `spec.md` for feature details
 - **UI/UX Design:** Refer to `UI_SPEC.md` for visual design and component specifications
 - **UI Components:** Check `components.json` for shadcn configuration
+- **Forms and popover patterns:** See [src/docs/ui.md](src/docs/ui.md) for TanStack Form, form-components, shared Popover handle, submit-dirty-form-on-close/unmount, and clearing external store on unmount.
 - **Deployment:** Review `wrangler.jsonc` for Cloudflare settings
 
 ---
@@ -278,7 +305,7 @@ vibeflow/
 1. Start Convex: `pnpm convex:dev`
 2. Start Frontend: `pnpm dev`
 3. Make changes
-4. Run checks: `pnpm check`
+4. Run checks: `pnpm check` (typecheck + lint + format)
 5. Test: `pnpm test`
 6. Commit with conventional message
 
@@ -291,6 +318,6 @@ pnpm dlx shadcn@latest add --help # shadcn component help
 
 ---
 
-**Last Updated:** January 2024
+**Last Updated:** February 2026
 **Maintained By:** Development Team
 **Questions:** Check README.md, spec.md, or UI_SPEC.md for additional context

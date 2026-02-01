@@ -1,7 +1,3 @@
-import type { PopoverRootProps } from "@base-ui/react/popover";
-import type { VariantProps } from "class-variance-authority";
-import { format, isToday, startOfDay } from "date-fns";
-import { useMemo } from "react";
 import { DroppableDayCell } from "@/components/big-calendar/components/dnd/droppable-day-cell";
 import {
 	eventBadgeVariants,
@@ -15,6 +11,10 @@ import type {
 } from "@/components/big-calendar/interfaces";
 import { PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import type { PopoverRootProps } from "@base-ui/react/popover";
+import type { VariantProps } from "class-variance-authority";
+import { format, isToday, startOfDay } from "date-fns";
+import { useMemo } from "react";
 
 interface IProps {
 	cell: ICalendarCell;
@@ -117,10 +117,10 @@ export function DayCell({ cell, events, eventPositions, handle }: IProps) {
 							: `empty-${position}`;
 
 						return (
-							<div key={eventKey} className="w-full flex-1">
+							<div key={eventKey} className="w-full">
 								{event && (
 									<MonthEventBadge
-										className="flex hidden"
+										className="flex"
 										event={event}
 										cellDate={startOfDay(date)}
 									/>

@@ -1,6 +1,5 @@
 "use client";
 
-import { useSelector } from "@xstate/store-react";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -11,6 +10,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { dialogStore, useDialogStore } from "@/lib/dialog-store";
+import { useSelector } from "@xstate/store-react";
 
 export function GlobalAlertDialog() {
 	const store = useDialogStore();
@@ -24,13 +24,13 @@ export function GlobalAlertDialog() {
 	const onConfirm = useSelector(store, (state) => state.context.onConfirm);
 	const onCancel = useSelector(store, (state) => state.context.onCancel);
 
-	const handleConfirm = () => {
-		onConfirm?.();
+	const handleConfirm = async () => {
+		await onConfirm?.();
 		dialogStore.send({ type: "closeDialog" });
 	};
 
-	const handleCancel = () => {
-		onCancel?.();
+	const handleCancel = async () => {
+		await onCancel?.();
 		dialogStore.send({ type: "closeDialog" });
 	};
 

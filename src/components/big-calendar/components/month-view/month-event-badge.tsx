@@ -1,12 +1,16 @@
-import type { VariantProps } from "class-variance-authority";
-import { cva } from "class-variance-authority";
-import { endOfDay, format, isSameDay, parseISO, startOfDay } from "date-fns";
 import { EventDetailsDialog } from "@/components/big-calendar/components/dialogs/event-details-dialog";
 import { DraggableEvent } from "@/components/big-calendar/components/dnd/draggable-event";
 import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
-
 import type { IEvent } from "@/components/big-calendar/interfaces";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import type { VariantProps } from "class-variance-authority";
+import { cva } from "class-variance-authority";
+import { endOfDay, format, isSameDay, parseISO, startOfDay } from "date-fns";
 
 export const eventBadgeVariants = cva(
 	"flex size-auto h-6.5 w-full select-none items-center justify-between gap-1.5 truncate whitespace-nowrap rounded-md border px-2 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
@@ -118,32 +122,54 @@ export function MonthEventBadge({
 		}
 	};
 
+	const start = parseISO(event.startDate);
+	const end = parseISO(event.endDate);
+	const startStr =
+		start.getMinutes() === 0 ? format(start, "h a") : format(start, "h:mm");
+	const endStr =
+		end.getMinutes() === 0 ? format(end, "h a") : format(end, "h:mm a");
+	const timeRange = `${startStr} - ${endStr}`;
+
 	return (
 		<DraggableEvent event={event}>
 			<EventDetailsDialog event={event}>
-				<button
-					type="button"
-					tabIndex={0}
-					className={eventBadgeClasses}
-					onKeyDown={handleKeyDown}
-				>
-					<div className="flex items-center gap-1.5 truncate">
-						{renderBadgeText && (
-							<p className="flex-1 truncate font-semibold">
-								{eventCurrentDay && (
-									<span className="text-xs">
-										Day {eventCurrentDay} of {eventTotalDays} •{" "}
-									</span>
-								)}
-								{event.title}
-							</p>
-						)}
-					</div>
+				<Tooltip>
+					<TooltipTrigger
+						render={(props) => {
+							return (
+								<button
+									type="button"
+									tabIndex={0}
+									className={eventBadgeClasses}
+									onKeyDown={handleKeyDown}
+									{...props}
+								>
+									<div className="flex items-center gap-1.5 truncate">
+										{renderBadgeText && (
+											<p className="flex-1 truncate font-semibold">
+												{eventCurrentDay && (
+													<span className="text-xs">
+														Day {eventCurrentDay} of {eventTotalDays} •{" "}
+													</span>
+												)}
+												{event.title}
+											</p>
+										)}
+									</div>
 
-					{renderBadgeText && (
-						<span>{format(new Date(event.startDate), "h:mm a")}</span>
-					)}
-				</button>
+									{renderBadgeText && <span>{format(start, "h:mm a")}</span>}
+								</button>
+							);
+						}}
+					/>
+					<TooltipContent
+						side="top"
+						className="max-w-xs border bg-popover px-3 py-2 text-popover-foreground shadow-md"
+					>
+						<p className="font-semibold">{event.title}</p>
+						<p className="text-2xs text-muted-foreground">{timeRange}</p>
+					</TooltipContent>
+				</Tooltip>
 			</EventDetailsDialog>
 		</DraggableEvent>
 	);

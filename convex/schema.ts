@@ -2,6 +2,16 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+	users: defineTable({
+		authId: v.string(),
+		email: v.string(),
+		firstName: v.optional(v.string()),
+		lastName: v.optional(v.string()),
+		fullName: v.string(),
+		profileImageUrl: v.optional(v.string()),
+		updatedAt: v.number(),
+	}).index("authId", ["authId"]),
+
 	products: defineTable({
 		title: v.string(),
 		imageId: v.string(),
@@ -17,7 +27,7 @@ export default defineSchema({
 		description: v.optional(v.string()),
 		startDate: v.number(),
 		endDate: v.number(),
-		userId: v.string(),
+		userId: v.id("users"),
 		calendarId: v.optional(v.id("calendars")),
 		color: v.optional(v.string()),
 		location: v.optional(v.string()),
@@ -30,14 +40,14 @@ export default defineSchema({
 	calendars: defineTable({
 		name: v.string(),
 		color: v.string(),
-		userId: v.string(),
+		userId: v.id("users"),
 		isDefault: v.boolean(),
 	})
 		.index("by_user", ["userId"])
 		.index("by_user_default", ["userId", "isDefault"]),
 
 	userPreferences: defineTable({
-		userId: v.string(),
+		userId: v.id("users"),
 		defaultView: v.optional(
 			v.union(
 				v.literal("day"),

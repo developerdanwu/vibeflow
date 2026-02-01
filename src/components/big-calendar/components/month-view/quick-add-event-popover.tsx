@@ -1,29 +1,45 @@
 "use client";
 
-import type { PopoverRootProps } from "@base-ui/react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Time } from "@internationalized/date";
-import { useMutation } from "convex/react";
-import { endOfDay, startOfDay } from "date-fns";
-import { useEffect, useId } from "react";
-import { useForm, useWatch } from "react-hook-form";
-import { z } from "zod";
-import { DayPicker } from "@/components/ui/day-picker";
-import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormMessage,
-} from "@/components/ui/form";
+import ColorPickerCompact from "@/components/ui/color-picker-compact";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import { useAppForm } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import InputColor from "@/components/ui/input-color";
 import { Popover, PopoverContent } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { TimeInput } from "@/components/ui/time-input";
 import { useDisclosure } from "@/hooks/use-disclosure";
+import type { PopoverRootProps } from "@base-ui/react";
+import type { CalendarDate } from "@internationalized/date";
+import {
+	fromDate,
+	getLocalTimeZone,
+	Time,
+	toCalendarDate,
+	toCalendarDateTime,
+} from "@internationalized/date";
+import { formOptions, useStore } from "@tanstack/react-form-start";
+import { useMutation } from "convex/react";
+import {
+	forwardRef,
+	useEffect,
+	useId,
+	useImperativeHandle,
+	useRef,
+} from "react";
+import {
+	Button,
+	Calendar,
+	DateInput,
+	DatePicker,
+	DateSegment,
+	Dialog,
+	Group,
+	Popover as RACPopover,
+} from "react-aria-components";
+import { toast } from "sonner";
+import { z } from "zod";
 import { api } from "../../../../../convex/_generated/api";
 import { useCalendar } from "../../store/calendarStore";
 import type { TEventColor } from "../../types";
@@ -80,11 +96,28 @@ function hexToColorName(hex: string): TEventColor {
 	return closestColor;
 }
 
+function isCalendarDate(v: unknown): v is CalendarDate {
+	return (
+		v != null &&
+		typeof v === "object" &&
+		"calendar" in v &&
+		"year" in v &&
+		"month" in v &&
+		"day" in v &&
+		typeof (v as CalendarDate).compare === "function"
+	);
+}
+
+const calendarDateSchema = z.custom<CalendarDate>(
+	(v) => isCalendarDate(v) && v != null,
+	{ message: "Date is required" },
+);
+
 export const quickAddEventSchema = z
 	.object({
 		title: z.string().min(1, "Title is required"),
-		startDate: z.date({ message: "Date is required" }),
-		endDate: z.date({ message: "Date is required" }),
+		startDate: calendarDateSchema,
+		endDate: calendarDateSchema,
 		description: z.string().optional(),
 		allDay: z.boolean(),
 		startTime: z.custom<Time>().optional(),
@@ -95,8 +128,12 @@ export const quickAddEventSchema = z
 			.optional(),
 	})
 	.superRefine((data, ctx) => {
-		// Validate date ordering
-		if (data.startDate > data.endDate) {
+		// Validate date ordering (CalendarDate.compare: negative = a before b)
+		if (
+			data.startDate != null &&
+			data.endDate != null &&
+			data.startDate.compare(data.endDate) > 0
+		) {
 			ctx.addIssue({
 				code: "custom",
 				message: "Start date must be before or equal to end date",
@@ -127,101 +164,120 @@ export const quickAddEventSchema = z
 
 export type TQuickAddEventFormData = z.infer<typeof quickAddEventSchema>;
 
-function QuickAddEventPopoverContent({
-	isOpen,
-	onClose,
-	date,
-}: {
-	isOpen: boolean;
-	onClose: () => void;
-	date: Date;
-}) {
+function getDefaultValues(
+	date: Date,
+	initialTime?: { hour: number; minute: number },
+): TQuickAddEventFormData {
+	const hasTime = initialTime != null;
+	const startTime = hasTime
+		? new Time(initialTime.hour, initialTime.minute)
+		: new Time(9, 0);
+	const endTime = hasTime
+		? new Time(initialTime.hour + 1, initialTime.minute)
+		: new Time(10, 0);
+	const calendarDate = toCalendarDate(fromDate(date, getLocalTimeZone()));
+	return {
+		title: "",
+		description: "",
+		startDate: calendarDate,
+		endDate: calendarDate,
+		allDay: !hasTime,
+		startTime,
+		endTime,
+		color: "#3B82F6",
+	};
+}
+
+const addEventFormOptions = formOptions({
+	defaultValues: getDefaultValues(new Date(), { hour: 9, minute: 0 }),
+	validators: {
+		onSubmit: quickAddEventSchema,
+	},
+});
+
+export type QuickAddEventPopoverContentHandle = {
+	submitIfDirty: () => void;
+};
+
+const QuickAddEventPopoverContent = forwardRef<
+	QuickAddEventPopoverContentHandle,
+	{
+		onClose: () => void;
+		date: Date;
+		initialTime?: { hour: number; minute: number };
+	}
+>(function QuickAddEventPopoverContent({ onClose, date, initialTime }, ref) {
 	const formId = useId();
 	const titleId = useId();
 
 	const createEvent = useMutation(api.events.createEvent);
 	const [_, calendarStore] = useCalendar();
-	const form = useForm<TQuickAddEventFormData>({
-		resolver: zodResolver(quickAddEventSchema),
-		defaultValues: {
-			title: "",
-			description: "",
-			startDate: date,
-			endDate: date,
-			allDay: true,
-			startTime: new Time(9, 0),
-			endTime: new Time(10, 0),
-			color: "#3B82F6",
+	const defaults = getDefaultValues(date, initialTime);
+	const form = useAppForm({
+		...addEventFormOptions,
+		defaultValues: defaults,
+		onSubmit: async ({ value }) => {
+			try {
+				const values = value as TQuickAddEventFormData;
+				if (!values.startDate || !values.endDate) return;
+
+				const tz = getLocalTimeZone();
+				let startDt: import("@internationalized/date").CalendarDateTime;
+				let endDt: import("@internationalized/date").CalendarDateTime;
+
+				if (values.allDay) {
+					startDt = toCalendarDateTime(values.startDate, new Time(0, 0, 0, 0));
+					endDt = toCalendarDateTime(values.endDate, new Time(23, 59, 59, 999));
+				} else {
+					const startTime = values.startTime ?? new Time(9, 0);
+					const endTime = values.endTime ?? new Time(10, 0);
+					startDt = toCalendarDateTime(values.startDate, startTime);
+					endDt = toCalendarDateTime(values.endDate, endTime);
+				}
+
+				const startDate = startDt.toDate(tz).getTime();
+				const endDate = endDt.toDate(tz).getTime();
+				const colorName = values.color ? hexToColorName(values.color) : "blue";
+
+				await createEvent({
+					title: values.title,
+					description: values.description || "",
+					startDate,
+					endDate,
+					color: colorName,
+					allDay: values.allDay,
+				});
+
+				toast.success("Event created");
+				onClose();
+				form.reset(getDefaultValues(date, initialTime));
+			} catch (error) {
+				console.error("Failed to create event:", error);
+			}
 		},
 	});
+	const isDirty = useStore(form.store, (state) => state.isDirty);
+	const formRef = useRef<HTMLFormElement | null>(null);
 
-	const allDay = useWatch({
-		control: form.control,
-		name: "allDay",
-		defaultValue: true,
-	});
+	useImperativeHandle(
+		ref,
+		() => ({
+			submitIfDirty: () => {
+				if (isDirty) {
+					formRef.current?.requestSubmit();
+				}
+			},
+		}),
+		[isDirty],
+	);
 
 	useEffect(() => {
-		if (!isOpen) {
-			form.reset();
-		}
-	}, [isOpen, form]);
-
-	useEffect(() => {
-		const subscription = form.watch((values) => {
-			calendarStore.trigger.setNewEventTitle({
-				title: values.title || "",
-			});
-			calendarStore.trigger.setNewEventStartTime({
-				startTime: values.startTime as Time,
-			});
-			calendarStore.trigger.setNewEventAllDay({
-				allDay: values.allDay,
-			});
-		});
 		return () => {
-			subscription.unsubscribe();
-		};
-	}, [form.watch, calendarStore.trigger]);
-
-	const onSubmit = async (values: TQuickAddEventFormData) => {
-		try {
-			let startDateTime: Date;
-			let endDateTime: Date;
-
-			if (values.allDay) {
-				// All-day events: span from start of startDate to end of endDate
-				startDateTime = startOfDay(values.startDate);
-				endDateTime = endOfDay(values.endDate);
-			} else {
-				// Timed events: use time values from form
-				const startTime = values.startTime!;
-				const endTime = values.endTime!;
-
-				startDateTime = new Date(values.startDate);
-				startDateTime.setHours(startTime.hour, startTime.minute, 0, 0);
-
-				endDateTime = new Date(values.endDate);
-				endDateTime.setHours(endTime.hour, endTime.minute, 0, 0);
+			if (isDirty) {
+				form.handleSubmit();
 			}
-
-			const colorName = values.color ? hexToColorName(values.color) : "blue";
-
-			await createEvent({
-				title: values.title,
-				description: values.description || "",
-				startDate: startDateTime.getTime(),
-				endDate: endDateTime.getTime(),
-				color: colorName,
-				allDay: values.allDay,
-			});
-
-			onClose();
-			form.reset();
-		} catch (error) {
-			console.error("Failed to create event:", error);
-		}
-	};
+		};
+	}, [isDirty, form]);
 
 	return (
 		<PopoverContent
@@ -230,183 +286,325 @@ function QuickAddEventPopoverContent({
 			align="start"
 			backdrop
 		>
-			<Form {...form}>
-				<form
-					id={formId}
-					onSubmit={form.handleSubmit(onSubmit)}
-					className="grid"
-				>
-					<div className="flex items-center justify-between p-2">
-						<div className="flex gap-1">
-							<FormField
-								control={form.control}
-								name="startDate"
-								render={({ field }) => (
-									<FormItem>
-										<FormControl>
-											<DayPicker
-												fieldClassName="w-min"
-												dateFormat="EEE, MMM d"
-												date={field.value}
-												setDate={field.onChange}
-												buttonProps={{
-													size: "xs",
-												}}
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							{!allDay && (
-								<>
-									<FormField
-										control={form.control}
-										name="startTime"
-										render={({ field, fieldState }) => (
-											<FormItem>
-												<FormControl>
-													<TimeInput
-														size="xs"
-														value={field.value}
-														onChange={field.onChange}
-														data-invalid={fieldState.invalid}
-													/>
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="endTime"
-										render={({ field, fieldState }) => (
-											<FormItem>
-												<FormControl>
-													<TimeInput
-														size="xs"
-														value={field.value}
-														onChange={field.onChange}
-														data-invalid={fieldState.invalid}
-													/>
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-								</>
-							)}
-							<FormField
-								control={form.control}
-								name="endDate"
-								render={({ field }) => (
-									<FormItem>
-										<FormControl>
-											<DayPicker
-												fieldClassName="w-min"
-												dateFormat="EEE, MMM d"
-												date={field.value}
-												setDate={field.onChange}
-												buttonProps={{
-													size: "xs",
-												}}
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						</div>
-						<FormField
-							control={form.control}
-							name="allDay"
-							render={({ field }) => (
-								<FormItem>
-									<FormControl>
-										<div className="flex items-center gap-2">
-											<p className="text-muted-foreground text-xs">All Day</p>
-											<Switch
-												size="sm"
-												checked={field.value}
-												onCheckedChange={field.onChange}
-											/>
-										</div>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-					</div>
-					<Separator />
-					<FormField
-						control={form.control}
-						name="title"
-						render={({ field, fieldState }) => (
-							<FormItem className="py-2">
-								<FormControl>
-									<div className="flex items-center gap-2">
-										<FormField
-											control={form.control}
-											name="color"
-											render={({ field: colorField }) => (
-												<FormItem>
-													<FormControl>
-														<div className="shrink-0">
-															<InputColor
-																value={colorField.value || "#3B82F6"}
-																onChange={colorField.onChange}
-																onBlur={colorField.onBlur}
-																label=""
-																className="mt-0"
-															/>
-														</div>
-													</FormControl>
-												</FormItem>
-											)}
-										/>
-										<Input
-											className={
-												"flex-1 rounded-none hover:bg-transparent focus:bg-transparent focus-visible:bg-transparent"
+			<form
+				ref={formRef}
+				id={formId}
+				onSubmit={(e) => {
+					e.preventDefault();
+					form.handleSubmit();
+				}}
+				className="grid"
+			>
+				<div className="flex w-full items-center justify-between p-2">
+					<div className="flex gap-1">
+						<form.AppField name="startDate">
+							{(field) => {
+								const isInvalid =
+									field.state.meta.isTouched && !field.state.meta.isValid;
+								const value = field.state.value ?? undefined;
+								return (
+									<Field data-invalid={isInvalid}>
+										<DatePicker<CalendarDate>
+											value={value ?? null}
+											onChange={(v) =>
+												field.handleChange(v ?? field.state.value ?? null)
 											}
-											variant="ghost"
-											id={titleId}
-											placeholder="Event title"
-											data-invalid={fieldState.invalid}
-											{...field}
-										/>
-									</div>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
+											className="w-min"
+											aria-invalid={isInvalid}
+										>
+											<Group className="inline-flex h-6 min-w-0 items-center gap-0.5 rounded-md border border-input bg-background px-2 py-0.5 text-xs shadow-xs">
+												<DateInput className="flex min-w-0 flex-1 items-center gap-0.5">
+													{(segment) => (
+														<DateSegment
+															segment={segment}
+															className="rounded px-0.5 outline-none data-placeholder:text-muted-foreground"
+														/>
+													)}
+												</DateInput>
+												<Button
+													className="rounded p-0.5 outline-none hover:bg-muted"
+													aria-label="Pick start date"
+												>
+													<svg
+														aria-hidden
+														xmlns="http://www.w3.org/2000/svg"
+														width="12"
+														height="12"
+														viewBox="0 0 24 24"
+														fill="none"
+														stroke="currentColor"
+														strokeWidth="2"
+														strokeLinecap="round"
+														strokeLinejoin="round"
+													>
+														<title>Calendar</title>
+														<rect
+															width="18"
+															height="18"
+															x="3"
+															y="4"
+															rx="2"
+															ry="2"
+														/>
+														<line x1="16" x2="16" y1="2" y2="6" />
+														<line x1="8" x2="8" y1="2" y2="6" />
+														<line x1="3" x2="21" y1="10" y2="10" />
+													</svg>
+												</Button>
+											</Group>
+											<RACPopover className="w-auto overflow-hidden rounded-md border bg-popover p-0 shadow-md">
+												<Dialog className="p-0 outline-none">
+													<Calendar className="p-2" />
+												</Dialog>
+											</RACPopover>
+										</DatePicker>
+										{isInvalid && (
+											<FieldError errors={field.state.meta.errors} />
+										)}
+									</Field>
+								);
+							}}
+						</form.AppField>
 
-					<FormField
-						control={form.control}
-						name="description"
-						render={({ field, fieldState }) => (
-							<FormItem>
-								<FormControl>
-									<Textarea
-										{...field}
-										className={
-											"rounded-none hover:bg-transparent focus:bg-transparent focus-visible:bg-transparent"
-										}
-										variant={"ghost"}
-										value={field.value || ""}
-										placeholder="Add a description..."
-										data-invalid={fieldState.invalid}
+						<form.Subscribe selector={(state) => state.values.allDay}>
+							{(allDay) =>
+								!allDay ? (
+									<>
+										<form.AppField
+											name="startTime"
+											listeners={{
+												onChange: ({ value }) => {
+													calendarStore.trigger.setNewEventStartTime({
+														startTime: value,
+													});
+												},
+											}}
+										>
+											{(field) => {
+												const isInvalid =
+													field.state.meta.isTouched &&
+													!field.state.meta.isValid;
+												return (
+													<Field data-invalid={isInvalid}>
+														<TimeInput
+															size="xs"
+															value={field.state.value}
+															onChange={(value) => {
+																if (value != null)
+																	field.handleChange(value as Time);
+															}}
+															data-invalid={isInvalid}
+														/>
+														{isInvalid && (
+															<FieldError errors={field.state.meta.errors} />
+														)}
+													</Field>
+												);
+											}}
+										</form.AppField>
+										<form.AppField name="endTime">
+											{(field) => {
+												const isInvalid =
+													field.state.meta.isTouched &&
+													!field.state.meta.isValid;
+												return (
+													<Field data-invalid={isInvalid}>
+														<TimeInput
+															size="xs"
+															value={field.state.value}
+															onChange={(value) => {
+																if (value != null)
+																	field.handleChange(value as Time);
+															}}
+															data-invalid={isInvalid}
+														/>
+														{isInvalid && (
+															<FieldError errors={field.state.meta.errors} />
+														)}
+													</Field>
+												);
+											}}
+										</form.AppField>
+									</>
+								) : null
+							}
+						</form.Subscribe>
+
+						<form.AppField name="endDate">
+							{(field) => {
+								const isInvalid =
+									field.state.meta.isTouched && !field.state.meta.isValid;
+								const value = field.state.value ?? undefined;
+								return (
+									<Field data-invalid={isInvalid}>
+										<DatePicker<CalendarDate>
+											value={value ?? null}
+											onChange={(v) =>
+												field.handleChange(v ?? field.state.value ?? null)
+											}
+											className="w-min"
+											aria-invalid={isInvalid}
+										>
+											<Group className="inline-flex h-6 min-w-0 items-center gap-0.5 rounded-md border border-input bg-background px-2 py-0.5 text-xs shadow-xs">
+												<DateInput className="flex min-w-0 flex-1 items-center gap-0.5">
+													{(segment) => (
+														<DateSegment
+															segment={segment}
+															className="rounded px-0.5 outline-none data-placeholder:text-muted-foreground"
+														/>
+													)}
+												</DateInput>
+												<Button
+													className="rounded p-0.5 outline-none hover:bg-muted"
+													aria-label="Pick end date"
+												>
+													~/.config/opencode/skills{" "}
+													<svg
+														aria-hidden
+														xmlns="http://www.w3.org/2000/svg"
+														width="12"
+														height="12"
+														viewBox="0 0 24 24"
+														fill="none"
+														stroke="currentColor"
+														strokeWidth="2"
+														strokeLinecap="round"
+														strokeLinejoin="round"
+													>
+														<title>Calendar</title>
+														<rect
+															width="18"
+															height="18"
+															x="3"
+															y="4"
+															rx="2"
+															ry="2"
+														/>
+														<line x1="16" x2="16" y1="2" y2="6" />
+														<line x1="8" x2="8" y1="2" y2="6" />
+														<line x1="3" x2="21" y1="10" y2="10" />
+													</svg>
+												</Button>
+											</Group>
+											<RACPopover className="w-auto overflow-hidden rounded-md border bg-popover p-0 shadow-md">
+												<Dialog className="p-0 outline-none">
+													<Calendar className="p-2" />
+												</Dialog>
+											</RACPopover>
+										</DatePicker>
+										{isInvalid && (
+											<FieldError errors={field.state.meta.errors} />
+										)}
+									</Field>
+								);
+							}}
+						</form.AppField>
+					</div>
+					<form.AppField
+						name="allDay"
+						listeners={{
+							onMount: ({ value }) => {
+								calendarStore.trigger.setNewEventAllDay({
+									allDay: value ?? false,
+								});
+							},
+							onChange: ({ value }) => {
+								calendarStore.trigger.setNewEventAllDay({
+									allDay: value ?? false,
+								});
+							},
+						}}
+					>
+						{(field) => {
+							return (
+								<div className="flex shrink-0 items-center gap-2">
+									<p className="text-muted-foreground text-xs">All Day</p>
+									<Switch
+										size="sm"
+										checked={field.state.value}
+										onCheckedChange={field.handleChange}
 									/>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-				</form>
-			</Form>
+								</div>
+							);
+						}}
+					</form.AppField>
+				</div>
+				<Separator />
+				<div className="flex items-center px-2 py-1">
+					<form.AppField name="color">
+						{(field) => {
+							return (
+								<ColorPickerCompact
+									value={field.state.value ?? "#3B82F6"}
+									onChange={field.handleChange}
+								/>
+							);
+						}}
+					</form.AppField>
+					<form.AppField
+						name="title"
+						listeners={{
+							onMount: ({ value }) => {
+								calendarStore.trigger.setNewEventTitle({ title: value ?? "" });
+							},
+							onChange: ({ value }) => {
+								calendarStore.trigger.setNewEventTitle({ title: value ?? "" });
+							},
+						}}
+					>
+						{(field) => {
+							const isInvalid =
+								field.state.meta.isTouched && !field.state.meta.isValid;
+							return (
+								<Input
+									className="rounded-none text-base placeholder:text-base hover:bg-transparent focus:bg-transparent focus-visible:bg-transparent"
+									variant="ghost"
+									id={titleId}
+									name={field.name}
+									value={field.state.value}
+									onBlur={field.handleBlur}
+									onChange={(e) => field.handleChange(e.target.value)}
+									aria-invalid={isInvalid}
+									placeholder="Event title"
+								/>
+							);
+						}}
+					</form.AppField>
+				</div>
+				<Separator />
+				<form.AppField name="description">
+					{(field) => {
+						const isInvalid =
+							field.state.meta.isTouched && !field.state.meta.isValid;
+						return (
+							<Field data-invalid={isInvalid}>
+								<FieldLabel
+									className="sr-only"
+									htmlFor={`${field.name}-textarea`}
+								>
+									Description
+								</FieldLabel>
+								<Textarea
+									id={`${field.name}-textarea`}
+									name={field.name}
+									rows={3}
+									className="min-h-24 resize-none rounded-none hover:bg-transparent focus:bg-transparent focus-visible:bg-transparent"
+									variant="ghost"
+									value={field.state.value ?? ""}
+									onBlur={field.handleBlur}
+									onChange={(e) => field.handleChange(e.target.value)}
+									aria-invalid={isInvalid}
+									placeholder="Add a description..."
+								/>
+								{isInvalid && <FieldError errors={field.state.meta.errors} />}
+							</Field>
+						);
+					}}
+				</form.AppField>
+			</form>
 		</PopoverContent>
 	);
-}
+});
 
 export function QuickAddEventPopover({
 	handle,
@@ -414,26 +612,43 @@ export function QuickAddEventPopover({
 	handle: NonNullable<PopoverRootProps["handle"]>;
 }) {
 	const { isOpen, onClose, onToggle } = useDisclosure();
+	const contentRef = useRef<QuickAddEventPopoverContentHandle | null>(null);
 
 	const handleClose = () => {
 		onClose();
 	};
 
 	return (
-		<Popover open={isOpen} onOpenChange={onToggle} handle={handle}>
+		<Popover
+			open={isOpen}
+			onOpenChange={onToggle}
+			handle={handle}
+			onOpenChangeComplete={(open) => {
+				if (!open) {
+					contentRef.current?.submitIfDirty();
+				}
+			}}
+		>
 			{({ payload: _payload }) => {
-				console.log("payload", _payload);
-				const payload = _payload as { date?: Date };
+				const payload = _payload as {
+					date?: Date;
+					time?: { hour: number; minute: number };
+				};
 
 				if (!payload?.date) {
 					return null;
 				}
 
+				const key = payload.time
+					? `${payload.date.toISOString()}-${payload.time.hour}-${payload.time.minute}`
+					: payload.date.toISOString();
+
 				return (
 					<QuickAddEventPopoverContent
-						isOpen={isOpen}
-						key={payload.date.toISOString()}
+						ref={contentRef}
+						key={key}
 						date={payload.date}
+						initialTime={payload.time}
 						onClose={handleClose}
 					/>
 				);

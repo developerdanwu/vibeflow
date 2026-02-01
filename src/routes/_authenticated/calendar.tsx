@@ -6,9 +6,10 @@ import { CalendarProvider } from "@/components/big-calendar/contexts/calendar-co
 import type { IEvent, IUser } from "@/components/big-calendar/interfaces";
 import type { TEventColor } from "@/components/big-calendar/types";
 import "@/styles/calendar.css";
+import { convexQuery } from "@convex-dev/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAuth } from "@workos/authkit-tanstack-react-start/client";
-import { useQuery } from "convex/react";
 import { useMemo } from "react";
 import { z } from "zod";
 import { api } from "../../../convex/_generated/api";
@@ -64,12 +65,14 @@ function CalendarContent() {
 			}
 		: null;
 
-	const convexEvents = useQuery(api.events.getEventsByUser);
+	const { data: convexEvents } = useQuery(
+		convexQuery(api.events.getEventsByUser),
+	);
 
 	const events: IEvent[] = useMemo(() => {
 		if (!convexEvents || !currentUser) return [];
 		return convexEvents.map((event) => ({
-			id: hashStringToNumber(event._id),
+			id: event._id,
 			convexId: event._id,
 			title: event.title,
 			description: event.description ?? "",
@@ -99,6 +102,9 @@ function CalendarContent() {
 			return duration >= 24 * 60 * 60 * 1000;
 		});
 	}, [events]);
+
+	console.log("singleDayEvents", singleDayEvents);
+	console.log("multiDayEvents", multiDayEvents);
 
 	const isLoading = convexEvents === undefined;
 

@@ -11,8 +11,8 @@ export const dialogStore = createStore({
 		description: "",
 		confirmText: "OK",
 		cancelText: "Cancel",
-		onConfirm: undefined as (() => void) | undefined,
-		onCancel: undefined as (() => void) | undefined,
+		onConfirm: undefined as (() => void | Promise<void>) | undefined,
+		onCancel: undefined as (() => void | Promise<void>) | undefined,
 	},
 	on: {
 		openAlertDialog: (

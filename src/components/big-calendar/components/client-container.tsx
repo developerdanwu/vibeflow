@@ -1,8 +1,8 @@
 "use client";
 
+import { CalendarAgendaView } from "@/components/big-calendar/components/agenda-view/calendar-agenda-view";
 import { isSameDay, parseISO } from "date-fns";
 import { useMemo } from "react";
-import { CalendarAgendaView } from "@/components/big-calendar/components/agenda-view/calendar-agenda-view";
 
 import { DndProviderWrapper } from "@/components/big-calendar/components/dnd/dnd-provider";
 

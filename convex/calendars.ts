@@ -1,25 +1,18 @@
-import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { authMutation, authQuery } from "./helpers";
 
-export const createCalendar = mutation({
+export const createCalendar = authMutation({
 	args: {
 		name: v.string(),
 		color: v.string(),
 		isDefault: v.boolean(),
 	},
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Not authenticated");
-		}
-
-		const userId = identity.subject;
-
 		if (args.isDefault) {
 			const existingDefault = await ctx.db
 				.query("calendars")
 				.withIndex("by_user_default", (q) =>
-					q.eq("userId", userId).eq("isDefault", true)
+					q.eq("userId", ctx.user._id).eq("isDefault", true)
 				)
 				.first();
 
@@ -30,12 +23,12 @@ export const createCalendar = mutation({
 
 		return await ctx.db.insert("calendars", {
 			...args,
-			userId,
+			userId: ctx.user._id,
 		});
 	},
 });
 
-export const updateCalendar = mutation({
+export const updateCalendar = authMutation({
 	args: {
 		id: v.id("calendars"),
 		name: v.optional(v.string()),
@@ -43,18 +36,13 @@ export const updateCalendar = mutation({
 		isDefault: v.optional(v.boolean()),
 	},
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Not authenticated");
-		}
-
 		const { id, ...updates } = args;
 		const calendar = await ctx.db.get(id);
 
 		if (!calendar) {
 			throw new Error("Calendar not found");
 		}
-		if (calendar.userId !== identity.subject) {
+		if (calendar.userId !== ctx.user._id) {
 			throw new Error("Not authorized to update this calendar");
 		}
 
@@ -62,7 +50,7 @@ export const updateCalendar = mutation({
 			const existingDefault = await ctx.db
 				.query("calendars")
 				.withIndex("by_user_default", (q) =>
-					q.eq("userId", identity.subject).eq("isDefault", true)
+					q.eq("userId", ctx.user._id).eq("isDefault", true)
 				)
 				.first();
 
@@ -79,22 +67,17 @@ export const updateCalendar = mutation({
 	},
 });
 
-export const deleteCalendar = mutation({
+export const deleteCalendar = authMutation({
 	args: {
 		id: v.id("calendars"),
 	},
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Not authenticated");
-		}
-
 		const calendar = await ctx.db.get(args.id);
 
 		if (!calendar) {
 			throw new Error("Calendar not found");
 		}
-		if (calendar.userId !== identity.subject) {
+		if (calendar.userId !== ctx.user._id) {
 			throw new Error("Not authorized to delete this calendar");
 		}
 		if (calendar.isDefault) {
@@ -114,33 +97,23 @@ export const deleteCalendar = mutation({
 	},
 });
 
-export const getUserCalendars = query({
+export const getUserCalendars = authQuery({
 	args: {},
 	handler: async (ctx) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			return [];
-		}
-
 		return await ctx.db
 			.query("calendars")
-			.withIndex("by_user", (q) => q.eq("userId", identity.subject))
+			.withIndex("by_user", (q) => q.eq("userId", ctx.user._id))
 			.collect();
 	},
 });
 
-export const getDefaultCalendar = query({
+export const getDefaultCalendar = authQuery({
 	args: {},
 	handler: async (ctx) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			return null;
-		}
-
 		return await ctx.db
 			.query("calendars")
 			.withIndex("by_user_default", (q) =>
-				q.eq("userId", identity.subject).eq("isDefault", true)
+				q.eq("userId", ctx.user._id).eq("isDefault", true)
 			)
 			.first();
 	},

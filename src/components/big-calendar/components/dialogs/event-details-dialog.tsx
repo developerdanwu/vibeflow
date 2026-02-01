@@ -1,10 +1,5 @@
 "use client";
 
-import { format, parseISO } from "date-fns";
-import { Calendar, Clock, Text, User } from "lucide-react";
-import { useState } from "react";
-import { EditEventDialog } from "@/components/big-calendar/components/dialogs/edit-event-dialog";
-import { useDeleteEvent } from "@/components/big-calendar/hooks/use-delete-event";
 import type { IEvent } from "@/components/big-calendar/interfaces";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +10,12 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { dialogStore } from "@/lib/dialog-store";
+import { useConvexMutation } from "@convex-dev/react-query";
+import { useMutation } from "@tanstack/react-query";
+import { format, parseISO } from "date-fns";
+import { Calendar, Clock, Text, User } from "lucide-react";
+import { api } from "../../../../../convex/_generated/api";
 import type { Id } from "../../../../../convex/_generated/dataModel";
 
 interface IProps {
@@ -25,27 +26,34 @@ interface IProps {
 export function EventDetailsDialog({ event, children }: IProps) {
 	const startDate = parseISO(event.startDate);
 	const endDate = parseISO(event.endDate);
-	const { deleteEvent } = useDeleteEvent();
-	const [isDeleting, setIsDeleting] = useState(false);
+	const { mutate: deleteEvent, isPending } = useMutation({
+		mutationFn: useConvexMutation(api.events.deleteEvent),
+	});
 
-	const handleDelete = async () => {
+	const handleDelete = () => {
 		if (!event.convexId) {
 			console.error("Cannot delete event without convexId");
 			return;
 		}
 
-		if (!window.confirm("Are you sure you want to delete this event?")) {
-			return;
-		}
-
-		setIsDeleting(true);
-		try {
-			await deleteEvent(event.convexId as Id<"events">);
-		} catch (error) {
-			console.error("Failed to delete event:", error);
-		} finally {
-			setIsDeleting(false);
-		}
+		dialogStore.send({
+			type: "openConfirmDialog",
+			title: "Delete Event",
+			description:
+				"Are you sure you want to delete this event? This action cannot be undone.",
+			confirmText: "Delete",
+			cancelText: "Cancel",
+			onConfirm: () => {
+				deleteEvent(
+					{ id: event.convexId as Id<"events"> },
+					{
+						onError: (error) => {
+							console.error("Failed to delete event:", error);
+						},
+					},
+				);
+			},
+		});
 	};
 
 	return (
@@ -102,20 +110,15 @@ export function EventDetailsDialog({ event, children }: IProps) {
 					</div>
 				</div>
 
-				<DialogFooter className="gap-2 sm:gap-0">
+				<DialogFooter>
 					<Button
 						type="button"
 						variant="destructive"
 						onClick={handleDelete}
-						disabled={isDeleting || !event.convexId}
+						disabled={isPending || !event.convexId}
 					>
-						{isDeleting ? "Deleting..." : "Delete"}
+						{isPending ? "Deleting..." : "Delete"}
 					</Button>
-					<EditEventDialog event={event}>
-						<Button type="button" variant="outline">
-							Edit
-						</Button>
-					</EditEventDialog>
 				</DialogFooter>
 			</DialogContent>
 		</Dialog>

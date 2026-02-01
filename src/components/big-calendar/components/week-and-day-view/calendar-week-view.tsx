@@ -1,11 +1,3 @@
-import {
-	addDays,
-	areIntervalsOverlapping,
-	format,
-	isSameDay,
-	parseISO,
-	startOfWeek,
-} from "date-fns";
 import { AddEventDialog } from "@/components/big-calendar/components/dialogs/add-event-dialog";
 import { DroppableTimeBlock } from "@/components/big-calendar/components/dnd/droppable-time-block";
 import { CalendarTimeline } from "@/components/big-calendar/components/week-and-day-view/calendar-time-line";
@@ -21,6 +13,14 @@ import {
 import type { IEvent } from "@/components/big-calendar/interfaces";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import {
+	addDays,
+	areIntervalsOverlapping,
+	format,
+	isSameDay,
+	parseISO,
+	startOfWeek,
+} from "date-fns";
 
 interface IProps {
 	singleDayEvents: IEvent[];

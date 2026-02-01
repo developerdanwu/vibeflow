@@ -1,6 +1,3 @@
-import { areIntervalsOverlapping, format, parseISO } from "date-fns";
-import { Calendar, Clock, User } from "lucide-react";
-import { AddEventDialog } from "@/components/big-calendar/components/dialogs/add-event-dialog";
 import { DroppableTimeBlock } from "@/components/big-calendar/components/dnd/droppable-time-block";
 import { CalendarTimeline } from "@/components/big-calendar/components/week-and-day-view/calendar-time-line";
 import { DayViewMultiDayEventsRow } from "@/components/big-calendar/components/week-and-day-view/day-view-multi-day-events-row";
@@ -14,16 +11,25 @@ import {
 	isWorkingHour,
 } from "@/components/big-calendar/helpers";
 import type { IEvent } from "@/components/big-calendar/interfaces";
+import { PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SingleCalendar } from "@/components/ui/single-calendar";
 import { cn } from "@/lib/utils";
+import type { PopoverRootProps } from "@base-ui/react";
+import { areIntervalsOverlapping, format, parseISO } from "date-fns";
+import { Calendar, Clock, User } from "lucide-react";
 
 interface IProps {
 	singleDayEvents: IEvent[];
 	multiDayEvents: IEvent[];
+	handle: NonNullable<PopoverRootProps["handle"]>;
 }
 
-export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
+export function CalendarDayView({
+	singleDayEvents,
+	multiDayEvents,
+	handle,
+}: IProps) {
 	const [selectedDate, store] = useCalendar((s) => s.context.selectedDate);
 	const [users] = useCalendar((s) => s.context.users);
 	const [visibleHours] = useCalendar((s) => s.context.visibleHours);
@@ -113,12 +119,16 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 												hour={hour}
 												minute={0}
 											>
-												<AddEventDialog
-													startDate={selectedDate}
-													startTime={{ hour, minute: 0 }}
+												<PopoverTrigger
+													handle={handle}
+													id={`day-slot-${hour}-0`}
+													payload={{
+														date: selectedDate,
+														time: { hour, minute: 0 },
+													}}
 												>
 													<div className="absolute inset-x-0 top-0 h-[24px] cursor-pointer transition-colors hover:bg-accent" />
-												</AddEventDialog>
+												</PopoverTrigger>
 											</DroppableTimeBlock>
 
 											<DroppableTimeBlock
@@ -126,12 +136,16 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 												hour={hour}
 												minute={15}
 											>
-												<AddEventDialog
-													startDate={selectedDate}
-													startTime={{ hour, minute: 15 }}
+												<PopoverTrigger
+													handle={handle}
+													id={`day-slot-${hour}-15`}
+													payload={{
+														date: selectedDate,
+														time: { hour, minute: 15 },
+													}}
 												>
 													<div className="absolute inset-x-0 top-[24px] h-[24px] cursor-pointer transition-colors hover:bg-accent" />
-												</AddEventDialog>
+												</PopoverTrigger>
 											</DroppableTimeBlock>
 
 											<div className="pointer-events-none absolute inset-x-0 top-1/2 border-b border-dashed"></div>
@@ -141,12 +155,16 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 												hour={hour}
 												minute={30}
 											>
-												<AddEventDialog
-													startDate={selectedDate}
-													startTime={{ hour, minute: 30 }}
+												<PopoverTrigger
+													handle={handle}
+													id={`day-slot-${hour}-30`}
+													payload={{
+														date: selectedDate,
+														time: { hour, minute: 30 },
+													}}
 												>
 													<div className="absolute inset-x-0 top-[48px] h-[24px] cursor-pointer transition-colors hover:bg-accent" />
-												</AddEventDialog>
+												</PopoverTrigger>
 											</DroppableTimeBlock>
 
 											<DroppableTimeBlock
@@ -154,12 +172,16 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 												hour={hour}
 												minute={45}
 											>
-												<AddEventDialog
-													startDate={selectedDate}
-													startTime={{ hour, minute: 45 }}
+												<PopoverTrigger
+													handle={handle}
+													id={`day-slot-${hour}-45`}
+													payload={{
+														date: selectedDate,
+														time: { hour, minute: 45 },
+													}}
 												>
 													<div className="absolute inset-x-0 top-[72px] h-[24px] cursor-pointer transition-colors hover:bg-accent" />
-												</AddEventDialog>
+												</PopoverTrigger>
 											</DroppableTimeBlock>
 										</div>
 									);

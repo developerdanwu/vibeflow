@@ -10,7 +10,7 @@ import {
 import { ConvexProviderWithAuth, ConvexReactClient } from "convex/react";
 import { useCallback, useMemo } from "react";
 import { GlobalAlertDialog } from "./components/dialogs/global-alert-dialog";
-import * as TanstackQuery from "./integrations/tanstack-query/root-provider";
+import { Toaster } from "./components/ui/sonner";
 import { DialogStoreProvider } from "./lib/dialog-store";
 import { routeTree } from "./routeTree.gen";
 
@@ -40,7 +40,6 @@ function useAuthFromWorkOS() {
 
 // Create a new router instance
 export const getRouter = () => {
-	const rqContext = TanstackQuery.getContext();
 	const CONVEX_URL = (import.meta as any).env.VITE_CONVEX_URL!;
 	if (!CONVEX_URL) {
 		throw new Error("missing VITE_CONVEX_URL env var");
@@ -67,7 +66,7 @@ export const getRouter = () => {
 		defaultErrorComponent: (err) => <p>{err.error.stack}</p>,
 		defaultNotFoundComponent: () => <p>not found</p>,
 		context: {
-			...rqContext,
+			queryClient,
 		},
 		Wrap: ({ children }) => (
 			<AuthKitProvider>
@@ -78,6 +77,7 @@ export const getRouter = () => {
 					<DialogStoreProvider>
 						{children}
 						<GlobalAlertDialog />
+						<Toaster />
 					</DialogStoreProvider>
 				</ConvexProviderWithAuth>
 			</AuthKitProvider>

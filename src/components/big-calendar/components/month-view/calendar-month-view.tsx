@@ -1,6 +1,6 @@
+import { DayCell } from "@/components/big-calendar/components/month-view/day-cell";
 import { Popover as PopoverBase } from "@base-ui/react";
 import { useMemo } from "react";
-import { DayCell } from "@/components/big-calendar/components/month-view/day-cell";
 
 import {
 	calculateMonthEventPositions,
@@ -20,7 +20,10 @@ const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function CalendarMonthView({ singleDayEvents, multiDayEvents }: IProps) {
 	const { date: selectedDate } = Route.useSearch();
-	const quickAddEventPopoverHandle = PopoverBase.createHandle();
+	const quickAddEventPopoverHandle = useMemo(
+		() => PopoverBase.createHandle(),
+		[],
+	);
 	const allEvents = [...multiDayEvents, ...singleDayEvents];
 
 	const cells = useMemo(() => getCalendarCells(selectedDate), [selectedDate]);
