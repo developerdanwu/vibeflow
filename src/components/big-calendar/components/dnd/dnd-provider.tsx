@@ -12,8 +12,7 @@ import {
 	resizeEventToSlot,
 } from "@/components/big-calendar/components/dnd/droppable-time-block";
 import { useUpdateEventMutation } from "@/components/big-calendar/hooks/use-update-event-mutation";
-import { useCalendarDay } from "@/components/big-calendar/store/calendarDayStore";
-import type { DragEndEvent, DragOverEvent, Modifier } from "@dnd-kit/core";
+import type { DragEndEvent, Modifier } from "@dnd-kit/core";
 import {
 	DndContext,
 	DragOverlay,
@@ -86,7 +85,6 @@ export function DayWeekDndProvider({
 	const { mutateAsync } = useUpdateEventMutation({
 		meta: { updateType: "drag" },
 	});
-	const [, calendarDayStore] = useCalendarDay();
 	const sensors = useSensors(
 		useSensor(PointerSensor, {
 			activationConstraint: { distance: 5 },
@@ -94,45 +92,7 @@ export function DayWeekDndProvider({
 	);
 	const modifiers = view === "day" ? [restrictToVerticalAxis] : undefined;
 
-	const onDragOver = (event: DragOverEvent) => {
-		const activeResult = ZCalendarDragData.safeParse(event.active.data.current);
-		const overResult = ZTimeBlockOverData.safeParse(event.over?.data.current);
-		const activeData = activeResult.success ? activeResult.data : undefined;
-		const overData = overResult.success ? overResult.data : undefined;
-		if (!overData || !activeData) {
-			calendarDayStore.trigger.setMoveDropRange({ range: null });
-			return;
-		}
-		const slotStartTimestamp = overData.slotStartTimestamp;
-		if (activeData.type === "event") {
-			const start = parseISO(activeData.event.startDate).getTime();
-			const end = parseISO(activeData.event.endDate).getTime();
-			const durationMs = end - start;
-			calendarDayStore.trigger.setMoveDropRange({
-				range: {
-					startTimestamp: slotStartTimestamp,
-					endTimestamp: slotStartTimestamp + durationMs,
-				},
-			});
-			return;
-		}
-		if (activeData.type === "event-resize") {
-			calendarDayStore.trigger.setMoveDropRange({ range: null });
-			calendarDayStore.trigger.setResizePreview({
-				preview: {
-					eventId: activeData.event.id,
-					edge: activeData.edge,
-					slotStartTimestamp,
-				},
-			});
-			return;
-		}
-		calendarDayStore.trigger.setMoveDropRange({ range: null });
-	};
-
 	const onDragEnd = (event: DragEndEvent) => {
-		calendarDayStore.trigger.setResizePreview({ preview: null });
-		calendarDayStore.trigger.setMoveDropRange({ range: null });
 		const activeResult = ZCalendarDragData.safeParse(event.active.data.current);
 		const overResult = ZTimeBlockOverData.safeParse(event.over?.data.current);
 		const activeData = activeResult.success ? activeResult.data : undefined;
@@ -166,7 +126,6 @@ export function DayWeekDndProvider({
 			id={DND_CONTEXT_ID_DAY_WEEK}
 			sensors={sensors}
 			modifiers={modifiers}
-			onDragOver={onDragOver}
 			onDragEnd={onDragEnd}
 		>
 			{children}

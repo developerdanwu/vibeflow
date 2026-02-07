@@ -1,4 +1,7 @@
-import { ZCalendarDragData } from "@/components/big-calendar/components/dnd/dnd-schemas";
+import {
+	ZCalendarDragData,
+	ZTimeBlockOverData,
+} from "@/components/big-calendar/components/dnd/dnd-schemas";
 import { isEventResizeData } from "@/components/big-calendar/components/dnd/draggable-event";
 import { DropRangeRing } from "@/components/big-calendar/components/dnd/drop-range-ring";
 import { DroppableTimeBlock } from "@/components/big-calendar/components/dnd/droppable-time-block";
@@ -11,10 +14,7 @@ import { eventBadgeVariants } from "@/components/big-calendar/components/month-v
 import { CalendarTimeline } from "@/components/big-calendar/components/week-and-day-view/calendar-time-line";
 import { DayViewMultiDayEventsRow } from "@/components/big-calendar/components/week-and-day-view/day-view-multi-day-events-row";
 import { EventBlock } from "@/components/big-calendar/components/week-and-day-view/event-block";
-import {
-	useCalendar,
-	useCalendarDay,
-} from "@/components/big-calendar/contexts/calendar-context";
+import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
 import {
 	getEventBlockStyle,
 	getVisibleHours,
@@ -45,9 +45,11 @@ interface IProps {
 }
 
 export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
-	const { active } = useDndContext();
+	const { active, over } = useDndContext();
 	const activeResult = ZCalendarDragData.safeParse(active?.data.current);
 	const activeData = activeResult.success ? activeResult.data : undefined;
+	const overResult = ZTimeBlockOverData.safeParse(over?.data?.current);
+	const overData = overResult.success ? overResult.data : undefined;
 	const resizingEventId =
 		activeData && isEventResizeData(activeData) ? activeData.event.id : null;
 	const quickAddEventPopoverHandle = useMemo(
@@ -64,7 +66,6 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 	);
 	const [newEventStartTime] = useCalendar((s) => s.context.newEventStartTime);
 	const [newEventAllDay] = useCalendar((s) => s.context.newEventAllDay);
-	const [resizePreview] = useCalendarDay((s) => s.context.resizePreview);
 	const [, calendarStore] = useCalendar();
 
 	useEffect(() => {
@@ -319,13 +320,15 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 								{groupedEvents.map((group, groupIndex) =>
 									group.map((event) => {
 										const isPreviewForThis =
-											resizePreview?.eventId === event.id;
+											activeData?.type === "event-resize" &&
+											activeData.event.id === event.id;
+										const slotStartTimestamp = overData?.slotStartTimestamp;
 										const displayEvent: TEvent = (() => {
-											if (!isPreviewForThis || !resizePreview) return event;
-											if (resizePreview.edge === "bottom") {
+											if (!isPreviewForThis || slotStartTimestamp == null)
+												return event;
+											if (activeData.edge === "bottom") {
 												const startTs = parseISO(event.startDate).getTime();
-												let endTs =
-													resizePreview.slotStartTimestamp + MIN_DURATION_MS;
+												let endTs = slotStartTimestamp + MIN_DURATION_MS;
 												if (
 													endTs <= startTs ||
 													endTs - startTs < MIN_DURATION_MS
@@ -337,7 +340,7 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 												};
 											}
 											const endTs = parseISO(event.endDate).getTime();
-											let startTs = resizePreview.slotStartTimestamp;
+											let startTs = slotStartTimestamp;
 											if (startTs >= endTs || endTs - startTs < MIN_DURATION_MS)
 												startTs = endTs - MIN_DURATION_MS;
 											return {
@@ -400,6 +403,7 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 											>
 												<EventBlock
 													event={displayEvent}
+													originalEvent={event}
 													handle={quickAddEventPopoverHandle}
 												/>
 											</div>

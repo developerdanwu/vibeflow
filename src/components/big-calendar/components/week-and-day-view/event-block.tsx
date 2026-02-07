@@ -59,10 +59,12 @@ interface IProps
 	extends HTMLAttributes<HTMLDivElement>,
 		Omit<VariantProps<typeof calendarWeekEventCardVariants>, "color"> {
 	event: TEvent;
+	/** When provided, used for resize drag data so drop handler receives the real event (e.g. day view passes displayEvent for layout but original for API). */
+	originalEvent?: TEvent;
 	handle?: NonNullable<PopoverRootProps["handle"]>;
 }
 
-export function EventBlock({ event, className, handle }: IProps) {
+export function EventBlock({ event, className, handle, originalEvent }: IProps) {
 	const [badgeVariant] = useCalendar((s) => s.context.badgeVariant);
 
 	const start = parseISO(event.startDate);
@@ -154,7 +156,11 @@ export function EventBlock({ event, className, handle }: IProps) {
 							}}
 							{...props}
 						>
-							<EventResizeHandle event={event} edge="top">
+							<EventResizeHandle
+								event={event}
+								edge="top"
+								originalEvent={originalEvent}
+							>
 								<button
 									type="button"
 									className={cn(
@@ -213,7 +219,11 @@ export function EventBlock({ event, className, handle }: IProps) {
 									</>
 								)}
 							</div>
-							<EventResizeHandle event={event} edge="bottom">
+							<EventResizeHandle
+								event={event}
+								edge="bottom"
+								originalEvent={originalEvent}
+							>
 								<button
 									type="button"
 									className={cn(

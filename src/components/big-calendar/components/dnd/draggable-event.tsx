@@ -48,20 +48,24 @@ export function DraggableEvent({ event, children }: DraggableEventProps) {
 interface EventResizeHandleProps {
 	event: TEvent;
 	edge: EventResizeEdge;
+	/** When provided, used for drag data so drop handler receives the real event (e.g. when parent passes displayEvent for layout but original for API). */
+	originalEvent?: TEvent;
 	children: React.ReactNode;
 }
 
 export function EventResizeHandle({
 	event,
 	edge,
+	originalEvent,
 	children,
 }: EventResizeHandleProps) {
+	const eventForData = originalEvent ?? event;
 	const id = `event-resize-${event.id}-${edge}`;
 	const { listeners, setNodeRef } = useDraggable({
 		id,
 		data: {
 			type: "event-resize",
-			event,
+			event: eventForData,
 			edge,
 		} satisfies EventResizeDragData,
 	});

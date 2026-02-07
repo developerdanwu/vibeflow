@@ -1,6 +1,6 @@
 "use client";
 
-import { useCalendarDay } from "@/components/big-calendar/store/calendarDayStore";
+import { useMoveDropRange } from "@/components/big-calendar/components/dnd/use-move-drop-range";
 import { cn } from "@/lib/utils";
 import { isSameDay } from "date-fns";
 
@@ -25,7 +25,7 @@ export function DropRangeRing({
 	firstHour,
 	className,
 }: DropRangeRingProps) {
-	const [moveDropRange] = useCalendarDay((s) => s.context.moveDropRange);
+	const moveDropRange = useMoveDropRange();
 	if (!moveDropRange) return null;
 	const dropStart = moveDropRange.startTimestamp;
 	const dropEnd = moveDropRange.endTimestamp;
