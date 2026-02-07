@@ -1,4 +1,3 @@
-import { EventDetailsDialog } from "@/components/big-calendar/components/dialogs/event-details-dialog";
 import {
 	DraggableEvent,
 	EventResizeHandle,
@@ -15,7 +14,7 @@ import { animate, motion, useMotionValue, useTransform } from "motion/react";
 import { type HTMLAttributes, useEffect } from "react";
 
 export const calendarWeekEventCardVariants = cva(
-	"flex cursor-pointer select-none flex-col gap-0.5 truncate whitespace-nowrap rounded-md border px-2 py-1.5 text-xs transition-[filter] duration-150 hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+	"flex cursor-pointer select-none flex-col gap-0.5 truncate whitespace-nowrap rounded-md border px-2 text-xs transition-[filter] duration-150 hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
 	{
 		variants: {
 			color: {
@@ -61,10 +60,15 @@ interface IProps
 	event: TEvent;
 	/** When provided, used for resize drag data so drop handler receives the real event (e.g. day view passes displayEvent for layout but original for API). */
 	originalEvent?: TEvent;
-	handle?: NonNullable<PopoverRootProps["handle"]>;
+	handle: NonNullable<PopoverRootProps["handle"]>;
 }
 
-export function EventBlock({ event, className, handle, originalEvent }: IProps) {
+export function EventBlock({
+	event,
+	className,
+	handle,
+	originalEvent,
+}: IProps) {
 	const [badgeVariant] = useCalendar((s) => s.context.badgeVariant);
 
 	const start = parseISO(event.startDate);
@@ -110,194 +114,135 @@ export function EventBlock({ event, className, handle, originalEvent }: IProps) 
 			? `${format(start, "h:mm a")} – ${format(end, "h:mm a")}`
 			: format(start, "h:mm a");
 
-	const showResizeHandles = Boolean(handle) && !event.allDay;
+	const showResizeHandles = !event.allDay;
 	const resizeHandleClass =
 		"shrink-0 w-full cursor-ns-resize border-0 bg-transparent";
 
-	if (handle) {
-		return (
-			<DraggableEvent event={event}>
-				<PopoverTrigger
-					handle={handle}
-					id={`day-event-${event.id}`}
-					payload={{
-						date: parseISO(event.startDate),
-						mode: "edit",
-						event,
-					}}
-					render={({
-						className: triggerClassName,
-						onClick,
-						onDrag: _onDrag,
-						onDragEnd: _onDragEnd,
-						onDragStart: _onDragStart,
-						onDragOver: _onDragOver,
-						onDragEnter: _onDragEnter,
-						onDragLeave: _onDragLeave,
-						onAnimationStart: _onAnimationStart,
-						onAnimationEnd: _onAnimationEnd,
-						onAnimationIteration: _onAnimationIteration,
-						...props
-					}) => (
-						<motion.div
-							initial={false}
-							className={cn(
-								calendarWeekEventCardClasses,
-								triggerClassName,
-								showResizeHandles && "relative flex flex-col rounded-md",
-							)}
-							style={{ height: heightPx }}
-							role="button"
-							tabIndex={0}
-							onKeyDown={handleKeyDown}
-							onClick={(e) => {
-								e.stopPropagation();
-								onClick?.(e);
-							}}
-							{...props}
+	return (
+		<DraggableEvent event={event}>
+			<PopoverTrigger
+				handle={handle}
+				id={`day-event-${event.id}`}
+				payload={{
+					date: parseISO(event.startDate),
+					mode: "edit",
+					event,
+				}}
+				render={({
+					className: triggerClassName,
+					onClick,
+					onDrag: _onDrag,
+					onDragEnd: _onDragEnd,
+					onDragStart: _onDragStart,
+					onDragOver: _onDragOver,
+					onDragEnter: _onDragEnter,
+					onDragLeave: _onDragLeave,
+					onAnimationStart: _onAnimationStart,
+					onAnimationEnd: _onAnimationEnd,
+					onAnimationIteration: _onAnimationIteration,
+					...props
+				}) => (
+					<motion.div
+						initial={false}
+						className={cn(
+							calendarWeekEventCardClasses,
+							triggerClassName,
+							showResizeHandles && "relative flex flex-col rounded-md",
+						)}
+						style={{ height: heightPx }}
+						role="button"
+						tabIndex={0}
+						onKeyDown={handleKeyDown}
+						onClick={(e) => {
+							e.stopPropagation();
+							onClick?.(e);
+						}}
+						{...props}
+					>
+						<EventResizeHandle
+							event={event}
+							edge="top"
+							originalEvent={originalEvent}
 						>
-							<EventResizeHandle
-								event={event}
-								edge="top"
-								originalEvent={originalEvent}
-							>
-								<button
-									type="button"
-									className={cn(
-										"absolute top-0 right-0 left-0 h-1 rounded-t-md",
-										resizeHandleClass,
-									)}
-									onClick={(e) => e.stopPropagation()}
-									onKeyDown={(e) => e.stopPropagation()}
-									aria-label="Resize event start"
-								/>
-							</EventResizeHandle>
-							<div className="flex min-h-0 flex-1 flex-col justify-start">
-								{isSingleLine ? (
-									<div className="flex min-w-0 items-center justify-between gap-2">
-										<div className="flex min-w-0 flex-1 items-center gap-1.5 truncate">
-											{["mixed", "dot"].includes(badgeVariant) && (
-												<svg
-													width="8"
-													height="8"
-													viewBox="0 0 8 8"
-													className="event-dot shrink-0"
-													aria-hidden
-												>
-													<title>Event color</title>
-													<circle cx="4" cy="4" r="4" />
-												</svg>
-											)}
-											<p className="truncate font-semibold">
-												{event.title || "Untitled"}
-											</p>
-										</div>
+							<button
+								type="button"
+								className={cn(
+									"absolute top-0 right-0 left-0 h-1 rounded-t-md",
+									resizeHandleClass,
+								)}
+								onClick={(e) => e.stopPropagation()}
+								onKeyDown={(e) => e.stopPropagation()}
+								aria-label="Resize event start"
+							/>
+						</EventResizeHandle>
+						<div className="flex min-h-0 flex-1 flex-col justify-start">
+							{isSingleLine ? (
+								<div className="flex min-w-0 items-center justify-between gap-2">
+									<div className="flex min-w-0 flex-1 items-center gap-1.5 truncate">
+										{["mixed", "dot"].includes(badgeVariant) && (
+											<svg
+												width="8"
+												height="8"
+												viewBox="0 0 8 8"
+												className="event-dot shrink-0"
+												aria-hidden
+											>
+												<title>Event color</title>
+												<circle cx="4" cy="4" r="4" />
+											</svg>
+										)}
+										<p className="truncate font-semibold">
+											{event.title || "Untitled"}
+										</p>
+									</div>
+									{!event.allDay && (
 										<span className="shrink-0 text-xs opacity-90">
 											{timeStr}
 										</span>
-									</div>
-								) : (
-									<>
-										<div className="flex items-center gap-1.5 truncate">
-											{["mixed", "dot"].includes(badgeVariant) && (
-												<svg
-													width="8"
-													height="8"
-													viewBox="0 0 8 8"
-													className="event-dot shrink-0"
-													aria-hidden
-												>
-													<title>Event color</title>
-													<circle cx="4" cy="4" r="4" />
-												</svg>
-											)}
-											<p className="truncate font-semibold">
-												{event.title || "Untitled"}
-											</p>
-										</div>
-										{durationInMinutes > 25 && <p>{timeStr}</p>}
-									</>
-								)}
-							</div>
-							<EventResizeHandle
-								event={event}
-								edge="bottom"
-								originalEvent={originalEvent}
-							>
-								<button
-									type="button"
-									className={cn(
-										"absolute right-0 bottom-0 left-0 h-1 rounded-b-md",
-										resizeHandleClass,
 									)}
-									onClick={(e) => e.stopPropagation()}
-									onKeyDown={(e) => e.stopPropagation()}
-									aria-label="Resize event end"
-								/>
-							</EventResizeHandle>
-						</motion.div>
-					)}
-				/>
-			</DraggableEvent>
-		);
-	}
-
-	return (
-		<DraggableEvent event={event}>
-			<EventDetailsDialog event={event}>
-				<motion.div
-					initial={false}
-					role="button"
-					tabIndex={0}
-					className={calendarWeekEventCardClasses}
-					style={{ height: heightPx }}
-					onKeyDown={handleKeyDown}
-				>
-					{isSingleLine ? (
-						<div className="flex min-w-0 items-center justify-between gap-2">
-							<div className="flex min-w-0 flex-1 items-center gap-1.5 truncate">
-								{["mixed", "dot"].includes(badgeVariant) && (
-									<svg
-										width="8"
-										height="8"
-										viewBox="0 0 8 8"
-										className="event-dot shrink-0"
-										aria-hidden
-									>
-										<title>Event color</title>
-										<circle cx="4" cy="4" r="4" />
-									</svg>
-								)}
-								<p className="truncate font-semibold">
-									{event.title || "Untitled"}
-								</p>
-							</div>
-							<span className="shrink-0 text-xs opacity-90">{timeStr}</span>
+								</div>
+							) : (
+								<>
+									<div className="flex items-center gap-1.5 truncate">
+										{["mixed", "dot"].includes(badgeVariant) && (
+											<svg
+												width="8"
+												height="8"
+												viewBox="0 0 8 8"
+												className="event-dot shrink-0"
+												aria-hidden
+											>
+												<title>Event color</title>
+												<circle cx="4" cy="4" r="4" />
+											</svg>
+										)}
+										<p className="truncate font-semibold">
+											{event.title || "Untitled"}
+										</p>
+									</div>
+									{!event.allDay && durationInMinutes > 25 && <p>{timeStr}</p>}
+								</>
+							)}
 						</div>
-					) : (
-						<>
-							<div className="flex items-center gap-1.5 truncate">
-								{["mixed", "dot"].includes(badgeVariant) && (
-									<svg
-										width="8"
-										height="8"
-										viewBox="0 0 8 8"
-										className="event-dot shrink-0"
-										aria-hidden
-									>
-										<title>Event color</title>
-										<circle cx="4" cy="4" r="4" />
-									</svg>
+						<EventResizeHandle
+							event={event}
+							edge="bottom"
+							originalEvent={originalEvent}
+						>
+							<button
+								type="button"
+								className={cn(
+									"absolute right-0 bottom-0 left-0 h-1 rounded-b-md",
+									resizeHandleClass,
 								)}
-								<p className="truncate font-semibold">
-									{event.title || "Untitled"}
-								</p>
-							</div>
-							{durationInMinutes > 25 && <p>{timeStr}</p>}
-						</>
-					)}
-				</motion.div>
-			</EventDetailsDialog>
+								onClick={(e) => e.stopPropagation()}
+								onKeyDown={(e) => e.stopPropagation()}
+								aria-label="Resize event end"
+							/>
+						</EventResizeHandle>
+					</motion.div>
+				)}
+			/>
 		</DraggableEvent>
 	);
 }

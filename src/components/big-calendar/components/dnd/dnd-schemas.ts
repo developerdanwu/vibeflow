@@ -7,6 +7,8 @@ export const ZEventDragData = z.object({
 	event: ZEventSchema,
 	width: z.number().optional(),
 	height: z.number().optional(),
+	/** Set when drag starts from month view so overlay can match month badge UI. */
+	sourceView: z.enum(["month", "week", "day"]).optional(),
 });
 
 /** Drag data for resizing an event (top or bottom handle). */

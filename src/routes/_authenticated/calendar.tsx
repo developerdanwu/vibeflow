@@ -96,6 +96,7 @@ function CalendarContent() {
 
 	const singleDayEvents = useMemo(() => {
 		return events.filter((event) => {
+			if (event.allDay) return false;
 			const start = new Date(event.startDate);
 			const end = new Date(event.endDate);
 			const duration = end.getTime() - start.getTime();
@@ -105,15 +106,15 @@ function CalendarContent() {
 
 	const multiDayEvents = useMemo(() => {
 		return events.filter((event) => {
+			if (event.allDay) {
+				return true;
+			}
 			const start = new Date(event.startDate);
 			const end = new Date(event.endDate);
 			const duration = end.getTime() - start.getTime();
 			return duration >= 24 * 60 * 60 * 1000;
 		});
 	}, [events]);
-
-	console.log("singleDayEvents", singleDayEvents);
-	console.log("multiDayEvents", multiDayEvents);
 
 	const isLoading = convexEvents === undefined;
 

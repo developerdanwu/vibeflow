@@ -1,3 +1,7 @@
+import { DroppableDayCell } from "@/components/big-calendar/components/dnd/droppable-day-cell";
+import { MonthEventBadge } from "@/components/big-calendar/components/month-view/month-event-badge";
+import type { TEvent } from "@/components/big-calendar/interfaces";
+import type { PopoverRootProps } from "@base-ui/react";
 import {
 	addDays,
 	differenceInDays,
@@ -10,18 +14,16 @@ import {
 } from "date-fns";
 import { useMemo } from "react";
 
-import { MonthEventBadge } from "@/components/big-calendar/components/month-view/month-event-badge";
-
-import type { TEvent } from "@/components/big-calendar/interfaces";
-
 interface IProps {
 	selectedDate: Date;
 	multiDayEvents: TEvent[];
+	handle: NonNullable<PopoverRootProps["handle"]>;
 }
 
 export function WeekViewMultiDayEventsRow({
 	selectedDate,
 	multiDayEvents,
+	handle,
 }: IProps) {
 	const weekStart = startOfWeek(selectedDate);
 	const weekEnd = endOfWeek(selectedDate);
@@ -73,34 +75,19 @@ export function WeekViewMultiDayEventsRow({
 		return rows;
 	}, [processedEvents]);
 
-	const hasEventsInWeek = useMemo(() => {
-		return multiDayEvents.some((event) => {
-			const start = parseISO(event.startDate);
-			const end = parseISO(event.endDate);
-
-			return (
-				// Event starts within the week
-				(start >= weekStart && start <= weekEnd) ||
-				// Event ends within the week
-				(end >= weekStart && end <= weekEnd) ||
-				// Event spans the entire week
-				(start <= weekStart && end >= weekEnd)
-			);
-		});
-	}, [multiDayEvents, weekStart, weekEnd]);
-
-	if (!hasEventsInWeek) {
-		return null;
-	}
-
 	return (
 		<div className="hidden overflow-hidden sm:flex">
-			<div className="w-18 border-b"></div>
+			<div className="w-18 shrink-0 border-b"></div>
 			<div className="grid flex-1 grid-cols-7 divide-x border-b border-l">
 				{weekDays.map((day, dayIndex) => (
-					<div
+					<DroppableDayCell
 						key={day.toISOString()}
-						className="flex h-full flex-col gap-1 py-1"
+						cell={{
+							day: day.getDate(),
+							currentMonth: true,
+							date: startOfDay(day),
+						}}
+						className="flex min-h-10 flex-col gap-1 py-1"
 					>
 						{eventRows.map((row, rowIndex) => {
 							const event = row.find(
@@ -134,10 +121,11 @@ export function WeekViewMultiDayEventsRow({
 									event={event}
 									cellDate={startOfDay(day)}
 									position={position}
+									handle={handle}
 								/>
 							);
 						})}
-					</div>
+					</DroppableDayCell>
 				))}
 			</div>
 		</div>

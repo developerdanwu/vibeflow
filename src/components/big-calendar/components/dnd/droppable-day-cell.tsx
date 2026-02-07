@@ -67,6 +67,22 @@ export function DroppableDayCell({
 	);
 }
 
+/** Convert event to all-day on the given date (single day). Used when dropping onto all-day section in day/week view. */
+export function moveEventToAllDay(
+	event: TEvent,
+	cellDate: Date,
+	updateEvent: (payload: UpdateEventPayload) => Promise<unknown>,
+): void {
+	if (!event.convexId) return;
+	const dateStr = format(startOfDay(cellDate), "yyyy-MM-dd");
+	updateEvent({
+		id: event.convexId as Id<"events">,
+		allDay: true,
+		startDateStr: dateStr,
+		endDateStr: dateStr,
+	});
+}
+
 /** Move event to a new day (month view day cell). Used from DndContext onDragEnd. */
 export function moveEventToDay(
 	event: TEvent,

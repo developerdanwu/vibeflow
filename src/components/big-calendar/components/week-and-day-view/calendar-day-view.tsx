@@ -4,6 +4,7 @@ import {
 } from "@/components/big-calendar/components/dnd/dnd-schemas";
 import { isEventResizeData } from "@/components/big-calendar/components/dnd/draggable-event";
 import { DropRangeRing } from "@/components/big-calendar/components/dnd/drop-range-ring";
+import { DroppableDayCell } from "@/components/big-calendar/components/dnd/droppable-day-cell";
 import { DroppableTimeBlock } from "@/components/big-calendar/components/dnd/droppable-time-block";
 import {
 	EventPopover,
@@ -12,7 +13,6 @@ import {
 } from "@/components/big-calendar/components/event-popover";
 import { eventBadgeVariants } from "@/components/big-calendar/components/month-view/month-event-badge";
 import { CalendarTimeline } from "@/components/big-calendar/components/week-and-day-view/calendar-time-line";
-import { DayViewMultiDayEventsRow } from "@/components/big-calendar/components/week-and-day-view/day-view-multi-day-events-row";
 import { EventBlock } from "@/components/big-calendar/components/week-and-day-view/event-block";
 import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
 import {
@@ -30,11 +30,18 @@ import { Popover as PopoverBase } from "@base-ui/react";
 import { useDndContext } from "@dnd-kit/core";
 import { Time } from "@internationalized/date";
 import type { VariantProps } from "class-variance-authority";
-import { areIntervalsOverlapping, format, isToday, parseISO } from "date-fns";
+import {
+	areIntervalsOverlapping,
+	format,
+	isToday,
+	parseISO,
+	startOfDay,
+} from "date-fns";
 
 const MIN_DURATION_MS = 15 * 60 * 1000;
 
 import { useEffect, useMemo, useRef } from "react";
+import { DayViewMultiDayEventsRow } from "./day-view-multi-day-events-row";
 
 const NEW_EVENT_TRIGGER_ID = "new-event-trigger";
 const SLOT_HEIGHT_PX = 24;
@@ -125,29 +132,37 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 	return (
 		<>
 			<div className="flex min-h-0 flex-1 flex-col">
-				<div className="shrink-0">
-					<DayViewMultiDayEventsRow
-						selectedDate={selectedDate}
-						multiDayEvents={multiDayEvents}
-						handle={quickAddEventPopoverHandle}
-					/>
-
-					{/* Day header */}
-					<div className="relative z-20 flex border-b">
-						<div className="w-18"></div>
-						<span className="flex-1 border-l py-2 text-center font-medium text-muted-foreground text-xs">
-							{format(selectedDate, "EE")}{" "}
-							<span
-								className={cn(
-									"inline-flex size-7 items-center justify-center rounded-full font-semibold text-foreground",
-									isToday(selectedDate) &&
-										"bg-primary font-bold text-primary-foreground",
-								)}
-							>
-								{format(selectedDate, "d")}
+				<div className="shrink">
+					{/* Day header (droppable for converting events to all-day) */}
+					<DroppableDayCell
+						cell={{
+							day: selectedDate.getDate(),
+							currentMonth: true,
+							date: startOfDay(selectedDate),
+						}}
+						className="relative z-20 flex flex-col border-b"
+					>
+						<div className="flex">
+							<div className="w-18 shrink-0"></div>
+							<span className="flex flex-1 items-center justify-center border-x py-1 font-medium text-muted-foreground text-xs">
+								{format(selectedDate, "EE")}{" "}
+								<span
+									className={cn(
+										"inline-flex size-6 items-center justify-center rounded-full font-semibold text-foreground",
+										isToday(selectedDate) &&
+											"bg-primary font-bold text-primary-foreground",
+									)}
+								>
+									{format(selectedDate, "d")}
+								</span>
 							</span>
-						</span>
-					</div>
+						</div>
+						<DayViewMultiDayEventsRow
+							selectedDate={selectedDate}
+							multiDayEvents={multiDayEvents}
+							handle={quickAddEventPopoverHandle}
+						/>
+					</DroppableDayCell>
 				</div>
 				<ScrollArea className="h-0 flex-[1_1_0px]" type="auto">
 					<div className="flex">

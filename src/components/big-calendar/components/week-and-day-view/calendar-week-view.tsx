@@ -1,6 +1,7 @@
 import { AddEventDialog } from "@/components/big-calendar/components/dialogs/add-event-dialog";
 import { DropRangeRing } from "@/components/big-calendar/components/dnd/drop-range-ring";
 import { DroppableTimeBlock } from "@/components/big-calendar/components/dnd/droppable-time-block";
+import { EventPopover } from "@/components/big-calendar/components/event-popover";
 import { CalendarTimeline } from "@/components/big-calendar/components/week-and-day-view/calendar-time-line";
 import { EventBlock } from "@/components/big-calendar/components/week-and-day-view/event-block";
 import { WeekViewMultiDayEventsRow } from "@/components/big-calendar/components/week-and-day-view/week-view-multi-day-events-row";
@@ -15,6 +16,7 @@ import type { TEvent } from "@/components/big-calendar/interfaces";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Route } from "@/routes/_authenticated/calendar";
+import { Popover as PopoverBase } from "@base-ui/react";
 import {
 	addDays,
 	areIntervalsOverlapping,
@@ -23,6 +25,7 @@ import {
 	parseISO,
 	startOfWeek,
 } from "date-fns";
+import { useMemo } from "react";
 
 interface IProps {
 	singleDayEvents: TEvent[];
@@ -33,6 +36,7 @@ export function CalendarWeekView({ singleDayEvents, multiDayEvents }: IProps) {
 	const { date: selectedDate } = Route.useSearch();
 	const [workingHours] = useCalendar((s) => s.context.workingHours);
 	const [visibleHours] = useCalendar((s) => s.context.visibleHours);
+	const weekEventPopoverHandle = useMemo(() => PopoverBase.createHandle(), []);
 
 	const { hours, earliestEventHour, latestEventHour } = getVisibleHours(
 		visibleHours,
@@ -54,6 +58,7 @@ export function CalendarWeekView({ singleDayEvents, multiDayEvents }: IProps) {
 					<WeekViewMultiDayEventsRow
 						selectedDate={selectedDate}
 						multiDayEvents={multiDayEvents}
+						handle={weekEventPopoverHandle}
 					/>
 
 					{/* Week header */}
@@ -218,7 +223,10 @@ export function CalendarWeekView({ singleDayEvents, multiDayEvents }: IProps) {
 															className="absolute p-1"
 															style={style}
 														>
-															<EventBlock event={event} />
+															<EventBlock
+																event={event}
+																handle={weekEventPopoverHandle}
+															/>
 														</div>
 													);
 												}),
@@ -236,6 +244,7 @@ export function CalendarWeekView({ singleDayEvents, multiDayEvents }: IProps) {
 					</div>
 				</ScrollArea>
 			</div>
+			<EventPopover handle={weekEventPopoverHandle} />
 		</>
 	);
 }

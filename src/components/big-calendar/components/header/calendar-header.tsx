@@ -4,7 +4,7 @@ import type { TCalendarView } from "@/components/big-calendar/types";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { addMonths, subMonths } from "date-fns";
+import { addDays, addMonths, subDays, subMonths } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface IProps {
@@ -42,7 +42,21 @@ export function CalendarHeader({ view, events }: IProps) {
 					</Button>
 					<Link
 						from="/calendar"
-						search={({ date }) => ({ date: subMonths(date, 1) })}
+						search={({ date, view, ...rest }) => {
+							if (view === "day") {
+								return {
+									date: subDays(date, 1),
+									view,
+									...rest,
+								};
+							}
+
+							return {
+								date: subMonths(date, 1),
+								view,
+								...rest,
+							};
+						}}
 					>
 						<Button variant="ghost" size="icon-sm">
 							<ChevronLeft />
@@ -51,7 +65,21 @@ export function CalendarHeader({ view, events }: IProps) {
 
 					<Link
 						from="/calendar"
-						search={({ date }) => ({ date: addMonths(date, 1) })}
+						search={({ date, view, ...rest }) => {
+							if (view === "day") {
+								return {
+									date: addDays(date, 1),
+									view,
+									...rest,
+								};
+							}
+
+							return {
+								date: addMonths(date, 1),
+								view,
+								...rest,
+							};
+						}}
 					>
 						<Button variant="ghost" size="icon-sm">
 							<ChevronRight />

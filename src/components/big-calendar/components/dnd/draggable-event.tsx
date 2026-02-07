@@ -20,16 +20,23 @@ export function isEventResizeData(
 
 interface DraggableEventProps {
 	event: TEvent;
+	/** When "month", overlay shows month-event badge style. */
+	sourceView?: "month" | "week" | "day";
 	children: React.ReactNode;
 }
 
-export function DraggableEvent({ event, children }: DraggableEventProps) {
+export function DraggableEvent({
+	event,
+	sourceView,
+	children,
+}: DraggableEventProps) {
 	const id = `event-${event.id}`;
 	const { attributes, isDragging, listeners, setNodeRef } = useDraggable({
 		id,
 		data: {
 			type: "event",
 			event,
+			...(sourceView && { sourceView }),
 		} satisfies EventDragData,
 	});
 

@@ -6,7 +6,10 @@ import {
 	ZDayCellOverData,
 	ZTimeBlockOverData,
 } from "@/components/big-calendar/components/dnd/dnd-schemas";
-import { moveEventToDay } from "@/components/big-calendar/components/dnd/droppable-day-cell";
+import {
+	moveEventToAllDay,
+	moveEventToDay,
+} from "@/components/big-calendar/components/dnd/droppable-day-cell";
 import {
 	moveEventToSlot,
 	resizeEventToSlot,
@@ -94,14 +97,30 @@ export function DayWeekDndProvider({
 
 	const onDragEnd = (event: DragEndEvent) => {
 		const activeResult = ZCalendarDragData.safeParse(event.active.data.current);
-		const overResult = ZTimeBlockOverData.safeParse(event.over?.data.current);
 		const activeData = activeResult.success ? activeResult.data : undefined;
-		const overData = overResult.success ? overResult.data : undefined;
 
 		if (!activeData || !activeData.event.convexId) {
 			return;
 		}
-		if (!event.over || !overData) {
+		if (!event.over) {
+			return;
+		}
+
+		const dayCellOverResult = ZDayCellOverData.safeParse(
+			event.over.data.current,
+		);
+		if (dayCellOverResult.success && activeData.type === "event") {
+			moveEventToAllDay(
+				activeData.event,
+				dayCellOverResult.data.cell.date,
+				mutateAsync,
+			);
+			return;
+		}
+
+		const overResult = ZTimeBlockOverData.safeParse(event.over.data.current);
+		const overData = overResult.success ? overResult.data : undefined;
+		if (!overData) {
 			return;
 		}
 

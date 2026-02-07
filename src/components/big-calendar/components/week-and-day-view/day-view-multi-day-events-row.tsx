@@ -1,13 +1,8 @@
 import { MonthEventBadge } from "@/components/big-calendar/components/month-view/month-event-badge";
+import { isEventOnDate } from "@/components/big-calendar/helpers";
 import type { TEvent } from "@/components/big-calendar/interfaces";
 import type { PopoverRootProps } from "@base-ui/react";
-import {
-	differenceInDays,
-	endOfDay,
-	isWithinInterval,
-	parseISO,
-	startOfDay,
-} from "date-fns";
+import { differenceInDays, parseISO, startOfDay } from "date-fns";
 
 interface IProps {
 	selectedDate: Date;
@@ -15,63 +10,54 @@ interface IProps {
 	handle: NonNullable<PopoverRootProps["handle"]>;
 }
 
+/** Total displayed days for an event (exclusive end for startDateStr/endDateStr). */
+function getEventTotalDays(event: TEvent): number {
+	if (event.startDateStr && event.endDateStr) {
+		if (event.startDateStr === event.endDateStr) return 1;
+		return differenceInDays(
+			parseISO(event.endDateStr),
+			parseISO(event.startDateStr),
+		);
+	}
+	return (
+		differenceInDays(parseISO(event.endDate), parseISO(event.startDate)) + 1
+	);
+}
+
+/** 1-based day index of date within the event range. */
+function getEventCurrentDay(event: TEvent, date: Date): number {
+	const day = startOfDay(date);
+	if (event.startDateStr && event.endDateStr) {
+		return differenceInDays(day, parseISO(event.startDateStr)) + 1;
+	}
+	return differenceInDays(day, parseISO(event.startDate)) + 1;
+}
+
 export function DayViewMultiDayEventsRow({
 	selectedDate,
 	multiDayEvents,
 	handle,
 }: IProps) {
-	const dayStart = startOfDay(selectedDate);
-	const dayEnd = endOfDay(selectedDate);
+	const day = startOfDay(selectedDate);
 
 	const multiDayEventsInDay = multiDayEvents
-		.filter((event) => {
-			const eventStart = parseISO(event.startDate);
-			const eventEnd = parseISO(event.endDate);
-
-			const isOverlapping =
-				isWithinInterval(dayStart, { start: eventStart, end: eventEnd }) ||
-				isWithinInterval(dayEnd, { start: eventStart, end: eventEnd }) ||
-				(eventStart <= dayStart && eventEnd >= dayEnd);
-
-			return isOverlapping;
-		})
-		.sort((a, b) => {
-			const durationA = differenceInDays(
-				parseISO(a.endDate),
-				parseISO(a.startDate),
-			);
-			const durationB = differenceInDays(
-				parseISO(b.endDate),
-				parseISO(b.startDate),
-			);
-			return durationB - durationA;
-		});
-
-	if (multiDayEventsInDay.length === 0) return null;
+		.filter((event) => isEventOnDate(event, day))
+		.sort((a, b) => getEventTotalDays(b) - getEventTotalDays(a));
 
 	return (
-		<div className="flex border-b">
-			<div className="w-18"></div>
-			<div className="flex flex-1 flex-col gap-1 border-l py-1">
-				{multiDayEventsInDay.map((event) => {
-					const eventStart = startOfDay(parseISO(event.startDate));
-					const eventEnd = startOfDay(parseISO(event.endDate));
-					const currentDate = startOfDay(selectedDate);
-
-					const eventTotalDays = differenceInDays(eventEnd, eventStart) + 1;
-					const eventCurrentDay = differenceInDays(currentDate, eventStart) + 1;
-
-					return (
-						<MonthEventBadge
-							key={event.id}
-							handle={handle}
-							event={event}
-							cellDate={selectedDate}
-							eventCurrentDay={eventCurrentDay}
-							eventTotalDays={eventTotalDays}
-						/>
-					);
-				})}
+		<div className="flex flex-1">
+			<div className="w-18 shrink-0 border-t"></div>
+			<div className="flex min-h-6.5 flex-1 flex-col gap-1 border-t border-l px-1 py-1">
+				{multiDayEventsInDay.map((event) => (
+					<MonthEventBadge
+						key={event.id}
+						handle={handle}
+						event={event}
+						cellDate={selectedDate}
+						eventCurrentDay={getEventCurrentDay(event, selectedDate)}
+						eventTotalDays={getEventTotalDays(event)}
+					/>
+				))}
 			</div>
 		</div>
 	);

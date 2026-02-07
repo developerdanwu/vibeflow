@@ -5,6 +5,8 @@ import {
 import { useDndContext } from "@dnd-kit/core";
 import { parseISO } from "date-fns";
 
+const MIN_DURATION_MS = 15 * 60 * 1000;
+
 /** When moving an event over time blocks, the range that would be occupied (for drop preview ring). */
 export type MoveDropRange = {
 	startTimestamp: number;
@@ -33,9 +35,10 @@ export function useMoveDropRange(): MoveDropRange {
 	}
 
 	const slotStartTimestamp = overData.slotStartTimestamp;
-	const start = parseISO(activeData.event.startDate).getTime();
-	const end = parseISO(activeData.event.endDate).getTime();
-	const durationMs = end - start;
+	const durationMs = activeData.event.allDay
+		? MIN_DURATION_MS
+		: parseISO(activeData.event.endDate).getTime() -
+			parseISO(activeData.event.startDate).getTime();
 	return {
 		startTimestamp: slotStartTimestamp,
 		endTimestamp: slotStartTimestamp + durationMs,

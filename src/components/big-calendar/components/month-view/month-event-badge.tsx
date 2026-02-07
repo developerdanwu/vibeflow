@@ -137,7 +137,7 @@ export function MonthEventBadge({
 	const triggerId = `event-badge-${event.id}`;
 
 	return (
-		<DraggableEvent event={event}>
+		<DraggableEvent event={event} sourceView="month">
 			<PopoverTrigger
 				handle={handle}
 				id={triggerId}
@@ -182,7 +182,7 @@ export function MonthEventBadge({
 												)}
 											</div>
 
-											{renderBadgeText && (
+											{renderBadgeText && !event.allDay && (
 												<span>{format(start, "h:mm a")}</span>
 											)}
 										</button>
@@ -194,7 +194,9 @@ export function MonthEventBadge({
 								className="max-w-xs border bg-popover px-3 py-2 text-popover-foreground shadow-md"
 							>
 								<p className="font-semibold">{event.title}</p>
-								<p className="text-2xs text-muted-foreground">{timeRange}</p>
+								{!event.allDay && (
+									<p className="text-2xs text-muted-foreground">{timeRange}</p>
+								)}
 							</TooltipContent>
 						</Tooltip>
 					);
