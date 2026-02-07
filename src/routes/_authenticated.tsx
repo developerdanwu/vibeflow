@@ -1,3 +1,4 @@
+import { AuthenticatedLayout } from "@/components/layouts/AuthenticatedLayout";
 import { api } from "@convex/_generated/api";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { getAuth, getSignInUrl } from "@workos/authkit-tanstack-react-start";
@@ -29,5 +30,9 @@ export const Route = createFileRoute("/_authenticated")({
 
 		return { user };
 	},
-	component: () => <Outlet />,
+	component: () => (
+		<AuthenticatedLayout>
+			<Outlet />
+		</AuthenticatedLayout>
+	),
 });

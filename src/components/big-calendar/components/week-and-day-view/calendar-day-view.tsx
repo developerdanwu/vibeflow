@@ -164,7 +164,7 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 						/>
 					</DroppableDayCell>
 				</div>
-				<ScrollArea className="h-0 flex-[1_1_0px]" type="auto">
+				<ScrollArea className="h-0 flex-[1_1_0px]">
 					<div className="flex">
 						{/* Hours column */}
 						<div className="relative w-18">

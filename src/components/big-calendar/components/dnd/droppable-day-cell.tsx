@@ -51,7 +51,7 @@ export function DroppableDayCell({
 			className={cn(
 				"h-full",
 				isOver && "bg-accent/50",
-				isDropTarget && "relative z-10",
+				isDropTarget && "relative z-20",
 				className,
 			)}
 			{...rest}

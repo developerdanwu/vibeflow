@@ -49,7 +49,6 @@ export function CalendarMonthView({ singleDayEvents, multiDayEvents }: IProps) {
 						</div>
 					))}
 				</div>
-
 				<div
 					className="grid flex-1 grid-cols-7 overflow-visible"
 					style={{
