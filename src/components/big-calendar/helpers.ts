@@ -327,15 +327,8 @@ export function getMonthCellEvents(
 	events: TEvent[],
 	eventPositions: Record<string, number>,
 ) {
-	const eventsForDate = events.filter((event) => {
-		const eventStart = parseISO(event.startDate);
-		const eventEnd = parseISO(event.endDate);
-		return (
-			(date >= eventStart && date <= eventEnd) ||
-			isSameDay(date, eventStart) ||
-			isSameDay(date, eventEnd)
-		);
-	});
+	const day = startOfDay(date);
+	const eventsForDate = events.filter((event) => isEventOnDate(event, day));
 
 	return eventsForDate
 		.map((event) => ({

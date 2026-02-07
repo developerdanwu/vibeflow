@@ -9,7 +9,14 @@ import type {
 import { cn } from "@/lib/utils";
 import type { Id } from "@convex/_generated/dataModel";
 import { useDndContext, useDroppable } from "@dnd-kit/core";
-import { addDays, differenceInDays, parseISO, set, startOfDay } from "date-fns";
+import {
+	addDays,
+	differenceInDays,
+	format,
+	parseISO,
+	set,
+	startOfDay,
+} from "date-fns";
 import type { HTMLAttributes } from "react";
 
 interface DroppableDayCellProps extends HTMLAttributes<HTMLDivElement> {
@@ -23,7 +30,8 @@ function dayCellId(cell: ICalendarCell): string {
 export function DroppableDayCell({
 	cell,
 	className,
-	...props
+	children,
+	...rest
 }: DroppableDayCellProps) {
 	const { active } = useDndContext();
 	const { isOver, setNodeRef } = useDroppable({
@@ -43,11 +51,19 @@ export function DroppableDayCell({
 			className={cn(
 				"h-full",
 				isOver && "bg-accent/50",
-				isDropTarget && "ring-2 ring-primary",
+				isDropTarget && "relative z-10",
 				className,
 			)}
-			{...props}
-		/>
+			{...rest}
+		>
+			{children}
+			{isDropTarget && (
+				<div
+					className="pointer-events-none absolute inset-0 z-10 rounded-lg ring-2 ring-primary"
+					aria-hidden
+				/>
+			)}
+		</div>
 	);
 }
 
@@ -67,10 +83,27 @@ export function moveEventToDay(
 		milliseconds: eventStartDate.getMilliseconds(),
 	});
 	const daysDiff = differenceInDays(newStartDate, eventStartDate);
+	if (daysDiff === 0) return;
 	const newEndDate = addDays(eventEndDate, daysDiff);
-	updateEvent({
+
+	const basePayload = {
 		id: event.convexId as Id<"events">,
-		startTimestamp: newStartDate.getTime(),
-		endTimestamp: newEndDate.getTime(),
-	});
+		allDay: event.allDay,
+	};
+
+	if (event.allDay) {
+		updateEvent({
+			...basePayload,
+			startDateStr: format(newStartDate, "yyyy-MM-dd"),
+			endDateStr: format(newEndDate, "yyyy-MM-dd"),
+		});
+	} else {
+		updateEvent({
+			...basePayload,
+			startTimestamp: newStartDate.getTime(),
+			endTimestamp: newEndDate.getTime(),
+			startDateStr: format(newStartDate, "yyyy-MM-dd"),
+			endDateStr: format(newEndDate, "yyyy-MM-dd"),
+		});
+	}
 }

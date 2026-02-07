@@ -2,8 +2,13 @@
 
 import { ZCalendarDragData } from "@/components/big-calendar/components/dnd/dnd-schemas";
 import { isEventResizeData } from "@/components/big-calendar/components/dnd/draggable-event";
+import { calendarWeekEventCardVariants } from "@/components/big-calendar/components/week-and-day-view/event-block";
+import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
 import type { TEvent } from "@/components/big-calendar/interfaces";
+import { cn } from "@/lib/utils";
 import { useDndContext } from "@dnd-kit/core";
+import type { VariantProps } from "class-variance-authority";
+import { differenceInMinutes, format, parseISO } from "date-fns";
 import { useMemo } from "react";
 
 const LINE_WIDTH = 120;
@@ -22,44 +27,98 @@ function ResizeLine() {
 	);
 }
 
+/** Min height = one 15-min slot. Hour slot is 96px. Matches event-block.tsx. */
+const MIN_EVENT_HEIGHT_PX = (15 / 60) * 96;
+
 function EventCardPreview({
 	event,
 	width,
 	height,
+	badgeVariant,
 }: {
 	event: TEvent;
 	width: number;
 	height: number;
+	badgeVariant: "colored" | "dot" | "mixed";
 }) {
-	const colorClass =
-		event.color === "blue"
-			? "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950"
-			: event.color === "green"
-				? "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950"
-				: event.color === "red"
-					? "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950"
-					: event.color === "yellow"
-						? "border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-950"
-						: event.color === "purple"
-							? "border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-950"
-							: event.color === "orange"
-								? "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-950"
-								: "border-neutral-200 bg-neutral-50 text-neutral-700 dark:border-neutral-700 dark:bg-neutral-900";
+	const start = parseISO(event.startDate);
+	const end = parseISO(event.endDate);
+	const durationInMinutes = differenceInMinutes(end, start);
+	const timeStr =
+		durationInMinutes > 0
+			? `${format(start, "h:mm a")} – ${format(end, "h:mm a")}`
+			: format(start, "h:mm a");
+	const isSingleLine = (durationInMinutes / 60) * 96 - 8 <= MIN_EVENT_HEIGHT_PX;
+
+	const color = (
+		badgeVariant === "dot" ? `${event.color}-dot` : event.color
+	) as VariantProps<typeof calendarWeekEventCardVariants>["color"];
+
+	const className = cn(
+		calendarWeekEventCardVariants({ color }),
+		"justify-start",
+	);
+
 	return (
 		<div
-			className={`flex select-none flex-col justify-center truncate rounded-md border px-2 py-1.5 text-xs ${colorClass}`}
+			className={className}
 			style={{
 				width: Math.max(width, 80),
-				height: Math.max(height, 24),
+				height: Math.max(height, MIN_EVENT_HEIGHT_PX),
 			}}
 		>
-			<p className="truncate font-semibold">{event.title || "Untitled"}</p>
+			<div className="flex min-h-0 flex-1 flex-col justify-start">
+				{isSingleLine ? (
+					<div className="flex min-w-0 items-center justify-between gap-2">
+						<div className="flex min-w-0 flex-1 items-center gap-1.5 truncate">
+							{["mixed", "dot"].includes(badgeVariant) && (
+								<svg
+									width="8"
+									height="8"
+									viewBox="0 0 8 8"
+									className="event-dot shrink-0"
+									aria-hidden
+								>
+									<title>Event color</title>
+									<circle cx="4" cy="4" r="4" />
+								</svg>
+							)}
+							<p className="truncate font-semibold">
+								{event.title || "Untitled"}
+							</p>
+						</div>
+						<span className="shrink-0 text-xs opacity-90">{timeStr}</span>
+					</div>
+				) : (
+					<>
+						<div className="flex items-center gap-1.5 truncate">
+							{["mixed", "dot"].includes(badgeVariant) && (
+								<svg
+									width="8"
+									height="8"
+									viewBox="0 0 8 8"
+									className="event-dot shrink-0"
+									aria-hidden
+								>
+									<title>Event color</title>
+									<circle cx="4" cy="4" r="4" />
+								</svg>
+							)}
+							<p className="truncate font-semibold">
+								{event.title || "Untitled"}
+							</p>
+						</div>
+						{durationInMinutes > 25 && <p>{timeStr}</p>}
+					</>
+				)}
+			</div>
 		</div>
 	);
 }
 
 export function CalendarDragOverlayContent() {
 	const { active, activeNodeRect } = useDndContext();
+	const [badgeVariant] = useCalendar((s) => s.context.badgeVariant);
 	const result = ZCalendarDragData.safeParse(active?.data.current);
 	const data = result.success ? result.data : undefined;
 
@@ -71,10 +130,23 @@ export function CalendarDragOverlayContent() {
 		if (data.type === "event" && data.event) {
 			const w = activeNodeRect?.width ?? 120;
 			const h = activeNodeRect?.height ?? 40;
-			return <EventCardPreview event={data.event} width={w} height={h} />;
+			return (
+				<EventCardPreview
+					event={data.event}
+					width={w}
+					height={h}
+					badgeVariant={badgeVariant}
+				/>
+			);
 		}
 		return null;
-	}, [active, data, activeNodeRect?.width, activeNodeRect?.height]);
+	}, [
+		active,
+		data,
+		activeNodeRect?.width,
+		activeNodeRect?.height,
+		badgeVariant,
+	]);
 
 	return overlay;
 }

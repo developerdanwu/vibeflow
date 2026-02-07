@@ -80,37 +80,44 @@ export const updateEvent = authMutation({
 
 		const allDay = updates.allDay ?? event.allDay;
 
-		let derivedStartTimestamp = updates.startTimestamp;
-		let derivedEndTimestamp = updates.endTimestamp;
-
-		if (
-			updates.startDateStr ||
-			updates.endDateStr ||
-			updates.startTime ||
-			updates.endTime ||
-			updates.timeZone
-		) {
+		const derived = (() => {
+			const hasDateOrTimeUpdates =
+				updates.startDateStr ||
+				updates.endDateStr ||
+				updates.startTime ||
+				updates.endTime ||
+				updates.timeZone;
+			if (!hasDateOrTimeUpdates) {
+				return {
+					start: updates.startTimestamp,
+					end: updates.endTimestamp,
+				};
+			}
 			const startDateStr = updates.startDateStr ?? event.startDateStr;
 			const endDateStr = updates.endDateStr ?? event.endDateStr;
 			const startTime = updates.startTime ?? event.startTime;
 			const endTime = updates.endTime ?? event.endTime;
 			const timeZone = updates.timeZone ?? event.timeZone;
-
 			if (allDay && startDateStr && endDateStr) {
-				const startDateObj = new Date(startDateStr + "T00:00:00Z");
-				const endDateObj = new Date(endDateStr + "T00:00:00Z");
-				derivedStartTimestamp = startDateObj.getTime();
-				derivedEndTimestamp = endDateObj.getTime();
-			} else if (!allDay && startDateStr && startTime && endDateStr && endTime && timeZone) {
-				const startDateObj = new Date(`${startDateStr}T${startTime}:00Z`);
-				const endDateObj = new Date(`${endDateStr}T${endTime}:00Z`);
-				derivedStartTimestamp = startDateObj.getTime();
-				derivedEndTimestamp = endDateObj.getTime();
+				return {
+					start: new Date(startDateStr + "T00:00:00Z").getTime(),
+					end: new Date(endDateStr + "T00:00:00Z").getTime(),
+				};
 			}
-		}
+			if (!allDay && startDateStr && startTime && endDateStr && endTime && timeZone) {
+				return {
+					start: new Date(`${startDateStr}T${startTime}:00Z`).getTime(),
+					end: new Date(`${endDateStr}T${endTime}:00Z`).getTime(),
+				};
+			}
+			return {
+				start: updates.startTimestamp,
+				end: updates.endTimestamp,
+			};
+		})();
 
-		const newStartTimestamp = derivedStartTimestamp ?? updates.startTimestamp ?? event.startTimestamp;
-		const newEndTimestamp = derivedEndTimestamp ?? updates.endTimestamp ?? event.endTimestamp;
+		const newStartTimestamp = derived.start ?? updates.startTimestamp ?? event.startTimestamp;
+		const newEndTimestamp = derived.end ?? updates.endTimestamp ?? event.endTimestamp;
 
 		if (newEndTimestamp < newStartTimestamp) {
 			throw new Error("End date must be after start date");
@@ -120,11 +127,17 @@ export const updateEvent = authMutation({
 			Object.entries(updates).filter(([_, v]) => v !== undefined)
 		);
 
-		if (derivedStartTimestamp !== undefined) {
-			cleanUpdates.startTimestamp = derivedStartTimestamp;
+		if (derived.start !== undefined) {
+			cleanUpdates.startTimestamp = derived.start;
 		}
-		if (derivedEndTimestamp !== undefined) {
-			cleanUpdates.endTimestamp = derivedEndTimestamp;
+		if (derived.end !== undefined) {
+			cleanUpdates.endTimestamp = derived.end;
+		}
+
+		if (allDay) {
+			(cleanUpdates as Record<string, unknown>).startTime = undefined;
+			(cleanUpdates as Record<string, unknown>).endTime = undefined;
+			(cleanUpdates as Record<string, unknown>).timeZone = undefined;
 		}
 
 		return await ctx.db.patch(id, cleanUpdates);

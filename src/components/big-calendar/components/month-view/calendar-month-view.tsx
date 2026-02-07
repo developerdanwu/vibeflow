@@ -51,7 +51,7 @@ export function CalendarMonthView({ singleDayEvents, multiDayEvents }: IProps) {
 				</div>
 
 				<div
-					className="grid flex-1 grid-cols-7 overflow-hidden"
+					className="grid flex-1 grid-cols-7 overflow-visible"
 					style={{
 						gridTemplateRows: `repeat(${numRows}, minmax(0, 1fr))`,
 					}}

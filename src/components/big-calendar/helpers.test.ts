@@ -1,7 +1,9 @@
 import {
+	calculateMonthEventPositions,
 	deriveNumericTimestamp,
 	formatEventTime,
 	getEventCalendarDate,
+	getMonthCellEvents,
 	isEventOnDate,
 } from "@/components/big-calendar/helpers";
 import type { TEvent } from "@/components/big-calendar/interfaces";
@@ -317,5 +319,66 @@ describe("formatEventTime", () => {
 		const result = formatEventTime(event);
 		expect(result).toBeTruthy();
 		expect(result).toMatch(/\d{1,2}:\d{2}/);
+	});
+});
+
+// ================ getMonthCellEvents Tests ================ //
+
+describe("getMonthCellEvents", () => {
+	const user = {
+		id: "user1",
+		name: "Test User",
+		picturePath: null as string | null,
+	};
+
+	it("should include timed event on its calendar day with valid position", () => {
+		const timedEvent: TEvent = {
+			id: "timed-1",
+			startDate: "2026-02-07T08:00:00.000Z",
+			endDate: "2026-02-07T09:00:00.000Z",
+			title: "Timed event",
+			color: "blue",
+			description: "",
+			user,
+			allDay: false,
+		};
+		const cellDate = new Date("2026-02-07");
+		const eventPositions: Record<string, number> = { "timed-1": 0 };
+		const result = getMonthCellEvents(cellDate, [timedEvent], eventPositions);
+		expect(result).toHaveLength(1);
+		expect(result[0].id).toBe("timed-1");
+		expect(result[0].position).toBe(0);
+	});
+});
+
+// ================ calculateMonthEventPositions Tests ================ //
+
+describe("calculateMonthEventPositions", () => {
+	const user = {
+		id: "user1",
+		name: "Test User",
+		picturePath: null as string | null,
+	};
+
+	it("should assign a position to a single-day timed event", () => {
+		const timedEvent: TEvent = {
+			id: "timed-1",
+			startDate: "2026-02-07T08:00:00.000Z",
+			endDate: "2026-02-07T09:00:00.000Z",
+			title: "Timed event",
+			color: "green",
+			description: "",
+			user,
+			allDay: false,
+		};
+		const selectedDate = new Date("2026-02-07");
+		const positions = calculateMonthEventPositions(
+			[],
+			[timedEvent],
+			selectedDate,
+		);
+		expect(positions["timed-1"]).toBeDefined();
+		expect(positions["timed-1"]).toBeGreaterThanOrEqual(0);
+		expect(positions["timed-1"]).toBeLessThanOrEqual(2);
 	});
 });

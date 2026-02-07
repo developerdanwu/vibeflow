@@ -4,7 +4,7 @@
 
 VibeFlow is a personal productivity calendar application built with React 19, TanStack Start (SSR), and Convex for real-time data synchronization. The app integrates with Google Calendar via OAuth, enables time blocking for focused work, and provides productivity analytics. Authentication is handled by WorkOS AuthKit, with deployment to Cloudflare Pages/Workers for edge performance.
 
-**Key Technologies:** React 19 • TypeScript • Vite • TanStack Router • Convex • WorkOS • XState Store • Tailwind CSS v4 • Cloudflare
+**Key Technologies:** React 19 • TypeScript • Vite • TanStack Router • Convex • WorkOS • XState Store • Tailwind CSS v4 • Motion • Cloudflare
 
 **Documentation:** 
 - See [spec.md](./SPEC.md) for product requirements and features
@@ -265,6 +265,7 @@ import { useUser } from "../../hooks/useUser";
 
 ### Integration Guidelines
 - **Google Calendar:** Use existing OAuth flow in WorkOS
+- **Animations:** Use the **Motion** package (not framer-motion). Import from `"motion/react"` (e.g. `import { motion } from "motion/react"`) and use `motion.div`, `motion.button`, etc. for animated elements. Use `initial={false}` when you want no enter animation. For smooth numeric transitions (e.g. height), use `useMotionValue` + `animate()` + `useTransform` and pass the transformed value to `style` so the DOM updates without extra React re-renders.
 - **Styling:** Use Tailwind classes, avoid inline styles
 - **State Management:** Use TanStack Query for server state, XState Store for client state
 - **Forms:** Use TanStack Form via `useAppForm` from `@/components/ui/form`. Use registered field components (e.g. `field.TextField`) inside `form.AppField` and form components (e.g. `form.SubmitButton`) inside `form.AppForm`. See [src/docs/ui.md](src/docs/ui.md) for TanStack Form.

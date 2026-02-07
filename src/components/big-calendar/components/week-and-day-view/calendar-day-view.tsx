@@ -30,7 +30,7 @@ import { Popover as PopoverBase } from "@base-ui/react";
 import { useDndContext } from "@dnd-kit/core";
 import { Time } from "@internationalized/date";
 import type { VariantProps } from "class-variance-authority";
-import { areIntervalsOverlapping, format, parseISO } from "date-fns";
+import { areIntervalsOverlapping, format, isToday, parseISO } from "date-fns";
 
 const MIN_DURATION_MS = 15 * 60 * 1000;
 
@@ -89,7 +89,6 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 		isOpen && activeTriggerId === NEW_EVENT_TRIGGER_ID;
 
 	const handleSlotClick = (hour: number, minute: number) => {
-		console.log("handleSlotClick::", hour, minute);
 		calendarStore.trigger.setNewEventStartTime({
 			startTime: new Time(hour, minute),
 		});
@@ -137,7 +136,13 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 						<div className="w-18"></div>
 						<span className="flex-1 border-l py-2 text-center font-medium text-muted-foreground text-xs">
 							{format(selectedDate, "EE")}{" "}
-							<span className="font-semibold text-foreground">
+							<span
+								className={cn(
+									"inline-flex size-7 items-center justify-center rounded-full font-semibold text-foreground",
+									isToday(selectedDate) &&
+										"bg-primary font-bold text-primary-foreground",
+								)}
+							>
 								{format(selectedDate, "d")}
 							</span>
 						</span>
@@ -319,7 +324,8 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 											if (!isPreviewForThis || !resizePreview) return event;
 											if (resizePreview.edge === "bottom") {
 												const startTs = parseISO(event.startDate).getTime();
-												let endTs = resizePreview.slotStartTimestamp;
+												let endTs =
+													resizePreview.slotStartTimestamp + MIN_DURATION_MS;
 												if (
 													endTs <= startTs ||
 													endTs - startTs < MIN_DURATION_MS
@@ -375,8 +381,10 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 										// Earlier start = higher z-index so the event on top receives the click when overlapping.
 										// Keep max below popover (z-50): use 10–40 so popover always stays on top.
 										const startMs = parseISO(event.startDate).getTime();
-										const orderValue = (86400000 - (startMs % 86400000)) / 86400000;
-										const zIndex = 10 + Math.min(39, Math.floor(orderValue * 40));
+										const orderValue =
+											(86400000 - (startMs % 86400000)) / 86400000;
+										const zIndex =
+											10 + Math.min(39, Math.floor(orderValue * 40));
 										return (
 											<div
 												key={event.id}

@@ -92,17 +92,19 @@ export function resizeEventToSlot(
 	const eventEndTimestamp = parseISO(event.endDate).getTime();
 
 	if (edge === "bottom") {
-		if (slotStartTimestamp <= eventStartTimestamp) return false;
-		if (slotStartTimestamp - eventStartTimestamp < MIN_DURATION_MS)
-			return false;
+		const slotEndTimestamp = slotStartTimestamp + MIN_DURATION_MS;
+		if (slotEndTimestamp <= eventStartTimestamp) return false;
+		if (slotEndTimestamp - eventStartTimestamp < MIN_DURATION_MS) return false;
+		if (slotEndTimestamp === eventEndTimestamp) return true;
 		updateEvent({
 			id: event.convexId as Id<"events">,
-			endTimestamp: slotStartTimestamp,
+			endTimestamp: slotEndTimestamp,
 		});
 		return true;
 	}
 	if (slotStartTimestamp >= eventEndTimestamp) return false;
 	if (eventEndTimestamp - slotStartTimestamp < MIN_DURATION_MS) return false;
+	if (slotStartTimestamp === eventStartTimestamp) return true;
 	updateEvent({
 		id: event.convexId as Id<"events">,
 		startTimestamp: slotStartTimestamp,

@@ -38,9 +38,6 @@ export function DayCell({ cell, events, eventPositions, handle }: IProps) {
 		() => getMonthCellEvents(date, events, eventPositions),
 		[date, events, eventPositions],
 	);
-	if (cellEvents.length > 0) {
-		console.log("cellEvents::", cellEvents);
-	}
 	const formattedStartTime = useMemo(() => {
 		if (!newEventStartTime) return null;
 

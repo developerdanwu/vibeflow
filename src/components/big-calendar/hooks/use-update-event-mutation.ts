@@ -48,16 +48,27 @@ export function useUpdateEventMutation(options: {
 			if (context.meta?.updateType === "drag") {
 				const start = payload.startTimestamp;
 				const end = payload.endTimestamp;
-				const startDate =
-					start != null ? new Date(start) : end != null ? new Date(end) : null;
-				const endDate = end != null ? new Date(end) : null;
-				if (startDate) {
+				const startDateStr = payload.startDateStr;
+				if (start != null || end != null) {
+					const startDate =
+						start != null
+							? new Date(start)
+							: end != null
+								? new Date(end)
+								: null;
+					const endDate = end != null ? new Date(end) : null;
+					if (startDate) {
+						const dateStr = format(startDate, "EEE, MMM d");
+						const timeStr =
+							endDate && end !== start
+								? `${format(startDate, "h:mm a")} – ${format(endDate, "h:mm a")}`
+								: format(startDate, "h:mm a");
+						toast.success(`Event scheduled for ${dateStr} at ${timeStr}`);
+					}
+				} else if (startDateStr) {
+					const startDate = new Date(startDateStr + "T00:00:00");
 					const dateStr = format(startDate, "EEE, MMM d");
-					const timeStr =
-						endDate && end !== start
-							? `${format(startDate, "h:mm a")} – ${format(endDate, "h:mm a")}`
-							: format(startDate, "h:mm a");
-					toast.success(`Event scheduled for ${dateStr} at ${timeStr}`);
+					toast.success(`Event scheduled for ${dateStr}`);
 				}
 				return;
 			} else {

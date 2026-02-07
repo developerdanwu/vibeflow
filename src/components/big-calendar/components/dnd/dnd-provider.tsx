@@ -155,6 +155,9 @@ export function DayWeekDndProvider({
 			);
 			return;
 		}
+		// Skip API when dropped on same slot (no change)
+		const currentStart = parseISO(activeData.event.startDate).getTime();
+		if (currentStart === slotStartTimestamp) return;
 		moveEventToSlot(activeData.event, slotStartTimestamp, mutateAsync);
 	};
 

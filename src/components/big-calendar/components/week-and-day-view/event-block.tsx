@@ -11,10 +11,11 @@ import type { PopoverRootProps } from "@base-ui/react";
 import type { VariantProps } from "class-variance-authority";
 import { cva } from "class-variance-authority";
 import { differenceInMinutes, format, parseISO } from "date-fns";
-import type { HTMLAttributes } from "react";
+import { animate, motion, useMotionValue, useTransform } from "motion/react";
+import { type HTMLAttributes, useEffect } from "react";
 
-const calendarWeekEventCardVariants = cva(
-	"flex select-none flex-col gap-0.5 truncate whitespace-nowrap rounded-md border px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+export const calendarWeekEventCardVariants = cva(
+	"flex cursor-pointer select-none flex-col gap-0.5 truncate whitespace-nowrap rounded-md border px-2 py-1.5 text-xs transition-[filter] duration-150 hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
 	{
 		variants: {
 			color: {
@@ -67,7 +68,24 @@ export function EventBlock({ event, className, handle }: IProps) {
 	const start = parseISO(event.startDate);
 	const end = parseISO(event.endDate);
 	const durationInMinutes = differenceInMinutes(end, start);
-	const heightInPixels = (durationInMinutes / 60) * 96 - 8;
+	/** Min height = one 15-min slot (one line of text). Hour slot is 96px. */
+	const MIN_EVENT_HEIGHT_PX = (15 / 60) * 96;
+	const heightInPixels = Math.max(
+		MIN_EVENT_HEIGHT_PX,
+		(durationInMinutes / 60) * 96 - 8,
+	);
+	const isSingleLine = (durationInMinutes / 60) * 96 - 8 <= MIN_EVENT_HEIGHT_PX;
+
+	const heightMotionValue = useMotionValue(heightInPixels);
+	const heightPx = useTransform(heightMotionValue, (v) => `${v}px`);
+	useEffect(() => {
+		if (heightMotionValue.get() !== heightInPixels) {
+			animate(heightMotionValue, heightInPixels, {
+				duration: 0.08,
+				ease: "linear",
+			});
+		}
+	}, [heightInPixels, heightMotionValue]);
 
 	const color = (
 		badgeVariant === "dot" ? `${event.color}-dot` : event.color
@@ -75,7 +93,7 @@ export function EventBlock({ event, className, handle }: IProps) {
 
 	const calendarWeekEventCardClasses = cn(
 		calendarWeekEventCardVariants({ color, className }),
-		durationInMinutes < 35 && "justify-center py-0",
+		"justify-start",
 	);
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -85,42 +103,14 @@ export function EventBlock({ event, className, handle }: IProps) {
 		}
 	};
 
-	const innerContent = (
-		<div
-			role="button"
-			tabIndex={0}
-			className={calendarWeekEventCardClasses}
-			style={{ height: `${heightInPixels}px` }}
-			onKeyDown={handleKeyDown}
-		>
-			<div className="flex items-center gap-1.5 truncate">
-				{["mixed", "dot"].includes(badgeVariant) && (
-					<svg
-						width="8"
-						height="8"
-						viewBox="0 0 8 8"
-						className="event-dot shrink-0"
-						aria-hidden
-					>
-						<title>Event color</title>
-						<circle cx="4" cy="4" r="4" />
-					</svg>
-				)}
-
-				<p className="truncate font-semibold">{event.title || "Untitled"}</p>
-			</div>
-
-			{durationInMinutes > 25 && (
-				<p>
-					{format(start, "h:mm a")} - {format(end, "h:mm a")}
-				</p>
-			)}
-		</div>
-	);
+	const timeStr =
+		durationInMinutes > 0
+			? `${format(start, "h:mm a")} – ${format(end, "h:mm a")}`
+			: format(start, "h:mm a");
 
 	const showResizeHandles = Boolean(handle) && !event.allDay;
 	const resizeHandleClass =
-		"shrink-0 w-full cursor-ns-resize border-0 bg-transparent hover:bg-black/10 dark:hover:bg-white/10";
+		"shrink-0 w-full cursor-ns-resize border-0 bg-transparent";
 
 	if (handle) {
 		return (
@@ -133,14 +123,28 @@ export function EventBlock({ event, className, handle }: IProps) {
 						mode: "edit",
 						event,
 					}}
-					render={({ className: triggerClassName, onClick, ...props }) => (
-						<div
+					render={({
+						className: triggerClassName,
+						onClick,
+						onDrag: _onDrag,
+						onDragEnd: _onDragEnd,
+						onDragStart: _onDragStart,
+						onDragOver: _onDragOver,
+						onDragEnter: _onDragEnter,
+						onDragLeave: _onDragLeave,
+						onAnimationStart: _onAnimationStart,
+						onAnimationEnd: _onAnimationEnd,
+						onAnimationIteration: _onAnimationIteration,
+						...props
+					}) => (
+						<motion.div
+							initial={false}
 							className={cn(
 								calendarWeekEventCardClasses,
 								triggerClassName,
 								showResizeHandles && "relative flex flex-col rounded-md",
 							)}
-							style={{ height: `${heightInPixels}px` }}
+							style={{ height: heightPx }}
 							role="button"
 							tabIndex={0}
 							onKeyDown={handleKeyDown}
@@ -162,30 +166,51 @@ export function EventBlock({ event, className, handle }: IProps) {
 									aria-label="Resize event start"
 								/>
 							</EventResizeHandle>
-							<div className="flex min-h-0 flex-1 flex-col justify-center">
-								<div className="flex items-center gap-1.5 truncate">
-									{["mixed", "dot"].includes(badgeVariant) && (
-										<svg
-											width="8"
-											height="8"
-											viewBox="0 0 8 8"
-											className="event-dot shrink-0"
-											aria-hidden
-										>
-											<title>Event color</title>
-											<circle cx="4" cy="4" r="4" />
-										</svg>
-									)}
-
-									<p className="truncate font-semibold">
-										{event.title || "Untitled"}
-									</p>
-								</div>
-
-								{durationInMinutes > 25 && (
-									<p>
-										{format(start, "h:mm a")} - {format(end, "h:mm a")}
-									</p>
+							<div className="flex min-h-0 flex-1 flex-col justify-start">
+								{isSingleLine ? (
+									<div className="flex min-w-0 items-center justify-between gap-2">
+										<div className="flex min-w-0 flex-1 items-center gap-1.5 truncate">
+											{["mixed", "dot"].includes(badgeVariant) && (
+												<svg
+													width="8"
+													height="8"
+													viewBox="0 0 8 8"
+													className="event-dot shrink-0"
+													aria-hidden
+												>
+													<title>Event color</title>
+													<circle cx="4" cy="4" r="4" />
+												</svg>
+											)}
+											<p className="truncate font-semibold">
+												{event.title || "Untitled"}
+											</p>
+										</div>
+										<span className="shrink-0 text-xs opacity-90">
+											{timeStr}
+										</span>
+									</div>
+								) : (
+									<>
+										<div className="flex items-center gap-1.5 truncate">
+											{["mixed", "dot"].includes(badgeVariant) && (
+												<svg
+													width="8"
+													height="8"
+													viewBox="0 0 8 8"
+													className="event-dot shrink-0"
+													aria-hidden
+												>
+													<title>Event color</title>
+													<circle cx="4" cy="4" r="4" />
+												</svg>
+											)}
+											<p className="truncate font-semibold">
+												{event.title || "Untitled"}
+											</p>
+										</div>
+										{durationInMinutes > 25 && <p>{timeStr}</p>}
+									</>
 								)}
 							</div>
 							<EventResizeHandle event={event} edge="bottom">
@@ -200,7 +225,7 @@ export function EventBlock({ event, className, handle }: IProps) {
 									aria-label="Resize event end"
 								/>
 							</EventResizeHandle>
-						</div>
+						</motion.div>
 					)}
 				/>
 			</DraggableEvent>
@@ -209,7 +234,60 @@ export function EventBlock({ event, className, handle }: IProps) {
 
 	return (
 		<DraggableEvent event={event}>
-			<EventDetailsDialog event={event}>{innerContent}</EventDetailsDialog>
+			<EventDetailsDialog event={event}>
+				<motion.div
+					initial={false}
+					role="button"
+					tabIndex={0}
+					className={calendarWeekEventCardClasses}
+					style={{ height: heightPx }}
+					onKeyDown={handleKeyDown}
+				>
+					{isSingleLine ? (
+						<div className="flex min-w-0 items-center justify-between gap-2">
+							<div className="flex min-w-0 flex-1 items-center gap-1.5 truncate">
+								{["mixed", "dot"].includes(badgeVariant) && (
+									<svg
+										width="8"
+										height="8"
+										viewBox="0 0 8 8"
+										className="event-dot shrink-0"
+										aria-hidden
+									>
+										<title>Event color</title>
+										<circle cx="4" cy="4" r="4" />
+									</svg>
+								)}
+								<p className="truncate font-semibold">
+									{event.title || "Untitled"}
+								</p>
+							</div>
+							<span className="shrink-0 text-xs opacity-90">{timeStr}</span>
+						</div>
+					) : (
+						<>
+							<div className="flex items-center gap-1.5 truncate">
+								{["mixed", "dot"].includes(badgeVariant) && (
+									<svg
+										width="8"
+										height="8"
+										viewBox="0 0 8 8"
+										className="event-dot shrink-0"
+										aria-hidden
+									>
+										<title>Event color</title>
+										<circle cx="4" cy="4" r="4" />
+									</svg>
+								)}
+								<p className="truncate font-semibold">
+									{event.title || "Untitled"}
+								</p>
+							</div>
+							{durationInMinutes > 25 && <p>{timeStr}</p>}
+						</>
+					)}
+				</motion.div>
+			</EventDetailsDialog>
 		</DraggableEvent>
 	);
 }
