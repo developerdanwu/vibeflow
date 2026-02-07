@@ -1,5 +1,5 @@
 import { AgendaDayGroup } from "@/components/big-calendar/components/agenda-view/agenda-day-group";
-import type { IEvent } from "@/components/big-calendar/interfaces";
+import type { TEvent } from "@/components/big-calendar/interfaces";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Route } from "@/routes/_authenticated/calendar";
 import { endOfDay, format, isSameMonth, parseISO, startOfDay } from "date-fns";
@@ -7,8 +7,8 @@ import { CalendarX2 } from "lucide-react";
 import { useMemo } from "react";
 
 interface IProps {
-	singleDayEvents: IEvent[];
-	multiDayEvents: IEvent[];
+	singleDayEvents: TEvent[];
+	multiDayEvents: TEvent[];
 }
 
 export function CalendarAgendaView({
@@ -20,7 +20,7 @@ export function CalendarAgendaView({
 	const eventsByDay = useMemo(() => {
 		const allDates = new Map<
 			string,
-			{ date: Date; events: IEvent[]; multiDayEvents: IEvent[] }
+			{ date: Date; events: TEvent[]; multiDayEvents: TEvent[] }
 		>();
 
 		singleDayEvents.forEach((event) => {

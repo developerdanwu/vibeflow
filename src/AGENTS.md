@@ -30,6 +30,7 @@ src/
 - **UI primitives** (`components/ui/`): shadcn/ui components, use `pnpm dlx shadcn@latest add [name]` to add new ones
 - **Feature modules** (`components/big-calendar/`): Self-contained with own contexts, hooks, stores, and types
 - **Layouts**: Wrap routes with consistent structure
+- **No `"use client"`**: You do not need `"use client"` at the top of components; the app uses TanStack Router (not Next.js), so all components are client-rendered by default.
 
 ### State Management
 - **Server state**: TanStack Query + Convex
@@ -73,6 +74,6 @@ The `big-calendar/` module is the main feature. Key files:
 - `agenda-view/` - List-style event view
 
 ### Features
-- `dnd/` - Drag and drop (react-dnd)
+- `dnd/` - Drag and drop (@dnd-kit/core)
 - `dialogs/` - Add/edit/details event dialogs
 - `header/` - Navigation and view controls

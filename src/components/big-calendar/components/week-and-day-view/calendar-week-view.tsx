@@ -1,4 +1,5 @@
 import { AddEventDialog } from "@/components/big-calendar/components/dialogs/add-event-dialog";
+import { DropRangeRing } from "@/components/big-calendar/components/dnd/drop-range-ring";
 import { DroppableTimeBlock } from "@/components/big-calendar/components/dnd/droppable-time-block";
 import { CalendarTimeline } from "@/components/big-calendar/components/week-and-day-view/calendar-time-line";
 import { EventBlock } from "@/components/big-calendar/components/week-and-day-view/event-block";
@@ -10,7 +11,7 @@ import {
 	groupEvents,
 	isWorkingHour,
 } from "@/components/big-calendar/helpers";
-import type { IEvent } from "@/components/big-calendar/interfaces";
+import type { TEvent } from "@/components/big-calendar/interfaces";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Route } from "@/routes/_authenticated/calendar";
@@ -24,8 +25,8 @@ import {
 } from "date-fns";
 
 interface IProps {
-	singleDayEvents: IEvent[];
-	multiDayEvents: IEvent[];
+	singleDayEvents: TEvent[];
+	multiDayEvents: TEvent[];
 }
 
 export function CalendarWeekView({ singleDayEvents, multiDayEvents }: IProps) {
@@ -104,6 +105,7 @@ export function CalendarWeekView({ singleDayEvents, multiDayEvents }: IProps) {
 
 									return (
 										<div key={dayIndex} className="relative">
+											<DropRangeRing day={day} firstHour={hours[0]} />
 											{hours.map((hour, index) => {
 												const isDisabled = !isWorkingHour(
 													day,

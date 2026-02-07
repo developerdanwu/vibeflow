@@ -1,13 +1,13 @@
-import { describe, expect, it } from "vitest";
 import {
 	deriveNumericTimestamp,
 	formatEventTime,
 	getEventCalendarDate,
 	isEventOnDate,
 } from "@/components/big-calendar/helpers";
-import type { IEvent } from "@/components/big-calendar/interfaces";
+import type { TEvent } from "@/components/big-calendar/interfaces";
+import { describe, expect, it } from "vitest";
 
-interface IEventWithNotionFields extends Omit<IEvent, "allDay"> {
+interface IEventWithNotionFields extends Omit<TEvent, "allDay"> {
 	allDay?: boolean;
 	startDateStr?: string;
 	endDateStr?: string;

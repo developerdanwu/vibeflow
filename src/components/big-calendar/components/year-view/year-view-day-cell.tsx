@@ -1,13 +1,13 @@
 import { useNavigate } from "@tanstack/react-router";
 import { isToday } from "date-fns";
 
-import type { IEvent } from "@/components/big-calendar/interfaces";
+import type { TEvent } from "@/components/big-calendar/interfaces";
 import { cn } from "@/lib/utils";
 
 interface IProps {
 	day: number;
 	date: Date;
-	events: IEvent[];
+	events: TEvent[];
 }
 
 export function YearViewDayCell({ day, date, events }: IProps) {

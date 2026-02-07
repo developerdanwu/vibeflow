@@ -1,6 +1,6 @@
 import { DraggableEvent } from "@/components/big-calendar/components/dnd/draggable-event";
 import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
-import type { IEvent } from "@/components/big-calendar/interfaces";
+import type { TEvent } from "@/components/big-calendar/interfaces";
 import { PopoverTrigger } from "@/components/ui/popover";
 import {
 	Tooltip,
@@ -68,7 +68,7 @@ interface IProps
 		"color" | "multiDayPosition"
 	> {
 	handle: NonNullable<PopoverRootProps["handle"]>;
-	event: IEvent;
+	event: TEvent;
 	cellDate: Date;
 	eventCurrentDay?: number;
 	eventTotalDays?: number;

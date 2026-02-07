@@ -12,11 +12,11 @@ import { useMemo } from "react";
 
 import { MonthEventBadge } from "@/components/big-calendar/components/month-view/month-event-badge";
 
-import type { IEvent } from "@/components/big-calendar/interfaces";
+import type { TEvent } from "@/components/big-calendar/interfaces";
 
 interface IProps {
 	selectedDate: Date;
-	multiDayEvents: IEvent[];
+	multiDayEvents: TEvent[];
 }
 
 export function WeekViewMultiDayEventsRow({

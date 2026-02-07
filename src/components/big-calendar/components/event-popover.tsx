@@ -1,7 +1,13 @@
 "use client";
 
 import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
-import type { IEvent } from "@/components/big-calendar/interfaces";
+import { useCreateEventMutation } from "@/components/big-calendar/hooks/use-create-event-mutation";
+import { useDeleteEventMutation } from "@/components/big-calendar/hooks/use-delete-event-mutation";
+import { useUpdateEventMutation } from "@/components/big-calendar/hooks/use-update-event-mutation";
+import {
+	type TEvent,
+	ZEventSchema,
+} from "@/components/big-calendar/interfaces";
 import type { TEventColor } from "@/components/big-calendar/types";
 import { Button } from "@/components/ui/button";
 import ColorPickerCompact from "@/components/ui/color-picker-compact";
@@ -20,15 +26,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { TimeInput } from "@/components/ui/time-input";
 import { useDisclosure } from "@/hooks/use-disclosure";
 import type { PopoverRootProps } from "@base-ui/react";
-import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { Time } from "@internationalized/date";
 import { formOptions, useStore } from "@tanstack/react-form-start";
-import { useMutation } from "convex/react";
-import { addDays, format, parseISO, subDays } from "date-fns";
+import { addDays, format, parseISO, set, startOfDay, subDays } from "date-fns";
 import { InfoIcon, Trash2 } from "lucide-react";
 import { forwardRef, useId, useImperativeHandle, useRef } from "react";
-import { toast } from "sonner";
 import { z } from "zod";
 
 const colorNameToHex: Record<TEventColor, string> = {
@@ -40,6 +43,28 @@ const colorNameToHex: Record<TEventColor, string> = {
 	orange: "#F97316",
 	gray: "#6B7280",
 };
+
+export const ZEventPopoverForm = z.discriminatedUnion("mode", [
+	z.object({
+		mode: z.literal("create"),
+		title: z.string().optional(),
+		startDate: z.date(),
+		endDate: z.date().optional(),
+		description: z.string().optional(),
+		allDay: z.boolean().optional(),
+		startTime: z.custom<Time>().optional(),
+		endTime: z.custom<Time>().optional(),
+		color: z.string().optional(),
+	}),
+	z.object({
+		mode: z.literal("edit"),
+		event: ZEventSchema,
+	}),
+]);
+
+export type TEventPopoverFormData = z.infer<typeof ZEventPopoverForm>;
+
+type TEventPopoverPayload = z.infer<typeof ZEventPopoverForm>;
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
 	const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -130,118 +155,114 @@ export type TEventFormData = z.infer<typeof eventFormSchema>;
 
 type EventPopoverMode = "create" | "edit";
 
+type GetCreateDefaultValuesInput = {
+	startDate: Date;
+	endDate?: Date;
+	startTime?: Time;
+	endTime?: Time;
+	title?: string;
+	description?: string;
+	allDay?: boolean;
+	color?: string;
+};
+
 function getCreateDefaultValues(
-	date: Date,
-	initialTime?: { hour: number; minute: number },
+	input: GetCreateDefaultValuesInput,
 ): TEventFormData {
-	const hasTime = initialTime != null;
-	const startTime = hasTime
-		? new Time(initialTime.hour, initialTime.minute)
-		: new Time(9, 0);
-	const endTime = hasTime
-		? new Time(initialTime.hour + 1, initialTime.minute)
-		: new Time(10, 0);
+	const {
+		startDate,
+		endDate = startDate,
+		startTime = new Time(9, 0),
+		endTime = new Time(10, 0),
+		title = "",
+		description = "",
+		allDay = true,
+		color = "#3B82F6",
+	} = input;
 	return {
-		title: "",
-		description: "",
-		startDate: date,
-		endDate: date,
-		allDay: !hasTime,
+		title,
+		description,
+		startDate,
+		endDate,
+		allDay,
 		startTime,
 		endTime,
-		color: "#3B82F6",
+		color,
 	};
 }
 
-function getEditDefaultValues(event: IEvent): TEventFormData {
-	const startDate = parseISO(event.startDate);
-	const rawEndDate = parseISO(event.endDate);
-	const endDate = event.allDay ? subDays(rawEndDate, 1) : rawEndDate;
-
-	let startTime: Time | undefined;
-	let endTime: Time | undefined;
-
-	if (!event.allDay && event.startTime && event.endTime) {
-		const [startHour, startMin] = event.startTime.split(":").map(Number);
-		const [endHour, endMin] = event.endTime.split(":").map(Number);
-		startTime = new Time(startHour, startMin);
-		endTime = new Time(endHour, endMin);
-	} else if (!event.allDay) {
-		startTime = new Time(startDate.getHours(), startDate.getMinutes());
-		endTime = new Time(rawEndDate.getHours(), rawEndDate.getMinutes());
+function getTimes(
+	event: TEvent,
+	startDate: Date,
+	rawEndDate: Date,
+): { startTime: Time | undefined; endTime: Time | undefined } {
+	const startTimeStr = event.startTime;
+	const endTimeStr = event.endTime;
+	if (!event.allDay && startTimeStr && endTimeStr) {
+		const [startHour, startMin] = startTimeStr.split(":").map(Number);
+		const [endHour, endMin] = endTimeStr.split(":").map(Number);
+		return {
+			startTime: new Time(startHour, startMin),
+			endTime: new Time(endHour, endMin),
+		};
 	}
-
-	const colorHex = colorNameToHex[event.color] ?? "#3B82F6";
-
-	return {
-		title: event.title,
-		description: event.description ?? "",
-		startDate,
-		endDate,
-		allDay: event.allDay,
-		startTime,
-		endTime,
-		color: colorHex,
-	};
+	if (!event.allDay) {
+		return {
+			startTime: new Time(startDate.getHours(), startDate.getMinutes()),
+			endTime: new Time(rawEndDate.getHours(), rawEndDate.getMinutes()),
+		};
+	}
+	return { startTime: undefined, endTime: undefined };
 }
 
 const eventFormOptions = formOptions({
-	defaultValues: getCreateDefaultValues(new Date(), { hour: 9, minute: 0 }),
+	defaultValues: getCreateDefaultValues({
+		startDate: new Date(),
+	}),
 	validators: {
 		onSubmit: eventFormSchema,
 	},
 });
 
 export type EventPopoverContentHandle = {
-	submitIfDirty: () => void;
+	runAfterClose: () => void;
 };
 
 interface EventPopoverContentProps {
 	onClose: () => void;
-	date: Date;
-	initialTime?: { hour: number; minute: number };
+	initialValues: TEventFormData;
 	mode?: EventPopoverMode;
-	event?: IEvent;
+	event?: TEvent;
 }
 
 const EventPopoverContent = forwardRef<
 	EventPopoverContentHandle,
 	EventPopoverContentProps
 >(function EventPopoverContent(
-	{ onClose, date, initialTime, mode = "create", event },
+	{ onClose, initialValues, mode = "create", event },
 	ref,
 ) {
 	const formId = useId();
 	const titleId = useId();
 
-	const createEvent = useMutation(api.events.createEvent);
-	const updateEvent = useMutation(api.events.updateEvent);
-	const deleteEvent = useMutation(api.events.deleteEvent);
+	const { mutateAsync: updateEvent } = useUpdateEventMutation({
+		meta: { updateType: "edit" },
+	});
+	const { mutateAsync: createEvent } = useCreateEventMutation();
+	const { mutate: deleteEvent } = useDeleteEventMutation();
 	const [_, calendarStore] = useCalendar();
 
-	const handleDelete = async () => {
-		if (!event?.convexId) {
-			console.error("Cannot delete event without convexId");
-			return;
-		}
-		try {
-			onClose();
-			await deleteEvent({ id: event.convexId as Id<"events"> });
-			toast.success("Event deleted");
-		} catch (error) {
-			console.error("Failed to delete event:", error);
-			toast.error("Failed to delete event");
-		}
+	const handleDelete = () => {
+		if (!event?.convexId) return;
+		runAfterCloseRef.current = () => {
+			deleteEvent({ id: event.convexId as Id<"events"> });
+		};
+		onClose();
 	};
-
-	const defaults =
-		mode === "edit" && event
-			? getEditDefaultValues(event)
-			: getCreateDefaultValues(date, initialTime);
 
 	const form = useAppForm({
 		...eventFormOptions,
-		defaultValues: defaults,
+		defaultValues: initialValues,
 		onSubmit: async ({ value }) => {
 			try {
 				const values = value as TEventFormData;
@@ -262,33 +283,29 @@ const EventPopoverContent = forwardRef<
 						const startTimeVal = values.startTime ?? new Time(9, 0);
 						const endTimeVal = values.endTime ?? new Time(10, 0);
 
-						const startDateTime = new Date(values.startDate);
-						startDateTime.setHours(
-							startTimeVal.hour,
-							startTimeVal.minute,
-							0,
-							0,
-						);
-
-						const endDateTime = new Date(values.endDate);
-						endDateTime.setHours(endTimeVal.hour, endTimeVal.minute, 0, 0);
-
-						const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+						const startDateTime = set(startOfDay(values.startDate), {
+							hours: startTimeVal.hour,
+							minutes: startTimeVal.minute,
+							seconds: 0,
+							milliseconds: 0,
+						});
+						const endDateTime = set(startOfDay(values.endDate), {
+							hours: endTimeVal.hour,
+							minutes: endTimeVal.minute,
+							seconds: 0,
+							milliseconds: 0,
+						});
 
 						await updateEvent({
 							id: event.convexId as Id<"events">,
 							title: values.title,
 							description: values.description || "",
 							allDay: false,
-							startDateStr: format(values.startDate, "yyyy-MM-dd"),
-							startTime: format(startDateTime, "HH:mm"),
-							endDateStr: format(values.endDate, "yyyy-MM-dd"),
-							endTime: format(endDateTime, "HH:mm"),
-							timeZone: browserTz,
+							startTimestamp: startDateTime.getTime(),
+							endTimestamp: endDateTime.getTime(),
 							color: colorName,
 						});
 					}
-					toast.success("Event updated");
 				} else {
 					if (values.allDay) {
 						await createEvent({
@@ -303,40 +320,32 @@ const EventPopoverContent = forwardRef<
 						const startTimeVal = values.startTime ?? new Time(9, 0);
 						const endTimeVal = values.endTime ?? new Time(10, 0);
 
-						const startDateTime = new Date(values.startDate);
-						startDateTime.setHours(
-							startTimeVal.hour,
-							startTimeVal.minute,
-							0,
-							0,
-						);
-
-						const endDateTime = new Date(values.endDate);
-						endDateTime.setHours(endTimeVal.hour, endTimeVal.minute, 0, 0);
-
-						const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+						const startDateTime = set(startOfDay(values.startDate), {
+							hours: startTimeVal.hour,
+							minutes: startTimeVal.minute,
+							seconds: 0,
+							milliseconds: 0,
+						});
+						const endDateTime = set(startOfDay(values.endDate), {
+							hours: endTimeVal.hour,
+							minutes: endTimeVal.minute,
+							seconds: 0,
+							milliseconds: 0,
+						});
 
 						await createEvent({
 							title: values.title,
 							description: values.description || "",
 							allDay: false,
-							startDateStr: format(values.startDate, "yyyy-MM-dd"),
-							startTime: format(startDateTime, "HH:mm"),
-							endDateStr: format(values.endDate, "yyyy-MM-dd"),
-							endTime: format(endDateTime, "HH:mm"),
-							timeZone: browserTz,
+							startTimestamp: startDateTime.getTime(),
+							endTimestamp: endDateTime.getTime(),
 							color: colorName,
 						});
 					}
-					toast.success("Event created");
 				}
 
-				onClose();
-				form.reset(
-					mode === "edit" && event
-						? getEditDefaultValues(event)
-						: getCreateDefaultValues(date, initialTime),
-				);
+				form.reset();
+				calendarStore.trigger.resetNewEvent();
 			} catch (error) {
 				console.error(
 					`Failed to ${mode === "edit" ? "update" : "create"} event:`,
@@ -347,17 +356,25 @@ const EventPopoverContent = forwardRef<
 	});
 	const isDirty = useStore(form.store, (state) => state.isDirty);
 	const formRef = useRef<HTMLFormElement | null>(null);
+	const runAfterCloseRef = useRef<(() => void) | null>(null);
 
 	useImperativeHandle(
 		ref,
 		() => ({
-			submitIfDirty: () => {
-				if (isDirty) {
-					formRef.current?.requestSubmit();
+			runAfterClose: () => {
+				if (runAfterCloseRef.current) {
+					runAfterCloseRef.current?.();
+					runAfterCloseRef.current = null;
+				} else {
+					if (isDirty) {
+						formRef.current?.requestSubmit();
+					}
 				}
+
+				calendarStore.trigger.resetNewEvent();
 			},
 		}),
-		[isDirty],
+		[isDirty, calendarStore],
 	);
 
 	return (
@@ -452,55 +469,70 @@ const EventPopoverContent = forwardRef<
 										<form.AppField
 											name="startTime"
 											listeners={{
-												onChange: ({ value }) => {
-													if (mode === "create") {
-														calendarStore.trigger.setNewEventStartTime({
-															startTime: value,
-														});
-													}
+												onMount: ({ value }) => {
+													calendarStore.trigger.setNewEventStartTime({
+														startTime: value,
+													});
+												},
+												onBlur: ({ value }) => {
+													calendarStore.trigger.setNewEventStartTime({
+														startTime: value,
+													});
 												},
 											}}
 										>
-											{(field) => {
+											{({ state, handleChange, handleBlur }) => {
 												const isInvalid =
-													field.state.meta.isTouched &&
-													!field.state.meta.isValid;
+													state.meta.isTouched && !state.meta.isValid;
 												return (
 													<Field data-invalid={isInvalid}>
 														<TimeInput
 															size="xs"
-															value={field.state.value}
+															value={state.value}
 															onChange={(value) => {
-																if (value != null)
-																	field.handleChange(value as Time);
+																if (value != null) handleChange(value as Time);
 															}}
 															data-invalid={isInvalid}
+															onBlur={handleBlur}
 														/>
 														{isInvalid && (
-															<FieldError errors={field.state.meta.errors} />
+															<FieldError errors={state.meta.errors} />
 														)}
 													</Field>
 												);
 											}}
 										</form.AppField>
-										<form.AppField name="endTime">
-											{(field) => {
+										<form.AppField
+											name="endTime"
+											listeners={{
+												onMount: ({ value }) => {
+													calendarStore.trigger.setNewEventEndTime({
+														endTime: value,
+													});
+												},
+												onBlur: ({ value }) => {
+													calendarStore.trigger.setNewEventEndTime({
+														endTime: value,
+													});
+												},
+											}}
+										>
+											{({ state, handleBlur, handleChange }) => {
 												const isInvalid =
-													field.state.meta.isTouched &&
-													!field.state.meta.isValid;
+													state.meta.isTouched && !state.meta.isValid;
 												return (
 													<Field data-invalid={isInvalid}>
 														<TimeInput
 															size="xs"
-															value={field.state.value}
+															value={state.value}
 															onChange={(value) => {
-																if (value != null)
-																	field.handleChange(value as Time);
+																if (value != null) handleChange(value as Time);
 															}}
 															data-invalid={isInvalid}
+															onBlur={handleBlur}
 														/>
 														{isInvalid && (
-															<FieldError errors={field.state.meta.errors} />
+															<FieldError errors={state.meta.errors} />
 														)}
 													</Field>
 												);
@@ -511,26 +543,27 @@ const EventPopoverContent = forwardRef<
 							}
 						</form.Subscribe>
 
-						<form.AppField name="endDate">
-							{(field) => {
-								const isInvalid =
-									field.state.meta.isTouched && !field.state.meta.isValid;
+						<form.AppField
+							name="endDate"
+							listeners={{
+								onMount: ({ value }) => {},
+								onBlur: ({ value }) => {},
+							}}
+						>
+							{({ state, handleChange, handleBlur }) => {
+								const isInvalid = state.meta.isTouched && !state.meta.isValid;
 								return (
 									<Field data-invalid={isInvalid}>
 										<DayPicker
 											fieldClassName="w-min"
 											dateFormat="EEE, MMM d"
-											date={field.state.value}
-											setDate={(d) =>
-												field.handleChange(d ?? field.state.value)
-											}
+											date={state.value}
+											setDate={(d) => handleChange(d ?? state.value)}
 											buttonProps={{
 												size: "xs",
 											}}
 										/>
-										{isInvalid && (
-											<FieldError errors={field.state.meta.errors} />
-										)}
+										{isInvalid && <FieldError errors={state.meta.errors} />}
 									</Field>
 								);
 							}}
@@ -585,11 +618,9 @@ const EventPopoverContent = forwardRef<
 						name="title"
 						listeners={{
 							onMount: ({ value }) => {
-								if (mode === "create") {
-									calendarStore.trigger.setNewEventTitle({
-										title: value ?? "",
-									});
-								}
+								calendarStore.trigger.setNewEventTitle({
+									title: value ?? "",
+								});
 							},
 							onChange: ({ value }) => {
 								if (mode === "create") {
@@ -620,7 +651,21 @@ const EventPopoverContent = forwardRef<
 					</form.AppField>
 				</div>
 				<Separator />
-				<form.AppField name="description">
+				<form.AppField
+					name="description"
+					listeners={{
+						onMount: ({ value }) => {
+							calendarStore.trigger.setNewEventDescription({
+								description: value ?? "",
+							});
+						},
+						onChange: ({ value }) => {
+							calendarStore.trigger.setNewEventDescription({
+								description: value ?? "",
+							});
+						},
+					}}
+				>
 					{(field) => {
 						const isInvalid =
 							field.state.meta.isTouched && !field.state.meta.isValid;
@@ -661,6 +706,13 @@ export function EventPopover({
 }) {
 	const { isOpen, onClose, onToggle } = useDisclosure();
 	const contentRef = useRef<EventPopoverContentHandle | null>(null);
+	const prevIsOpenRef = useRef(false);
+	const openIdRef = useRef(0);
+	if (isOpen && !prevIsOpenRef.current) {
+		openIdRef.current += 1;
+	}
+	prevIsOpenRef.current = isOpen;
+	const openId = openIdRef.current;
 
 	const handleClose = () => {
 		onClose();
@@ -673,38 +725,56 @@ export function EventPopover({
 			handle={handle}
 			onOpenChangeComplete={(open) => {
 				if (!open) {
-					contentRef.current?.submitIfDirty();
+					contentRef.current?.runAfterClose();
 				}
 			}}
 		>
 			{({ payload: _payload }) => {
-				const payload = _payload as {
-					date?: Date;
-					time?: { hour: number; minute: number };
-					mode?: EventPopoverMode;
-					event?: IEvent;
-				};
-
-				if (!payload?.date) {
+				const payload = _payload as TEventPopoverPayload;
+				if (!payload) {
 					return null;
 				}
-
-				const mode = payload.mode ?? "create";
-				const key =
-					mode === "edit" && payload.event
-						? `edit-${payload.event.id}`
-						: payload.time
-							? `${payload.date.toISOString()}-${payload.time.hour}-${payload.time.minute}`
-							: payload.date.toISOString();
+				if (payload.mode === "edit") {
+					const event = payload.event;
+					const startDate = parseISO(event.startDate);
+					const rawEndDate = parseISO(event.endDate);
+					const endDate = event.allDay ? subDays(rawEndDate, 1) : rawEndDate;
+					const { startTime, endTime } = getTimes(event, startDate, rawEndDate);
+					const initialValues = getCreateDefaultValues({
+						startDate,
+						endDate,
+						startTime,
+						endTime,
+						title: event.title,
+						description: event.description ?? "",
+						allDay: event.allDay,
+						color: colorNameToHex[event.color] ?? "#3B82F6",
+					});
+					return (
+						<EventPopoverContent
+							ref={contentRef}
+							key={`edit-${event.id}-${openId}`}
+							initialValues={initialValues}
+							mode="edit"
+							event={event}
+							onClose={handleClose}
+						/>
+					);
+				}
 
 				return (
 					<EventPopoverContent
 						ref={contentRef}
-						key={key}
-						date={payload.date}
-						initialTime={payload.time}
-						mode={mode}
-						event={payload.event}
+						key={`create-${payload.startDate.toISOString()}-${openId}`}
+						initialValues={getCreateDefaultValues({
+							startDate: payload.startDate,
+							startTime: payload?.startTime,
+							endTime: payload?.endTime,
+							title: payload?.title,
+							allDay: payload?.allDay,
+							description: payload?.description,
+						})}
+						mode="create"
 						onClose={handleClose}
 					/>
 				);

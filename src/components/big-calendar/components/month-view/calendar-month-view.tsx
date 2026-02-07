@@ -4,14 +4,14 @@ import {
 	calculateMonthEventPositions,
 	getCalendarCells,
 } from "@/components/big-calendar/helpers";
-import type { IEvent } from "@/components/big-calendar/interfaces";
+import type { TEvent } from "@/components/big-calendar/interfaces";
 import { Route } from "@/routes/_authenticated/calendar";
 import { Popover as PopoverBase } from "@base-ui/react";
 import { useMemo } from "react";
 
 interface IProps {
-	singleDayEvents: IEvent[];
-	multiDayEvents: IEvent[];
+	singleDayEvents: TEvent[];
+	multiDayEvents: TEvent[];
 }
 
 const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];

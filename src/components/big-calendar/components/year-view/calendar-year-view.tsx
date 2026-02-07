@@ -1,11 +1,11 @@
 import { YearViewMonth } from "@/components/big-calendar/components/year-view/year-view-month";
-import type { IEvent } from "@/components/big-calendar/interfaces";
+import type { TEvent } from "@/components/big-calendar/interfaces";
 import { Route } from "@/routes/_authenticated/calendar";
 import { addMonths, startOfYear } from "date-fns";
 import { useMemo } from "react";
 
 interface IProps {
-	allEvents: IEvent[];
+	allEvents: TEvent[];
 }
 
 export function CalendarYearView({ allEvents }: IProps) {

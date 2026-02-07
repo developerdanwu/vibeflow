@@ -1,5 +1,5 @@
 import { MonthEventBadge } from "@/components/big-calendar/components/month-view/month-event-badge";
-import type { IEvent } from "@/components/big-calendar/interfaces";
+import type { TEvent } from "@/components/big-calendar/interfaces";
 import type { PopoverRootProps } from "@base-ui/react";
 import {
 	differenceInDays,
@@ -11,7 +11,7 @@ import {
 
 interface IProps {
 	selectedDate: Date;
-	multiDayEvents: IEvent[];
+	multiDayEvents: TEvent[];
 	handle: NonNullable<PopoverRootProps["handle"]>;
 }
 

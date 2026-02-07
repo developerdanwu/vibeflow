@@ -10,7 +10,7 @@ import {
 } from "@/components/big-calendar/helpers";
 import type {
 	ICalendarCell,
-	IEvent,
+	TEvent,
 } from "@/components/big-calendar/interfaces";
 import { PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
@@ -21,7 +21,7 @@ import { useMemo } from "react";
 
 interface IProps {
 	cell: ICalendarCell;
-	events: IEvent[];
+	events: TEvent[];
 	eventPositions: Record<string, number>;
 	handle: NonNullable<PopoverRootProps["handle"]>;
 }
@@ -93,7 +93,7 @@ export function DayCell({ cell, events, eventPositions, handle }: IProps) {
 					<PopoverTrigger
 						handle={handle}
 						id={triggerId}
-						payload={{ date }}
+						payload={{ mode: "create", startDate: date }}
 						render={({ className, onClick, ...props }) => {
 							return (
 								<button

@@ -1,6 +1,7 @@
 "use client";
 
-import type { IEvent } from "@/components/big-calendar/interfaces";
+import { useDeleteEventMutation } from "@/components/big-calendar/hooks/use-delete-event-mutation";
+import type { TEvent } from "@/components/big-calendar/interfaces";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -11,24 +12,19 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { dialogStore } from "@/lib/dialog-store";
-import { useConvexMutation } from "@convex-dev/react-query";
-import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import { useMutation } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import { Calendar, Clock, Text, User } from "lucide-react";
 
 interface IProps {
-	event: IEvent;
+	event: TEvent;
 	children: React.ReactNode;
 }
 
 export function EventDetailsDialog({ event, children }: IProps) {
 	const startDate = parseISO(event.startDate);
 	const endDate = parseISO(event.endDate);
-	const { mutate: deleteEvent, isPending } = useMutation({
-		mutationFn: useConvexMutation(api.events.deleteEvent),
-	});
+	const { mutate: deleteEvent, isPending } = useDeleteEventMutation();
 
 	const handleDelete = () => {
 		if (!event.convexId) {

@@ -7,7 +7,7 @@ import { Clock, Text, User } from "lucide-react";
 
 import { EventDetailsDialog } from "@/components/big-calendar/components/dialogs/event-details-dialog";
 import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
-import type { IEvent } from "@/components/big-calendar/interfaces";
+import type { TEvent } from "@/components/big-calendar/interfaces";
 
 const agendaEventCardVariants = cva(
 	"flex select-none items-center justify-between gap-3 rounded-md border p-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
@@ -51,7 +51,7 @@ const agendaEventCardVariants = cva(
 );
 
 interface IProps {
-	event: IEvent;
+	event: TEvent;
 	eventCurrentDay?: number;
 	eventTotalDays?: number;
 }

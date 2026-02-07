@@ -18,37 +18,22 @@ export const createEvent = authMutation({
 		timeZone: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
-		// Derive numeric timestamps from Notion-style fields
+		// Use provided timestamps, or derive from date strings for all-day only
 		let derivedStartTimestamp = args.startTimestamp;
 		let derivedEndTimestamp = args.endTimestamp;
 
-		if (args.allDay && args.startDateStr && args.endDateStr) {
-			// All-day: UTC midnight of the dates
-			const startDateObj = new Date(args.startDateStr + "T00:00:00Z");
-			const endDateObj = new Date(args.endDateStr + "T00:00:00Z");
-			derivedStartTimestamp = startDateObj.getTime();
-			derivedEndTimestamp = endDateObj.getTime();
-		} else if (
-			!args.allDay &&
-			args.startDateStr &&
-			args.startTime &&
-			args.endDateStr &&
-			args.endTime &&
-			args.timeZone
-		) {
-			// Timed: Parse in timezone and convert to UTC
-			// For now, use a simpler approach - interpret as UTC (proper timezone handling can be added later)
-			const startDateObj = new Date(`${args.startDateStr}T${args.startTime}:00Z`);
-			const endDateObj = new Date(`${args.endDateStr}T${args.endTime}:00Z`);
-			derivedStartTimestamp = startDateObj.getTime();
-			derivedEndTimestamp = endDateObj.getTime();
-		}
-
-		// Validate we have timestamps
 		if (derivedStartTimestamp === undefined || derivedEndTimestamp === undefined) {
-			throw new Error(
-				"Must provide either numeric startTimestamp/endTimestamp or Notion-style date fields"
-			);
+			if (args.allDay && args.startDateStr && args.endDateStr) {
+				// All-day: UTC midnight of the dates
+				const startDateObj = new Date(args.startDateStr + "T00:00:00Z");
+				const endDateObj = new Date(args.endDateStr + "T00:00:00Z");
+				derivedStartTimestamp = startDateObj.getTime();
+				derivedEndTimestamp = endDateObj.getTime();
+			} else {
+				throw new Error(
+					"Must provide startTimestamp/endTimestamp for timed events, or startDateStr/endDateStr for all-day events"
+				);
+			}
 		}
 
 		// Validate end timestamp is after start timestamp

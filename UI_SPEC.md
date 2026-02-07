@@ -157,7 +157,7 @@
 **IMPORTANT IMPLEMENTATION NOTE:** 
 A comprehensive calendar implementation example is available in `/big-calendar/` directory. This example includes:
 - All 5 calendar views (day, week, month, year, agenda) with full functionality
-- Drag-and-drop event management using react-dnd
+- Drag-and-drop event management using @dnd-kit/core
 - Time zone support and working hours configuration
 - Multi-user calendar support with filtering
 - Responsive design patterns for mobile/tablet/desktop

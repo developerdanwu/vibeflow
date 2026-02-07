@@ -28,7 +28,7 @@ import {
 
 import type {
 	ICalendarCell,
-	IEvent,
+	TEvent,
 } from "@/components/big-calendar/interfaces";
 import type {
 	TCalendarView,
@@ -86,7 +86,7 @@ export function navigateDate(
 }
 
 export function getEventsCount(
-	events: IEvent[],
+	events: TEvent[],
 	date: Date,
 	view: TCalendarView,
 ): number {
@@ -105,7 +105,7 @@ export function getEventsCount(
 
 // ================ Week and day view helper functions ================ //
 
-export function getCurrentEvents(events: IEvent[]) {
+export function getCurrentEvents(events: TEvent[]) {
 	const now = new Date();
 	return (
 		events.filter((event) =>
@@ -117,11 +117,11 @@ export function getCurrentEvents(events: IEvent[]) {
 	);
 }
 
-export function groupEvents(dayEvents: IEvent[]) {
+export function groupEvents(dayEvents: TEvent[]) {
 	const sortedEvents = dayEvents.sort(
 		(a, b) => parseISO(a.startDate).getTime() - parseISO(b.startDate).getTime(),
 	);
-	const groups: IEvent[][] = [];
+	const groups: TEvent[][] = [];
 
 	for (const event of sortedEvents) {
 		const eventStart = parseISO(event.startDate);
@@ -145,7 +145,7 @@ export function groupEvents(dayEvents: IEvent[]) {
 }
 
 export function getEventBlockStyle(
-	event: IEvent,
+	event: TEvent,
 	day: Date,
 	groupIndex: number,
 	groupSize: number,
@@ -185,7 +185,7 @@ export function isWorkingHour(
 
 export function getVisibleHours(
 	visibleHours: TVisibleHours,
-	singleDayEvents: IEvent[],
+	singleDayEvents: TEvent[],
 ) {
 	let earliestEventHour = visibleHours.from;
 	let latestEventHour = visibleHours.to;
@@ -253,8 +253,8 @@ export function getCalendarCells(selectedDate: Date): ICalendarCell[] {
 }
 
 export function calculateMonthEventPositions(
-	multiDayEvents: IEvent[],
-	singleDayEvents: IEvent[],
+	multiDayEvents: TEvent[],
+	singleDayEvents: TEvent[],
 	selectedDate: Date,
 ) {
 	const monthStart = startOfMonth(selectedDate);
@@ -324,7 +324,7 @@ export function calculateMonthEventPositions(
 
 export function getMonthCellEvents(
 	date: Date,
-	events: IEvent[],
+	events: TEvent[],
 	eventPositions: Record<string, number>,
 ) {
 	const eventsForDate = events.filter((event) => {

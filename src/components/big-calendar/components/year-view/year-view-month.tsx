@@ -1,5 +1,5 @@
 import { YearViewDayCell } from "@/components/big-calendar/components/year-view/year-view-day-cell";
-import type { IEvent } from "@/components/big-calendar/interfaces";
+import type { TEvent } from "@/components/big-calendar/interfaces";
 import { useNavigate } from "@tanstack/react-router";
 import {
 	format,
@@ -12,7 +12,7 @@ import { useMemo } from "react";
 
 interface IProps {
 	month: Date;
-	events: IEvent[];
+	events: TEvent[];
 }
 
 export function YearViewMonth({ month, events }: IProps) {

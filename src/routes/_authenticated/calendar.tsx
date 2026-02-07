@@ -1,9 +1,12 @@
-import { DndProviderWrapper } from "@/components/big-calendar/components/dnd/dnd-provider";
+import {
+	DayWeekDndProvider,
+	MonthDndProvider,
+} from "@/components/big-calendar/components/dnd/dnd-provider";
 import { CalendarHeader } from "@/components/big-calendar/components/header/calendar-header";
 import { CalendarMonthView } from "@/components/big-calendar/components/month-view/calendar-month-view";
 import { CalendarDayView } from "@/components/big-calendar/components/week-and-day-view/calendar-day-view";
 import { CalendarProvider } from "@/components/big-calendar/contexts/calendar-context";
-import type { IEvent, IUser } from "@/components/big-calendar/interfaces";
+import type { TEvent, TUser } from "@/components/big-calendar/interfaces";
 import type { TEventColor } from "@/components/big-calendar/types";
 import "@/styles/calendar.css";
 import { convexQuery } from "@convex-dev/react-query";
@@ -56,7 +59,7 @@ function CalendarContent() {
 	const { view } = Route.useSearch();
 	const { user } = useAuth();
 
-	const currentUser: IUser | null = user
+	const currentUser: TUser | null = user
 		? {
 				id: user.id,
 				name: `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || "User",
@@ -68,7 +71,7 @@ function CalendarContent() {
 		convexQuery(api.events.getEventsByUser),
 	);
 
-	const events: IEvent[] = useMemo(() => {
+	const events: TEvent[] = useMemo(() => {
 		if (!convexEvents || !currentUser) return [];
 		return convexEvents.map((event) => ({
 			id: event._id,
@@ -116,36 +119,38 @@ function CalendarContent() {
 
 	return (
 		<div className="calendar-container h-[calc(100vh-52px)] bg-background">
-			<DndProviderWrapper>
-				<div className="h-full">
-					<CalendarHeader view={view} events={events} />
-					<div className="flex h-full flex-col">
-						{isLoading ? (
-							<div className="flex h-full items-center justify-center">
-								<div className="flex flex-col items-center gap-4">
-									<div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-									<p className="text-muted-foreground">Loading events...</p>
-								</div>
+			<div className="h-full">
+				<CalendarHeader view={view} events={events} />
+				<div className="flex h-full flex-col">
+					{isLoading ? (
+						<div className="flex h-full items-center justify-center">
+							<div className="flex flex-col items-center gap-4">
+								<div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+								<p className="text-muted-foreground">Loading events...</p>
 							</div>
-						) : (
-							<>
-								{view === "day" ? (
+						</div>
+					) : (
+						<>
+							{view === "day" ? (
+								<DayWeekDndProvider view="day">
 									<CalendarDayView
 										singleDayEvents={singleDayEvents}
 										multiDayEvents={multiDayEvents}
 									/>
-								) : null}
-								{view === "month" ? (
+								</DayWeekDndProvider>
+							) : null}
+							{view === "month" ? (
+								<MonthDndProvider>
 									<CalendarMonthView
 										singleDayEvents={singleDayEvents}
 										multiDayEvents={multiDayEvents}
 									/>
-								) : null}
-							</>
-						)}
-					</div>
+								</MonthDndProvider>
+							) : null}
+						</>
+					)}
 				</div>
-			</DndProviderWrapper>
+			</div>
 		</div>
 	);
 }

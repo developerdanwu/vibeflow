@@ -1,42 +1,73 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { useDrag } from "react-dnd";
-import { getEmptyImage } from "react-dnd-html5-backend";
-import type { IEvent } from "@/components/big-calendar/interfaces";
+import type { TEvent } from "@/components/big-calendar/interfaces";
 import { cn } from "@/lib/utils";
+import { useDraggable } from "@dnd-kit/core";
+import type {
+	CalendarDragData,
+	EventDragData,
+	EventResizeDragData,
+} from "@/components/big-calendar/components/dnd/dnd-schemas";
 
-export const ItemTypes = {
-	EVENT: "event",
-};
+export type { CalendarDragData, EventDragData, EventResizeDragData };
+export type EventResizeEdge = EventResizeDragData["edge"];
+
+export function isEventResizeData(
+	data: CalendarDragData | undefined,
+): data is EventResizeDragData {
+	return data?.type === "event-resize";
+}
 
 interface DraggableEventProps {
-	event: IEvent;
+	event: TEvent;
 	children: React.ReactNode;
 }
 
 export function DraggableEvent({ event, children }: DraggableEventProps) {
-	const ref = useRef<HTMLDivElement>(null);
-
-	const [{ isDragging }, drag, preview] = useDrag(() => ({
-		type: ItemTypes.EVENT,
-		item: () => {
-			const width = ref.current?.offsetWidth || 0;
-			const height = ref.current?.offsetHeight || 0;
-			return { event, children, width, height };
-		},
-		collect: (monitor) => ({ isDragging: monitor.isDragging() }),
-	}));
-
-	// Hide the default drag preview
-	useEffect(() => {
-		preview(getEmptyImage(), { captureDraggingState: true });
-	}, [preview]);
-
-	drag(ref);
+	const id = `event-${event.id}`;
+	const { attributes, isDragging, listeners, setNodeRef } = useDraggable({
+		id,
+		data: {
+			type: "event",
+			event,
+		} satisfies EventDragData,
+	});
 
 	return (
-		<div ref={ref} className={cn(isDragging && "opacity-40")}>
+		<div
+			ref={setNodeRef}
+			className={cn(isDragging && "opacity-40")}
+			{...listeners}
+			{...attributes}
+		>
+			{children}
+		</div>
+	);
+}
+
+interface EventResizeHandleProps {
+	event: TEvent;
+	edge: EventResizeEdge;
+	children: React.ReactNode;
+}
+
+export function EventResizeHandle({
+	event,
+	edge,
+	children,
+}: EventResizeHandleProps) {
+	const id = `event-resize-${event.id}-${edge}`;
+	const { listeners, setNodeRef } = useDraggable({
+		id,
+		data: {
+			type: "event-resize",
+			event,
+			edge,
+		} satisfies EventResizeDragData,
+	});
+
+	return (
+		<div ref={setNodeRef} {...listeners}>
 			{children}
 		</div>
 	);

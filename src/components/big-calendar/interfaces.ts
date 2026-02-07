@@ -1,29 +1,42 @@
-import type { TEventColor } from "@/components/big-calendar/types";
+import { z } from "zod";
 
-export interface IUser {
-	id: string;
-	name: string;
-	picturePath: string | null;
-}
+const ZEventColorSchema = z.enum([
+	"blue",
+	"green",
+	"red",
+	"yellow",
+	"purple",
+	"orange",
+	"gray",
+]);
 
-export interface IEvent {
-	id: string;
-	convexId?: string;
-	startDate: string;
-	endDate: string;
-	title: string;
-	color: TEventColor;
-	description: string;
-	user: IUser;
-	allDay: boolean;
-	startDateStr?: string;
-	endDateStr?: string;
-	startTime?: string;
-	endTime?: string;
-	timeZone?: string;
-	createdAt?: number;
-	updatedAt?: number;
-}
+export const ZUserSchema = z.object({
+	id: z.string(),
+	name: z.string(),
+	picturePath: z.string().nullable(),
+});
+
+export const ZEventSchema = z.object({
+	id: z.string(),
+	convexId: z.string().optional(),
+	startDate: z.string(),
+	endDate: z.string(),
+	title: z.string(),
+	color: ZEventColorSchema,
+	description: z.string(),
+	user: ZUserSchema,
+	allDay: z.boolean(),
+	startDateStr: z.string().optional(),
+	endDateStr: z.string().optional(),
+	startTime: z.string().optional(),
+	endTime: z.string().optional(),
+	timeZone: z.string().optional(),
+	createdAt: z.number().optional(),
+	updatedAt: z.number().optional(),
+});
+
+export type TUser = z.infer<typeof ZUserSchema>;
+export type TEvent = z.infer<typeof ZEventSchema>;
 
 export interface ICalendarCell {
 	day: number;

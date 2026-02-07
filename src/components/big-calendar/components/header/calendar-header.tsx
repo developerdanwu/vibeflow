@@ -1,5 +1,5 @@
 import { DateNavigator } from "@/components/big-calendar/components/header/date-navigator";
-import type { IEvent } from "@/components/big-calendar/interfaces";
+import type { TEvent } from "@/components/big-calendar/interfaces";
 import type { TCalendarView } from "@/components/big-calendar/types";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,7 +9,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface IProps {
 	view: TCalendarView;
-	events: IEvent[];
+	events: TEvent[];
 	onViewChange?: (view: TCalendarView) => void;
 }
 

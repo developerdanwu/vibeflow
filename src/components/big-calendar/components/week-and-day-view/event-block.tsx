@@ -1,7 +1,10 @@
 import { EventDetailsDialog } from "@/components/big-calendar/components/dialogs/event-details-dialog";
-import { DraggableEvent } from "@/components/big-calendar/components/dnd/draggable-event";
+import {
+	DraggableEvent,
+	EventResizeHandle,
+} from "@/components/big-calendar/components/dnd/draggable-event";
 import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
-import type { IEvent } from "@/components/big-calendar/interfaces";
+import type { TEvent } from "@/components/big-calendar/interfaces";
 import { PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import type { PopoverRootProps } from "@base-ui/react";
@@ -54,7 +57,7 @@ const calendarWeekEventCardVariants = cva(
 interface IProps
 	extends HTMLAttributes<HTMLDivElement>,
 		Omit<VariantProps<typeof calendarWeekEventCardVariants>, "color"> {
-	event: IEvent;
+	event: TEvent;
 	handle?: NonNullable<PopoverRootProps["handle"]>;
 }
 
@@ -97,12 +100,14 @@ export function EventBlock({ event, className, handle }: IProps) {
 						height="8"
 						viewBox="0 0 8 8"
 						className="event-dot shrink-0"
+						aria-hidden
 					>
+						<title>Event color</title>
 						<circle cx="4" cy="4" r="4" />
 					</svg>
 				)}
 
-				<p className="truncate font-semibold">{event.title}</p>
+				<p className="truncate font-semibold">{event.title || "Untitled"}</p>
 			</div>
 
 			{durationInMinutes > 25 && (
@@ -112,6 +117,10 @@ export function EventBlock({ event, className, handle }: IProps) {
 			)}
 		</div>
 	);
+
+	const showResizeHandles = Boolean(handle) && !event.allDay;
+	const resizeHandleClass =
+		"shrink-0 w-full cursor-ns-resize border-0 bg-transparent hover:bg-black/10 dark:hover:bg-white/10";
 
 	if (handle) {
 		return (
@@ -126,7 +135,11 @@ export function EventBlock({ event, className, handle }: IProps) {
 					}}
 					render={({ className: triggerClassName, onClick, ...props }) => (
 						<div
-							className={cn(calendarWeekEventCardClasses, triggerClassName)}
+							className={cn(
+								calendarWeekEventCardClasses,
+								triggerClassName,
+								showResizeHandles && "relative flex flex-col rounded-md",
+							)}
 							style={{ height: `${heightInPixels}px` }}
 							role="button"
 							tabIndex={0}
@@ -137,26 +150,56 @@ export function EventBlock({ event, className, handle }: IProps) {
 							}}
 							{...props}
 						>
-							<div className="flex items-center gap-1.5 truncate">
-								{["mixed", "dot"].includes(badgeVariant) && (
-									<svg
-										width="8"
-										height="8"
-										viewBox="0 0 8 8"
-										className="event-dot shrink-0"
-									>
-										<circle cx="4" cy="4" r="4" />
-									</svg>
+							<EventResizeHandle event={event} edge="top">
+								<button
+									type="button"
+									className={cn(
+										"absolute top-0 right-0 left-0 h-1 rounded-t-md",
+										resizeHandleClass,
+									)}
+									onClick={(e) => e.stopPropagation()}
+									onKeyDown={(e) => e.stopPropagation()}
+									aria-label="Resize event start"
+								/>
+							</EventResizeHandle>
+							<div className="flex min-h-0 flex-1 flex-col justify-center">
+								<div className="flex items-center gap-1.5 truncate">
+									{["mixed", "dot"].includes(badgeVariant) && (
+										<svg
+											width="8"
+											height="8"
+											viewBox="0 0 8 8"
+											className="event-dot shrink-0"
+											aria-hidden
+										>
+											<title>Event color</title>
+											<circle cx="4" cy="4" r="4" />
+										</svg>
+									)}
+
+									<p className="truncate font-semibold">
+										{event.title || "Untitled"}
+									</p>
+								</div>
+
+								{durationInMinutes > 25 && (
+									<p>
+										{format(start, "h:mm a")} - {format(end, "h:mm a")}
+									</p>
 								)}
-
-								<p className="truncate font-semibold">{event.title}</p>
 							</div>
-
-							{durationInMinutes > 25 && (
-								<p>
-									{format(start, "h:mm a")} - {format(end, "h:mm a")}
-								</p>
-							)}
+							<EventResizeHandle event={event} edge="bottom">
+								<button
+									type="button"
+									className={cn(
+										"absolute right-0 bottom-0 left-0 h-1 rounded-b-md",
+										resizeHandleClass,
+									)}
+									onClick={(e) => e.stopPropagation()}
+									onKeyDown={(e) => e.stopPropagation()}
+									aria-label="Resize event end"
+								/>
+							</EventResizeHandle>
 						</div>
 					)}
 				/>

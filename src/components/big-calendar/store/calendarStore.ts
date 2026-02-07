@@ -1,7 +1,6 @@
-import type { IEvent, IUser } from "@/components/big-calendar/interfaces";
+import type { TUser } from "@/components/big-calendar/interfaces";
 import type {
 	TBadgeVariant,
-	TDensity,
 	TVisibleHours,
 	TWorkingHours,
 } from "@/components/big-calendar/types";
@@ -22,27 +21,42 @@ const VISIBLE_HOURS: TVisibleHours = { from: 7, to: 18 };
 
 export const useCalendar = createStoreHook({
 	context: {
-		selectedUserId: "all" as IUser["id"] | "all",
-		badgeVariant: "colored" as TBadgeVariant,
-		density: "small" as TDensity,
-		showWeekends: true,
-		showDeclinedEvents: true,
-		showDoneTasks: true,
 		visibleHours: VISIBLE_HOURS,
-		workingHours: WORKING_HOURS,
-		events: [] as IEvent[],
-		users: [] as IUser[],
 		newEventTitle: "",
+		newEventDescription: "",
+		workingHours: WORKING_HOURS,
+		badgeVariant: "colored" as TBadgeVariant,
 		newEventStartTime: null as Time | null | undefined,
+		newEventEndTime: null as Time | null | undefined,
 		newEventAllDay: true as boolean | undefined,
+		selectedUserId: "all" as TUser["id"] | "all",
 	},
 	on: {
+		resetNewEvent: (context) => ({
+			...context,
+			newEventTitle: "",
+			newEventDescription: "",
+			newEventStartTime: null,
+			newEventEndTime: null,
+			newEventAllDay: true,
+		}),
+		setNewEventDescription: (context, event: { description: string }) => ({
+			...context,
+			newEventDescription: event.description,
+		}),
 		setNewEventStartTime: (
 			context,
 			event: { startTime: Time | null | undefined },
 		) => ({
 			...context,
 			newEventStartTime: event.startTime,
+		}),
+		setNewEventEndTime: (
+			context,
+			event: { endTime: Time | null | undefined },
+		) => ({
+			...context,
+			newEventEndTime: event.endTime,
 		}),
 		setNewEventAllDay: (context, event: { allDay: boolean | undefined }) => ({
 			...context,
@@ -52,7 +66,7 @@ export const useCalendar = createStoreHook({
 			...context,
 			newEventTitle: event.title,
 		}),
-		setSelectedUserId: (context, event: { userId: IUser["id"] | "all" }) => ({
+		setSelectedUserId: (context, event: { userId: TUser["id"] | "all" }) => ({
 			...context,
 			selectedUserId: event.userId,
 		}),
@@ -63,48 +77,6 @@ export const useCalendar = createStoreHook({
 		setVisibleHours: (context, event: { hours: TVisibleHours }) => ({
 			...context,
 			visibleHours: event.hours,
-		}),
-		setWorkingHours: (context, event: { hours: TWorkingHours }) => ({
-			...context,
-			workingHours: event.hours,
-		}),
-		setEvents: (context, event: { events: IEvent[] }) => ({
-			...context,
-			events: event.events,
-		}),
-		updateEvent: (context, event: { updatedEvent: IEvent }) => ({
-			...context,
-			events: context.events.map((e) =>
-				e.id === event.updatedEvent.id ? event.updatedEvent : e,
-			),
-		}),
-		addEvent: (context, event: { newEvent: IEvent }) => ({
-			...context,
-			events: [...context.events, event.newEvent],
-		}),
-		deleteEvent: (context, event: { eventId: number }) => ({
-			...context,
-			events: context.events.filter((e) => e.id !== event.eventId),
-		}),
-		setUsers: (context, event: { users: IUser[] }) => ({
-			...context,
-			users: event.users,
-		}),
-		setDensity: (context, event: { density: TDensity }) => ({
-			...context,
-			density: event.density,
-		}),
-		setShowWeekends: (context, event: { show: boolean }) => ({
-			...context,
-			showWeekends: event.show,
-		}),
-		setShowDeclinedEvents: (context, event: { show: boolean }) => ({
-			...context,
-			showDeclinedEvents: event.show,
-		}),
-		setShowDoneTasks: (context, event: { show: boolean }) => ({
-			...context,
-			showDoneTasks: event.show,
 		}),
 	},
 });
