@@ -138,70 +138,56 @@ export function MonthEventBadge({
 
 	return (
 		<DraggableEvent event={event} sourceView="month">
-			<PopoverTrigger
-				handle={handle}
-				id={triggerId}
-				payload={{
-					date: parseISO(event.startDate),
-					mode: "edit",
-					event,
-				}}
-				render={({ className, onClick: onClickBadge, ...props }) => {
-					return (
-						<Tooltip>
-							<TooltipTrigger
-								render={({
-									className: tooltipClassName,
-									onClick: onClickTooltip,
-									...tooltipProps
-								}) => {
-									return (
-										<button
-											type="button"
-											tabIndex={0}
-											className={cn(eventBadgeClasses, tooltipClassName)}
-											onKeyDown={handleKeyDown}
-											{...tooltipProps}
-											{...props}
-											onClick={(e) => {
-												e.stopPropagation();
-												onClickTooltip?.(e);
-												onClickBadge?.(e);
-											}}
-										>
-											<div className="flex items-center gap-1.5 truncate">
-												{renderBadgeText && (
-													<p className="flex-1 truncate font-semibold">
-														{eventCurrentDay && (
-															<span className="text-xs">
-																Day {eventCurrentDay} of {eventTotalDays} •{" "}
-															</span>
-														)}
-														{event.title}
-													</p>
-												)}
-											</div>
-
-											{renderBadgeText && !event.allDay && (
-												<span>{format(start, "h:mm a")}</span>
-											)}
-										</button>
-									);
-								}}
-							/>
-							<TooltipContent
-								side="top"
-								className="max-w-xs border bg-popover px-3 py-2 text-popover-foreground shadow-md"
-							>
-								<p className="font-semibold">{event.title}</p>
-								{!event.allDay && (
-									<p className="text-2xs text-muted-foreground">{timeRange}</p>
+			<Tooltip>
+				<TooltipTrigger
+					render={
+						<PopoverTrigger
+							handle={handle}
+							id={triggerId}
+							payload={{
+								date: parseISO(event.startDate),
+								mode: "edit",
+								event,
+							}}
+							render={
+								<button
+									type="button"
+									tabIndex={0}
+									className={eventBadgeClasses}
+									onKeyDown={handleKeyDown}
+									onClick={(e) => e.stopPropagation()}
+								/>
+							}
+						/>
+					}
+				>
+					<div className="flex items-center gap-1.5 truncate">
+						{renderBadgeText && (
+							<p className="flex-1 truncate font-semibold">
+								{eventCurrentDay && (
+									<span className="text-xs">
+										Day {eventCurrentDay} of {eventTotalDays} •{" "}
+									</span>
 								)}
-							</TooltipContent>
-						</Tooltip>
-					);
-				}}
-			/>
+								{event.title}
+							</p>
+						)}
+					</div>
+
+					{renderBadgeText && !event.allDay && (
+						<span>{format(start, "h:mm a")}</span>
+					)}
+				</TooltipTrigger>
+				<TooltipContent
+					side="top"
+					className="max-w-xs border bg-popover px-3 py-2 text-popover-foreground shadow-md"
+				>
+					<p className="font-semibold">{event.title}</p>
+					{!event.allDay && (
+						<p className="text-2xs text-muted-foreground">{timeRange}</p>
+					)}
+				</TooltipContent>
+			</Tooltip>
 		</DraggableEvent>
 	);
 }

@@ -1,4 +1,3 @@
-import { cloudflare } from "@cloudflare/vite-plugin";
 import contentCollections from "@content-collections/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { devtools } from "@tanstack/devtools-vite";
@@ -17,7 +16,6 @@ const config = defineConfig({
 	},
 	plugins: [
 		devtools(),
-		cloudflare({ viteEnvironment: { name: "ssr" } }),
 		contentCollections(),
 		// this is the plugin that enables path aliases
 		viteTsConfigPaths({

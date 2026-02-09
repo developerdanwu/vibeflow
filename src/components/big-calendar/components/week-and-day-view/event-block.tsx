@@ -5,6 +5,11 @@ import {
 import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
 import type { TEvent } from "@/components/big-calendar/interfaces";
 import { PopoverTrigger } from "@/components/ui/popover";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { PopoverRootProps } from "@base-ui/react";
 import type { VariantProps } from "class-variance-authority";
@@ -118,131 +123,132 @@ export function EventBlock({
 	const resizeHandleClass =
 		"shrink-0 w-full cursor-ns-resize border-0 bg-transparent";
 
+	const tooltipTimeStr = event.allDay
+		? undefined
+		: durationInMinutes > 0
+			? `${start.getMinutes() === 0 ? format(start, "h a") : format(start, "h:mm")} - ${end.getMinutes() === 0 ? format(end, "h a") : format(end, "h:mm a")}`
+			: format(start, "h:mm a");
+
 	return (
 		<DraggableEvent event={event}>
-			<PopoverTrigger
-				handle={handle}
-				id={`day-event-${event.id}`}
-				payload={{
-					date: parseISO(event.startDate),
-					mode: "edit",
-					event,
-				}}
-				render={({
-					className: triggerClassName,
-					onClick,
-					onDrag: _onDrag,
-					onDragEnd: _onDragEnd,
-					onDragStart: _onDragStart,
-					onDragOver: _onDragOver,
-					onDragEnter: _onDragEnter,
-					onDragLeave: _onDragLeave,
-					onAnimationStart: _onAnimationStart,
-					onAnimationEnd: _onAnimationEnd,
-					onAnimationIteration: _onAnimationIteration,
-					...props
-				}) => (
-					<motion.div
-						initial={false}
-						className={cn(
-							calendarWeekEventCardClasses,
-							triggerClassName,
-							showResizeHandles && "relative flex flex-col rounded-md",
-						)}
-						style={{ height: heightPx }}
-						role="button"
-						tabIndex={0}
-						onKeyDown={handleKeyDown}
-						onClick={(e) => {
-							e.stopPropagation();
-							onClick?.(e);
-						}}
-						{...props}
-					>
-						<EventResizeHandle
-							event={event}
-							edge="top"
-							originalEvent={originalEvent}
-						>
-							<button
-								type="button"
-								className={cn(
-									"absolute top-0 right-0 left-0 h-1 rounded-t-md",
-									resizeHandleClass,
-								)}
-								onClick={(e) => e.stopPropagation()}
-								onKeyDown={(e) => e.stopPropagation()}
-								aria-label="Resize event start"
-							/>
-						</EventResizeHandle>
-						<div className="flex min-h-0 flex-1 flex-col justify-start">
-							{isSingleLine ? (
-								<div className="flex min-w-0 items-center justify-between gap-2">
-									<div className="flex min-w-0 flex-1 items-center gap-1.5 truncate">
-										{["mixed", "dot"].includes(badgeVariant) && (
-											<svg
-												width="8"
-												height="8"
-												viewBox="0 0 8 8"
-												className="event-dot shrink-0"
-												aria-hidden
-											>
-												<title>Event color</title>
-												<circle cx="4" cy="4" r="4" />
-											</svg>
-										)}
-										<p className="truncate font-semibold">
-											{event.title || "Untitled"}
-										</p>
-									</div>
-									{!event.allDay && (
-										<span className="shrink-0 text-xs opacity-90">
-											{timeStr}
-										</span>
+			<Tooltip>
+				<TooltipTrigger
+					render={
+						<PopoverTrigger
+							handle={handle}
+							id={`day-event-${event.id}`}
+							payload={{
+								date: parseISO(event.startDate),
+								mode: "edit",
+								event,
+							}}
+							render={
+								<motion.button
+									initial={false}
+									className={cn(
+										calendarWeekEventCardClasses,
+										showResizeHandles &&
+											"relative flex w-full flex-col items-start rounded-md",
 									)}
-								</div>
-							) : (
-								<>
-									<div className="flex items-center gap-1.5 truncate">
-										{["mixed", "dot"].includes(badgeVariant) && (
-											<svg
-												width="8"
-												height="8"
-												viewBox="0 0 8 8"
-												className="event-dot shrink-0"
-												aria-hidden
-											>
-												<title>Event color</title>
-												<circle cx="4" cy="4" r="4" />
-											</svg>
-										)}
-										<p className="truncate font-semibold">
-											{event.title || "Untitled"}
-										</p>
-									</div>
-									{!event.allDay && durationInMinutes > 25 && <p>{timeStr}</p>}
-								</>
+									style={{ height: heightPx }}
+									tabIndex={0}
+									onKeyDown={handleKeyDown}
+									onClick={(e) => e.stopPropagation()}
+								/>
+							}
+						/>
+					}
+				>
+					<EventResizeHandle
+						event={event}
+						edge="top"
+						originalEvent={originalEvent}
+					>
+						<button
+							type="button"
+							className={cn(
+								"absolute top-0 right-0 left-0 h-1 rounded-t-md",
+								resizeHandleClass,
 							)}
-						</div>
-						<EventResizeHandle
-							event={event}
-							edge="bottom"
-							originalEvent={originalEvent}
-						>
-							<button
-								type="button"
-								className={cn(
-									"absolute right-0 bottom-0 left-0 h-1 rounded-b-md",
-									resizeHandleClass,
+							onClick={(e) => e.stopPropagation()}
+							onKeyDown={(e) => e.stopPropagation()}
+							aria-label="Resize event start"
+						/>
+					</EventResizeHandle>
+					<div className="flex min-h-0 flex-1 flex-col justify-start">
+						{isSingleLine ? (
+							<div className="flex min-w-0 items-center justify-between gap-2">
+								<div className="flex min-w-0 flex-1 items-center gap-1.5 truncate">
+									{["mixed", "dot"].includes(badgeVariant) && (
+										<svg
+											width="8"
+											height="8"
+											viewBox="0 0 8 8"
+											className="event-dot shrink-0"
+											aria-hidden
+										>
+											<title>Event color</title>
+											<circle cx="4" cy="4" r="4" />
+										</svg>
+									)}
+									<p className="truncate font-semibold">
+										{event.title || "Untitled"}
+									</p>
+								</div>
+								{!event.allDay && (
+									<span className="shrink-0 text-xs opacity-90">{timeStr}</span>
 								)}
-								onClick={(e) => e.stopPropagation()}
-								onKeyDown={(e) => e.stopPropagation()}
-								aria-label="Resize event end"
-							/>
-						</EventResizeHandle>
-					</motion.div>
-				)}
-			/>
+							</div>
+						) : (
+							<>
+								<div className="flex items-center gap-1.5 truncate">
+									{["mixed", "dot"].includes(badgeVariant) && (
+										<svg
+											width="8"
+											height="8"
+											viewBox="0 0 8 8"
+											className="event-dot shrink-0"
+											aria-hidden
+										>
+											<title>Event color</title>
+											<circle cx="4" cy="4" r="4" />
+										</svg>
+									)}
+									<p className="truncate text-left font-semibold">
+										{event.title || "Untitled"}
+									</p>
+								</div>
+								{!event.allDay && durationInMinutes > 25 && <p>{timeStr}</p>}
+							</>
+						)}
+					</div>
+					<EventResizeHandle
+						event={event}
+						edge="bottom"
+						originalEvent={originalEvent}
+					>
+						<button
+							type="button"
+							className={cn(
+								"absolute right-0 bottom-0 left-0 h-1 rounded-b-md",
+								resizeHandleClass,
+							)}
+							onClick={(e) => e.stopPropagation()}
+							onKeyDown={(e) => e.stopPropagation()}
+							aria-label="Resize event end"
+						/>
+					</EventResizeHandle>
+				</TooltipTrigger>
+				<TooltipContent
+					side="top"
+					className="max-w-xs border bg-popover px-3 py-2 text-popover-foreground shadow-md"
+				>
+					<p className="font-semibold">{event.title || "Untitled"}</p>
+					{tooltipTimeStr && (
+						<p className="text-2xs text-muted-foreground">{tooltipTimeStr}</p>
+					)}
+				</TooltipContent>
+			</Tooltip>
 		</DraggableEvent>
 	);
 }

@@ -17,6 +17,8 @@ import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
 import { Route as AuthenticatedSettingsCalendarsRouteImport } from './routes/_authenticated/settings/calendars'
 import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_authenticated/settings/account'
+import { Route as AuthenticatedSettingsCalendarsIndexRouteImport } from './routes/_authenticated/settings/calendars/index'
+import { Route as AuthenticatedSettingsCalendarsCallbackRouteImport } from './routes/_authenticated/settings/calendars/callback'
 
 const CallbackRoute = CallbackRouteImport.update({
   id: '/callback',
@@ -60,6 +62,18 @@ const AuthenticatedSettingsAccountRoute =
     path: '/account',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedSettingsCalendarsIndexRoute =
+  AuthenticatedSettingsCalendarsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedSettingsCalendarsRoute,
+  } as any)
+const AuthenticatedSettingsCalendarsCallbackRoute =
+  AuthenticatedSettingsCalendarsCallbackRouteImport.update({
+    id: '/callback',
+    path: '/callback',
+    getParentRoute: () => AuthenticatedSettingsCalendarsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -67,16 +81,19 @@ export interface FileRoutesByFullPath {
   '/calendar': typeof AuthenticatedCalendarRoute
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
-  '/settings/calendars': typeof AuthenticatedSettingsCalendarsRoute
+  '/settings/calendars': typeof AuthenticatedSettingsCalendarsRouteWithChildren
   '/settings/': typeof AuthenticatedSettingsIndexRoute
+  '/settings/calendars/callback': typeof AuthenticatedSettingsCalendarsCallbackRoute
+  '/settings/calendars/': typeof AuthenticatedSettingsCalendarsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/callback': typeof CallbackRoute
   '/calendar': typeof AuthenticatedCalendarRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
-  '/settings/calendars': typeof AuthenticatedSettingsCalendarsRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
+  '/settings/calendars/callback': typeof AuthenticatedSettingsCalendarsCallbackRoute
+  '/settings/calendars': typeof AuthenticatedSettingsCalendarsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -86,8 +103,10 @@ export interface FileRoutesById {
   '/_authenticated/calendar': typeof AuthenticatedCalendarRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/_authenticated/settings/account': typeof AuthenticatedSettingsAccountRoute
-  '/_authenticated/settings/calendars': typeof AuthenticatedSettingsCalendarsRoute
+  '/_authenticated/settings/calendars': typeof AuthenticatedSettingsCalendarsRouteWithChildren
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
+  '/_authenticated/settings/calendars/callback': typeof AuthenticatedSettingsCalendarsCallbackRoute
+  '/_authenticated/settings/calendars/': typeof AuthenticatedSettingsCalendarsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -99,14 +118,17 @@ export interface FileRouteTypes {
     | '/settings/account'
     | '/settings/calendars'
     | '/settings/'
+    | '/settings/calendars/callback'
+    | '/settings/calendars/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/callback'
     | '/calendar'
     | '/settings/account'
-    | '/settings/calendars'
     | '/settings'
+    | '/settings/calendars/callback'
+    | '/settings/calendars'
   id:
     | '__root__'
     | '/'
@@ -117,6 +139,8 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/account'
     | '/_authenticated/settings/calendars'
     | '/_authenticated/settings/'
+    | '/_authenticated/settings/calendars/callback'
+    | '/_authenticated/settings/calendars/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -183,18 +207,51 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsAccountRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/settings/calendars/': {
+      id: '/_authenticated/settings/calendars/'
+      path: '/'
+      fullPath: '/settings/calendars/'
+      preLoaderRoute: typeof AuthenticatedSettingsCalendarsIndexRouteImport
+      parentRoute: typeof AuthenticatedSettingsCalendarsRoute
+    }
+    '/_authenticated/settings/calendars/callback': {
+      id: '/_authenticated/settings/calendars/callback'
+      path: '/callback'
+      fullPath: '/settings/calendars/callback'
+      preLoaderRoute: typeof AuthenticatedSettingsCalendarsCallbackRouteImport
+      parentRoute: typeof AuthenticatedSettingsCalendarsRoute
+    }
   }
 }
 
+interface AuthenticatedSettingsCalendarsRouteChildren {
+  AuthenticatedSettingsCalendarsCallbackRoute: typeof AuthenticatedSettingsCalendarsCallbackRoute
+  AuthenticatedSettingsCalendarsIndexRoute: typeof AuthenticatedSettingsCalendarsIndexRoute
+}
+
+const AuthenticatedSettingsCalendarsRouteChildren: AuthenticatedSettingsCalendarsRouteChildren =
+  {
+    AuthenticatedSettingsCalendarsCallbackRoute:
+      AuthenticatedSettingsCalendarsCallbackRoute,
+    AuthenticatedSettingsCalendarsIndexRoute:
+      AuthenticatedSettingsCalendarsIndexRoute,
+  }
+
+const AuthenticatedSettingsCalendarsRouteWithChildren =
+  AuthenticatedSettingsCalendarsRoute._addFileChildren(
+    AuthenticatedSettingsCalendarsRouteChildren,
+  )
+
 interface AuthenticatedSettingsRouteChildren {
   AuthenticatedSettingsAccountRoute: typeof AuthenticatedSettingsAccountRoute
-  AuthenticatedSettingsCalendarsRoute: typeof AuthenticatedSettingsCalendarsRoute
+  AuthenticatedSettingsCalendarsRoute: typeof AuthenticatedSettingsCalendarsRouteWithChildren
   AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
 }
 
 const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
   AuthenticatedSettingsAccountRoute: AuthenticatedSettingsAccountRoute,
-  AuthenticatedSettingsCalendarsRoute: AuthenticatedSettingsCalendarsRoute,
+  AuthenticatedSettingsCalendarsRoute:
+    AuthenticatedSettingsCalendarsRouteWithChildren,
   AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
 }
 

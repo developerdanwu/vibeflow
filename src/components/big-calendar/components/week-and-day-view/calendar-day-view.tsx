@@ -21,12 +21,13 @@ import {
 	groupEvents,
 	isWorkingHour,
 } from "@/components/big-calendar/helpers";
+import { useDragToCreate } from "@/components/big-calendar/hooks/use-drag-to-create";
 import type { TEvent } from "@/components/big-calendar/interfaces";
 import { PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Route } from "@/routes/_authenticated/calendar";
-import { Popover as PopoverBase } from "@base-ui/react";
+import { mergeProps, Popover as PopoverBase } from "@base-ui/react";
 import { useDndContext } from "@dnd-kit/core";
 import { Time } from "@internationalized/date";
 import type { VariantProps } from "class-variance-authority";
@@ -40,11 +41,11 @@ import {
 
 const MIN_DURATION_MS = 15 * 60 * 1000;
 
-import { useEffect, useMemo, useRef } from "react";
+import { motion } from "motion/react";
+import { useMemo, useRef } from "react";
 import { DayViewMultiDayEventsRow } from "./day-view-multi-day-events-row";
 
 const NEW_EVENT_TRIGGER_ID = "new-event-trigger";
-const SLOT_HEIGHT_PX = 24;
 
 interface IProps {
 	singleDayEvents: TEvent[];
@@ -63,7 +64,7 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 		() => PopoverBase.createHandle(),
 		[],
 	);
-	const openPendingRef = useRef(false);
+	const quickEventPopoverHandle = useMemo(() => PopoverBase.createHandle(), []);
 	const { date: selectedDate } = Route.useSearch();
 	const [workingHours] = useCalendar((s) => s.context.workingHours);
 	const [badgeVariant] = useCalendar((s) => s.context.badgeVariant);
@@ -72,48 +73,72 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 		(s) => s.context.newEventDescription,
 	);
 	const [newEventStartTime] = useCalendar((s) => s.context.newEventStartTime);
-	const [newEventAllDay] = useCalendar((s) => s.context.newEventAllDay);
 	const [, calendarStore] = useCalendar();
+	const [newEventEndTime] = useCalendar((s) => s.context.newEventEndTime);
 
-	useEffect(() => {
-		if (openPendingRef.current && newEventStartTime) {
+	const gridRef = useRef<HTMLDivElement>(null);
+
+	const { hours, earliestEventHour, latestEventHour } = getVisibleHours(
+		{ from: 0, to: 24 },
+		singleDayEvents,
+	);
+
+	// --- Drag-to-create hook ---
+	const dragToCreate = useDragToCreate({
+		gridRef,
+		firstHour: hours[0],
+		onDragEnd: (range) => {
+			calendarStore.trigger.setNewEventStartTime({
+				startTime: new Time(range.startSlot.hour, range.startSlot.minute),
+			});
+			calendarStore.trigger.setNewEventEndTime({
+				endTime: new Time(range.endSlot.hour, range.endSlot.minute, 0),
+			});
 			quickAddEventPopoverHandle.open(NEW_EVENT_TRIGGER_ID);
-			openPendingRef.current = false;
-		}
-	}, [newEventStartTime, quickAddEventPopoverHandle]);
+		},
+		onClick: (slot) => {
+			calendarStore.trigger.setNewEventStartTime({
+				startTime: new Time(slot.hour, slot.minute),
+			});
+			const endM = slot.minute + 15;
+			const endHour = endM >= 60 ? slot.hour + 1 : slot.hour;
+			const endMin = endM >= 60 ? 0 : endM;
+			calendarStore.trigger.setNewEventEndTime({
+				endTime: new Time(endHour, endMin, 0),
+			});
+			quickAddEventPopoverHandle.open(NEW_EVENT_TRIGGER_ID);
+		},
+	});
 
 	const formattedStartTime = useMemo(() => {
-		if (!newEventStartTime) return null;
+		if (!newEventStartTime) {
+			return null;
+		}
 		return format(
 			new Date(1970, 0, 1, newEventStartTime.hour, newEventStartTime.minute),
 			"h:mm a",
 		);
 	}, [newEventStartTime]);
 
-	const isOpen = quickAddEventPopoverHandle.store.useState("open");
+	const formattedEndTime = useMemo(() => {
+		if (!newEventEndTime) {
+			return null;
+		}
+		return format(
+			new Date(1970, 0, 1, newEventEndTime.hour, newEventEndTime.minute),
+			"h:mm a",
+		);
+	}, [newEventEndTime]);
+
+	const isOpen = false;
 	const activeTriggerId =
 		quickAddEventPopoverHandle.store.useState("activeTriggerId");
 	const isNewEventTriggerActive =
 		isOpen && activeTriggerId === NEW_EVENT_TRIGGER_ID;
 
-	const handleSlotClick = (hour: number, minute: number) => {
-		calendarStore.trigger.setNewEventStartTime({
-			startTime: new Time(hour, minute),
-		});
-		calendarStore.trigger.setNewEventEndTime({
-			endTime: new Time(hour + 1, minute, 0),
-		});
-		quickAddEventPopoverHandle.open(NEW_EVENT_TRIGGER_ID);
-	};
-
 	const addEventColor = (
 		badgeVariant === "dot" ? "gray-dot" : "gray"
 	) as VariantProps<typeof eventBadgeVariants>["color"];
-
-	const { hours, earliestEventHour, latestEventHour } = getVisibleHours(
-		{ from: 0, to: 24 },
-		singleDayEvents,
-	);
 
 	const dayEvents = singleDayEvents.filter((event) => {
 		const eventDate = parseISO(event.startDate);
@@ -128,6 +153,29 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 	const newEventTime = newEventStartTime
 		? { hour: newEventStartTime.hour, minute: newEventStartTime.minute }
 		: { hour: 0, minute: 0 };
+	const newEventEndTimeVal = newEventEndTime
+		? { hour: newEventEndTime.hour, minute: newEventEndTime.minute }
+		: { hour: newEventTime.hour + 1, minute: newEventTime.minute };
+
+	const showNewEventBlock =
+		!!(dragToCreate.dragPreview || (newEventStartTime && newEventEndTime)) ||
+		isNewEventTriggerActive;
+
+	// Time range display text for the trigger block
+	const displayTimeRange = useMemo(() => {
+		if (dragToCreate.dragPreview) {
+			const preview = dragToCreate.dragPreview;
+			const startH = preview.startSlot.hour;
+			const startM = preview.startSlot.minute;
+			const endH = preview.endSlot.hour;
+			const endM = preview.endSlot.minute;
+			return `${format(new Date(1970, 0, 1, startH, startM), "h:mm a")} – ${format(new Date(1970, 0, 1, endH, endM), "h:mm a")}`;
+		}
+		if (formattedStartTime && formattedEndTime) {
+			return `${formattedStartTime} – ${formattedEndTime}`;
+		}
+		return formattedStartTime;
+	}, [dragToCreate.dragPreview, formattedStartTime, formattedEndTime]);
 
 	return (
 		<>
@@ -160,7 +208,7 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 						<DayViewMultiDayEventsRow
 							selectedDate={selectedDate}
 							multiDayEvents={multiDayEvents}
-							handle={quickAddEventPopoverHandle}
+							handle={quickEventPopoverHandle}
 						/>
 					</DroppableDayCell>
 				</div>
@@ -183,7 +231,7 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 
 						{/* Day grid */}
 						<div className="relative flex-1 border-l">
-							<div className="relative">
+							<div ref={gridRef} className="relative">
 								<DropRangeRing day={selectedDate} firstHour={hours[0]} />
 								{hours.map((hour, index) => {
 									const isDisabled = !isWorkingHour(
@@ -202,7 +250,7 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 											style={{ height: "96px" }}
 										>
 											{index !== 0 && (
-												<div className="pointer-events-none absolute inset-x-0 top-0 border-b"></div>
+												<div className="absolute inset-x-0 top-0 border-b"></div>
 											)}
 
 											<DroppableTimeBlock
@@ -213,10 +261,7 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 												<button
 													type="button"
 													className="absolute inset-x-0 top-0 h-[24px] cursor-pointer transition-colors hover:bg-accent"
-													onClick={(e) => {
-														e.stopPropagation();
-														handleSlotClick(hour, 0);
-													}}
+													{...dragToCreate.getSlotProps(hour, 0)}
 												/>
 											</DroppableTimeBlock>
 
@@ -228,10 +273,7 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 												<button
 													type="button"
 													className="absolute inset-x-0 top-[24px] h-[24px] cursor-pointer transition-colors hover:bg-accent"
-													onClick={(e) => {
-														e.stopPropagation();
-														handleSlotClick(hour, 15);
-													}}
+													{...dragToCreate.getSlotProps(hour, 15)}
 												/>
 											</DroppableTimeBlock>
 
@@ -245,10 +287,7 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 												<button
 													type="button"
 													className="absolute inset-x-0 top-[48px] h-[24px] cursor-pointer transition-colors hover:bg-accent"
-													onClick={(e) => {
-														e.stopPropagation();
-														handleSlotClick(hour, 30);
-													}}
+													{...dragToCreate.getSlotProps(hour, 30)}
 												/>
 											</DroppableTimeBlock>
 
@@ -260,10 +299,7 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 												<button
 													type="button"
 													className="absolute inset-x-0 top-[72px] h-[24px] cursor-pointer transition-colors hover:bg-accent"
-													onClick={(e) => {
-														e.stopPropagation();
-														handleSlotClick(hour, 45);
-													}}
+													{...dragToCreate.getSlotProps(hour, 45)}
 												/>
 											</DroppableTimeBlock>
 										</div>
@@ -271,14 +307,12 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 								})}
 
 								{/* Single new-event trigger positioned at current slot */}
-								<div
-									className="pointer-events-none absolute inset-x-0"
+
+								<motion.div
+									className="pointer-events-none absolute inset-x-0 z-50"
 									style={{
-										top:
-											((newEventStartTime?.hour ?? 0) * 4 +
-												(newEventStartTime?.minute ?? 0) / 15) *
-											SLOT_HEIGHT_PX,
-										height: SLOT_HEIGHT_PX,
+										top: dragToCreate.topValue,
+										height: dragToCreate.heightValue,
 									}}
 								>
 									<PopoverTrigger
@@ -293,44 +327,45 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 												newEventTime.minute,
 											),
 											endTime: new Time(
-												newEventTime.hour,
-												newEventTime.minute + 15,
+												newEventEndTimeVal.hour,
+												newEventEndTimeVal.minute,
 												0,
 											),
 											title: newEventTitle,
 											description: newEventDescription,
 										} satisfies TEventPopoverFormData)}
-										nativeButton={false}
-										render={({ className, ...props }) => (
+										render={(triggerProps) => (
 											<button
-												type="button"
-												className={cn(
-													isNewEventTriggerActive &&
-														eventBadgeVariants({
-															color: addEventColor,
-														}),
-													"absolute inset-x-0 top-0 h-[24px] w-full cursor-pointer transition-colors hover:bg-accent",
-													isNewEventTriggerActive &&
-														"pointer-events-auto min-h-6",
-													!isNewEventTriggerActive && "pointer-events-none",
-													className,
-												)}
-												{...props}
+												{...mergeProps(triggerProps, {
+													className: cn(
+														showNewEventBlock &&
+															eventBadgeVariants({
+																color: addEventColor,
+															}),
+														"relative z-10 h-full w-full rounded-md",
+														showNewEventBlock &&
+															"pointer-events-auto min-h-6 cursor-pointer hover:bg-accent",
+														!showNewEventBlock &&
+															"pointer-events-none invisible",
+													),
+												})}
 											>
-												{isNewEventTriggerActive ? (
-													<div className="flex w-full min-w-0 items-center justify-between gap-1.5 truncate text-xs">
+												{showNewEventBlock ? (
+													<div className="flex h-full w-full min-w-0 flex-col items-start justify-start gap-0.5 truncate px-1.5 py-1 text-xs">
 														<p className="min-w-0 truncate font-semibold">
 															{newEventTitle || "(No title)"}
 														</p>
-														{!newEventAllDay && newEventStartTime ? (
-															<p className="shrink-0">{formattedStartTime}</p>
+														{displayTimeRange ? (
+															<p className="shrink-0 opacity-90">
+																{displayTimeRange}
+															</p>
 														) : null}
 													</div>
 												) : null}
 											</button>
 										)}
 									/>
-								</div>
+								</motion.div>
 
 								{groupedEvents.map((group, groupIndex) =>
 									group.map((event) => {
@@ -387,8 +422,9 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 												),
 										);
 
-										if (!hasOverlap)
+										if (!hasOverlap) {
 											style = { ...style, width: "100%", left: "0%" };
+										}
 
 										const isResizingThis = resizingEventId === event.id;
 										const isThisTheActiveEvent =

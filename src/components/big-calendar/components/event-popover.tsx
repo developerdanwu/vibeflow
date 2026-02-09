@@ -1,5 +1,19 @@
 "use client";
 
+import type { PopoverRootProps } from "@base-ui/react";
+import type { Id } from "@convex/_generated/dataModel";
+import { Time } from "@internationalized/date";
+import { formOptions, useStore } from "@tanstack/react-form-start";
+import { addDays, format, parseISO, set, startOfDay, subDays } from "date-fns";
+import { InfoIcon, Trash2 } from "lucide-react";
+import {
+	forwardRef,
+	useEffect,
+	useId,
+	useImperativeHandle,
+	useRef,
+} from "react";
+import { z } from "zod";
 import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
 import { useCreateEventMutation } from "@/components/big-calendar/hooks/use-create-event-mutation";
 import { useDeleteEventMutation } from "@/components/big-calendar/hooks/use-delete-event-mutation";
@@ -25,14 +39,6 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { TimeInput } from "@/components/ui/time-input";
 import { useDisclosure } from "@/hooks/use-disclosure";
-import type { PopoverRootProps } from "@base-ui/react";
-import type { Id } from "@convex/_generated/dataModel";
-import { Time } from "@internationalized/date";
-import { formOptions, useStore } from "@tanstack/react-form-start";
-import { addDays, format, parseISO, set, startOfDay, subDays } from "date-fns";
-import { InfoIcon, Trash2 } from "lucide-react";
-import { forwardRef, useId, useImperativeHandle, useRef } from "react";
-import { z } from "zod";
 
 const colorNameToHex: Record<TEventColor, string> = {
 	blue: "#3B82F6",
@@ -251,6 +257,8 @@ const EventPopoverContent = forwardRef<
 	const { mutateAsync: createEvent } = useCreateEventMutation();
 	const { mutate: deleteEvent } = useDeleteEventMutation();
 	const [_, calendarStore] = useCalendar();
+	const [storeStartTime] = useCalendar((s) => s.context.newEventStartTime);
+	const [storeEndTime] = useCalendar((s) => s.context.newEventEndTime);
 
 	const handleDelete = () => {
 		if (!event?.convexId) return;
@@ -357,6 +365,43 @@ const EventPopoverContent = forwardRef<
 	const isDirty = useStore(form.store, (state) => state.isDirty);
 	const formRef = useRef<HTMLFormElement | null>(null);
 	const runAfterCloseRef = useRef<(() => void) | null>(null);
+
+	// Sync store → form when resize handles change the event times
+	useEffect(() => {
+		if (mode !== "create") {
+			return;
+		}
+		if (!storeStartTime) {
+			return;
+		}
+		const current = form.getFieldValue("startTime") as Time | undefined;
+		if (
+			current &&
+			current.hour === storeStartTime.hour &&
+			current.minute === storeStartTime.minute
+		) {
+			return;
+		}
+		form.setFieldValue("startTime", storeStartTime);
+	}, [storeStartTime, mode, form]);
+
+	useEffect(() => {
+		if (mode !== "create") {
+			return;
+		}
+		if (!storeEndTime) {
+			return;
+		}
+		const current = form.getFieldValue("endTime") as Time | undefined;
+		if (
+			current &&
+			current.hour === storeEndTime.hour &&
+			current.minute === storeEndTime.minute
+		) {
+			return;
+		}
+		form.setFieldValue("endTime", storeEndTime);
+	}, [storeEndTime, mode, form]);
 
 	useImperativeHandle(
 		ref,
@@ -704,7 +749,7 @@ export function EventPopover({
 }: {
 	handle: NonNullable<PopoverRootProps["handle"]>;
 }) {
-	const { isOpen, onClose, onToggle } = useDisclosure();
+	const { isOpen, onOpen, onClose } = useDisclosure();
 	const contentRef = useRef<EventPopoverContentHandle | null>(null);
 	const prevIsOpenRef = useRef(false);
 	const openIdRef = useRef(0);
@@ -721,7 +766,13 @@ export function EventPopover({
 	return (
 		<Popover
 			open={isOpen}
-			onOpenChange={onToggle}
+			onOpenChange={(open) => {
+				if (open) {
+					onOpen();
+				} else {
+					onClose();
+				}
+			}}
 			handle={handle}
 			onOpenChangeComplete={(open) => {
 				if (!open) {

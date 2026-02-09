@@ -35,7 +35,7 @@
 
 ## Tooltip (Base UI)
 
-Base UI's TooltipTrigger does **not** support `asChild`. Use the **`render` prop** instead: it replaces the default trigger element (similar to asChild). Pass a function that receives `props` and returns your custom element (e.g. a `button`), and spread `{...props}` onto it so the trigger behavior is applied.
+Base UI's TooltipTrigger does **not** support `asChild`. Use the **`render` prop** instead: it replaces the default trigger element (similar to asChild). You can pass either a **React element** or a **function** to `render`.
 
 ### Wrong
 ```tsx
@@ -44,7 +44,17 @@ Base UI's TooltipTrigger does **not** support `asChild`. Use the **`render` prop
 </TooltipTrigger>
 ```
 
-### Correct – render prop
+### Correct – render prop (element form, preferred)
+```tsx
+<Tooltip>
+  <TooltipTrigger render={<button type="button" className="..." />}>
+    Hover me
+  </TooltipTrigger>
+  <TooltipContent side="top">Tooltip text</TooltipContent>
+</Tooltip>
+```
+
+### Correct – render prop (function form)
 ```tsx
 <Tooltip>
   <TooltipTrigger
@@ -58,7 +68,51 @@ Base UI's TooltipTrigger does **not** support `asChild`. Use the **`render` prop
 </Tooltip>
 ```
 
-The render prop receives props (e.g. ref, event handlers) that must be spread onto your element so the tooltip show/hide behavior works.
+The function form receives props (e.g. ref, event handlers) that must be spread onto your element. Prefer the element form unless you need access to the raw props.
+
+## Composing Multiple Triggers (Tooltip + Popover)
+
+When a single element needs to act as both a tooltip trigger and a popover trigger, **chain `render` props with React elements** instead of manually merging props. Base UI handles all prop merging, ref forwarding, and event handler composition internally.
+
+### ❌ Wrong – manual prop merging with render functions
+```tsx
+<PopoverTrigger
+  render={(popoverProps) => (
+    <Tooltip>
+      <TooltipTrigger
+        render={(tooltipProps) => {
+          // Manual merge: fragile, loses refs, type conflicts
+          const merged = mergeProps(tooltipProps, popoverProps);
+          return <button {...merged}>Click me</button>;
+        }}
+      />
+      <TooltipContent>Info</TooltipContent>
+    </Tooltip>
+  )}
+/>
+```
+
+### ✅ Correct – chained render elements
+```tsx
+<Tooltip>
+  <TooltipTrigger
+    render={
+      <PopoverTrigger
+        handle={handle}
+        payload={payload}
+        render={<button className="..." onClick={(e) => e.stopPropagation()} />}
+      />
+    }
+  >
+    Button content here
+  </TooltipTrigger>
+  <TooltipContent side="top">Tooltip text</TooltipContent>
+</Tooltip>
+```
+
+The composition chain is: `TooltipTrigger → PopoverTrigger → <button>`. Base UI composes each layer's props (refs, event handlers, ARIA attributes) onto the final DOM element automatically. Children of `TooltipTrigger` become the content of the rendered `<button>`.
+
+This pattern works for any combination of Base UI triggers (Tooltip + Popover, Tooltip + Dialog, etc.) and with custom elements like `motion.button` from Motion.
 
 ## Dialog
 
@@ -272,8 +326,9 @@ dialogStore.send({ type: "closeDialog" });
 | Component | Base UI ✅ | Radix UI ❌ |
 |-----------|-----------|-------------|
 | Trigger composition | Direct wrap or `render` prop | `asChild` prop |
+| Multi-trigger composition | Chained `render` elements | Nested `asChild` |
 | Close composition | Direct wrap | `asChild` prop |
 
 ---
 
-*Updated: Feb 1, 2026*
+*Updated: Feb 8, 2026*

@@ -37,10 +37,23 @@ export default defineSchema({
 		startTime: v.optional(v.string()),
 		endTime: v.optional(v.string()),
 		timeZone: v.optional(v.string()),
+		externalProvider: v.optional(
+			v.union(v.literal("google"), v.literal("microsoft")),
+		),
+		externalCalendarId: v.optional(v.string()),
+		externalEventId: v.optional(v.string()),
+		recurringEventId: v.optional(v.string()),
+		recurrence: v.optional(v.array(v.string())),
 	})
 		.index("by_user", ["userId"])
 		.index("by_user_and_date", ["userId", "startTimestamp"])
-		.index("by_calendar", ["calendarId"]),
+		.index("by_calendar", ["calendarId"])
+		.index("by_external_event", [
+			"externalProvider",
+			"externalCalendarId",
+			"externalEventId",
+		])
+		.index("by_recurring_event", ["recurringEventId"]),
 
 	calendars: defineTable({
 		name: v.string(),
@@ -50,6 +63,36 @@ export default defineSchema({
 	})
 		.index("by_user", ["userId"])
 		.index("by_user_default", ["userId", "isDefault"]),
+
+	calendarConnections: defineTable({
+		userId: v.id("users"),
+		provider: v.union(v.literal("google"), v.literal("microsoft")),
+		refreshToken: v.string(),
+		accessToken: v.optional(v.string()),
+		accessTokenExpiresAt: v.optional(v.number()),
+		createdAt: v.number(),
+		updatedAt: v.number(),
+	}).index("by_user_and_provider", ["userId", "provider"]),
+
+	externalCalendars: defineTable({
+		connectionId: v.id("calendarConnections"),
+		provider: v.union(v.literal("google"), v.literal("microsoft")),
+		externalCalendarId: v.string(),
+		calendarId: v.optional(v.id("calendars")),
+		name: v.string(),
+		color: v.string(),
+		syncToken: v.optional(v.string()),
+		channelId: v.optional(v.string()),
+		resourceId: v.optional(v.string()),
+		expiration: v.optional(v.number()),
+		subscriptionId: v.optional(v.string()),
+	})
+		.index("by_connection", ["connectionId"])
+		.index("by_connection_and_external_id", [
+			"connectionId",
+			"externalCalendarId",
+		])
+		.index("by_channel", ["channelId"]),
 
 	userPreferences: defineTable({
 		userId: v.id("users"),
