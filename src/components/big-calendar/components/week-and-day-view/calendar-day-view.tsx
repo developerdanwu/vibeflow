@@ -1,3 +1,14 @@
+import { mergeProps, Popover as PopoverBase } from "@base-ui/react";
+import { useDndContext } from "@dnd-kit/core";
+import { Time } from "@internationalized/date";
+import type { VariantProps } from "class-variance-authority";
+import {
+	areIntervalsOverlapping,
+	format,
+	isToday,
+	parseISO,
+	startOfDay,
+} from "date-fns";
 import {
 	ZCalendarDragData,
 	ZTimeBlockOverData,
@@ -27,22 +38,11 @@ import { PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Route } from "@/routes/_authenticated/calendar";
-import { mergeProps, Popover as PopoverBase } from "@base-ui/react";
-import { useDndContext } from "@dnd-kit/core";
-import { Time } from "@internationalized/date";
-import type { VariantProps } from "class-variance-authority";
-import {
-	areIntervalsOverlapping,
-	format,
-	isToday,
-	parseISO,
-	startOfDay,
-} from "date-fns";
 
 const MIN_DURATION_MS = 15 * 60 * 1000;
 
 import { motion } from "motion/react";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { DayViewMultiDayEventsRow } from "./day-view-multi-day-events-row";
 
 const NEW_EVENT_TRIGGER_ID = "new-event-trigger";
@@ -160,6 +160,15 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 	const showNewEventBlock =
 		!!(dragToCreate.dragPreview || (newEventStartTime && newEventEndTime)) ||
 		isNewEventTriggerActive;
+
+	// Collapse the motion.div to 0 when the block is dismissed so it doesn't
+	// sit invisibly at the old position and interfere with events underneath.
+	useEffect(() => {
+		if (!showNewEventBlock) {
+			dragToCreate.topValue.set(0);
+			dragToCreate.heightValue.set(0);
+		}
+	}, [showNewEventBlock, dragToCreate.topValue, dragToCreate.heightValue]);
 
 	// Time range display text for the trigger block
 	const displayTimeRange = useMemo(() => {
@@ -309,7 +318,10 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 								{/* Single new-event trigger positioned at current slot */}
 
 								<motion.div
-									className="pointer-events-none absolute inset-x-0 z-50"
+									className={cn(
+										"pointer-events-none absolute inset-x-0",
+										showNewEventBlock ? "z-50" : "invisible",
+									)}
 									style={{
 										top: dragToCreate.topValue,
 										height: dragToCreate.heightValue,
