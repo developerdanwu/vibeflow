@@ -1,5 +1,7 @@
 import { v } from "convex/values";
 import { authMutation, authQuery } from "./helpers";
+import { internalQuery } from "./_generated/server";
+import { internal } from "./_generated/api";
 
 export const createEvent = authMutation({
 	args: {
@@ -66,9 +68,10 @@ export const updateEvent = authMutation({
 		startTime: v.optional(v.string()),
 		endTime: v.optional(v.string()),
 		timeZone: v.optional(v.string()),
+		recurringEditMode: v.optional(v.union(v.literal("this"), v.literal("all"))),
 	},
 	handler: async (ctx, args) => {
-		const { id, ...updates } = args;
+		const { id, recurringEditMode, ...updates } = args;
 		const event = await ctx.db.get(id);
 
 		if (!event) {
@@ -76,6 +79,16 @@ export const updateEvent = authMutation({
 		}
 		if (event.userId !== ctx.user._id) {
 			throw new Error("Not authorized to update this event");
+		}
+
+		// Check if event is locked
+		if (
+			event.externalProvider === "google" &&
+			event.isEditable === false
+		) {
+			throw new Error(
+				"This event cannot be edited. It was created by someone else.",
+			);
 		}
 
 		const allDay = updates.allDay ?? event.allDay;
@@ -138,6 +151,27 @@ export const updateEvent = authMutation({
 			(cleanUpdates as Record<string, unknown>).startTime = undefined;
 			(cleanUpdates as Record<string, unknown>).endTime = undefined;
 			(cleanUpdates as Record<string, unknown>).timeZone = undefined;
+		}
+
+		// After successful update, sync to Google Calendar if applicable
+		if (
+			event.externalProvider === "google" &&
+			event.isEditable === true &&
+			event.externalEventId &&
+			event.externalCalendarId
+		) {
+			// Schedule sync-back action
+			// For recurring events editing single instance, we need the original startTimestamp
+			const originalStartTimestamp =
+				event.recurringEventId && recurringEditMode === "this"
+					? event.startTimestamp
+					: undefined;
+			await ctx.scheduler.runAfter(0, internal.googleCalendar.syncEventToGoogle, {
+				eventId: id,
+				updates: cleanUpdates,
+				recurringEditMode,
+				originalStartTimestamp,
+			});
 		}
 
 		return await ctx.db.patch(id, cleanUpdates);
@@ -208,5 +242,13 @@ export const getEventById = authQuery({
 		}
 
 		return event;
+	},
+});
+
+/** Internal: get event by id for sync operations. */
+export const getEventByIdInternal = internalQuery({
+	args: { id: v.id("events") },
+	handler: async (ctx, args) => {
+		return await ctx.db.get(args.id);
 	},
 });

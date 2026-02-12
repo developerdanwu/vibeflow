@@ -77,3 +77,6 @@ The `big-calendar/` module is the main feature. Key files:
 - `dnd/` - Drag and drop (@dnd-kit/core)
 - `dialogs/` - Add/edit/details event dialogs
 - `header/` - Navigation and view controls
+
+### Related Documentation
+- **Drag and Drop:** See [src/docs/dnd-handling.md](src/docs/dnd-handling.md) for locked event handling and drag prevention patterns

@@ -92,12 +92,32 @@ type UpsertEventPayload = {
 	location?: string;
 	color?: string;
 	recurringEventId?: string;
+	creatorEmail?: string;
+	organizerEmail?: string;
+	guestsCanModify?: boolean;
+	isEditable?: boolean;
 };
+
+function computeIsEditable(
+	userEmail: string,
+	creatorEmail?: string,
+	organizerEmail?: string,
+	guestsCanModify?: boolean,
+): boolean {
+	if (creatorEmail === userEmail || organizerEmail === userEmail) {
+		return true;
+	}
+	if (guestsCanModify === true) {
+		return true;
+	}
+	return false;
+}
 
 function googleEventToPayload(
 	userId: Id<"users">,
 	calendarId: Id<"calendars"> | undefined,
-	item: GoogleCalendarEvent
+	item: GoogleCalendarEvent,
+	userEmail: string,
 ): UpsertEventPayload & { externalEventId: string } {
 	const start = item.start?.dateTime
 		? new Date(item.start.dateTime).getTime()
@@ -126,6 +146,15 @@ function googleEventToPayload(
 		startTime = s.toISOString().slice(11, 16);
 		endTime = e.toISOString().slice(11, 16);
 	}
+	const creatorEmail = item.creator?.email;
+	const organizerEmail = item.organizer?.email;
+	const guestsCanModify = item.guestsCanModify;
+	const isEditable = computeIsEditable(
+		userEmail,
+		creatorEmail,
+		organizerEmail,
+		guestsCanModify,
+	);
 	return {
 		userId,
 		calendarId,
@@ -143,6 +172,10 @@ function googleEventToPayload(
 		location: item.location,
 		color: undefined,
 		recurringEventId: item.recurringEventId ?? undefined,
+		creatorEmail,
+		organizerEmail,
+		guestsCanModify,
+		isEditable,
 	};
 }
 
@@ -157,6 +190,9 @@ type GoogleCalendarEvent = {
 	recurringEventId?: string;
 	recurrence?: string[];
 	originalStartTime?: { date?: string; dateTime?: string; timeZone?: string };
+	creator?: { email?: string };
+	organizer?: { email?: string };
+	guestsCanModify?: boolean;
 };
 
 /** Exchange OAuth code for tokens, store connection, fetch and store calendar list. */
@@ -373,6 +409,10 @@ export const syncCalendar = internalAction({
 		const userId = connection.userId;
 		const calendarId = externalCalendar.calendarId;
 
+		// Get user email for computing isEditable
+		const user = await ctx.runQuery(internal.users.getUserById, { userId });
+		const userEmail = user?.email ?? "";
+
 		for (const item of items) {
 			if (item.status === "cancelled") {
 				if (item.id) {
@@ -391,7 +431,8 @@ export const syncCalendar = internalAction({
 			const payload = googleEventToPayload(
 				userId,
 				calendarId ?? undefined,
-				item
+				item,
+				userEmail,
 			);
 			await ctx.runMutation(internal.calendarSync.upsertEventFromExternal, {
 				provider: "google",
@@ -412,6 +453,10 @@ export const syncCalendar = internalAction({
 				location: payload.location,
 				color: payload.color,
 				recurringEventId: payload.recurringEventId,
+				creatorEmail: payload.creatorEmail,
+				organizerEmail: payload.organizerEmail,
+				guestsCanModify: payload.guestsCanModify,
+				isEditable: payload.isEditable,
 			});
 		}
 
@@ -571,6 +616,152 @@ export const runFallbackSync = internalAction({
 					e
 				);
 			}
+		}
+	},
+});
+
+/** Internal: sync event updates back to Google Calendar API. */
+export const syncEventToGoogle = internalAction({
+	args: {
+		eventId: v.id("events"),
+		updates: v.object({
+			title: v.optional(v.string()),
+			description: v.optional(v.string()),
+			startTimestamp: v.optional(v.number()),
+			endTimestamp: v.optional(v.number()),
+			location: v.optional(v.string()),
+			allDay: v.optional(v.boolean()),
+			startDateStr: v.optional(v.string()),
+			endDateStr: v.optional(v.string()),
+			startTime: v.optional(v.string()),
+			endTime: v.optional(v.string()),
+			timeZone: v.optional(v.string()),
+		}),
+		recurringEditMode: v.optional(v.union(v.literal("this"), v.literal("all"))),
+		originalStartTimestamp: v.optional(v.number()),
+	},
+	handler: async (ctx, args) => {
+		// 1. Get event data
+		const event = await ctx.runQuery(internal.events.getEventByIdInternal, {
+			id: args.eventId,
+		});
+		if (
+			!event ||
+			event.externalProvider !== "google" ||
+			!event.externalEventId ||
+			!event.externalCalendarId
+		) {
+			return; // Not a Google Calendar event or missing required fields
+		}
+
+		// 2. Get connection via external calendar
+		const externalCalendar = await ctx.runQuery(
+			internal.calendarSync.getExternalCalendarByExternalId,
+			{
+				provider: "google",
+				externalCalendarId: event.externalCalendarId,
+			},
+		);
+		if (!externalCalendar) {
+			throw new Error("External calendar not found");
+		}
+
+		const connectionData = await ctx.runQuery(
+			internal.calendarSync.getConnectionAndExternalCalendar,
+			{
+				connectionId: externalCalendar.connectionId,
+				externalCalendarId: event.externalCalendarId,
+			},
+		);
+		if (!connectionData) {
+			throw new Error("Connection not found");
+		}
+
+		const { connection } = connectionData;
+
+		// 3. Refresh token if needed
+		let accessToken = connection.accessToken;
+		let accessTokenExpiresAt = connection.accessTokenExpiresAt;
+		const now = Date.now();
+		if (
+			!accessToken ||
+			!accessTokenExpiresAt ||
+			accessTokenExpiresAt < now + 60 * 1000
+		) {
+			const refreshed = await refreshAccessToken(connection.refreshToken);
+			accessToken = refreshed.access_token;
+			accessTokenExpiresAt = now + refreshed.expires_in * 1000;
+			await ctx.runMutation(internal.calendarSync.updateConnectionTokens, {
+				connectionId: externalCalendar.connectionId,
+				accessToken,
+				accessTokenExpiresAt,
+			});
+		}
+
+		// 4. Build Google Calendar API payload
+		const finalStartTimestamp =
+			args.updates.startTimestamp ?? event.startTimestamp;
+		const finalEndTimestamp = args.updates.endTimestamp ?? event.endTimestamp;
+		const finalAllDay = args.updates.allDay ?? event.allDay;
+
+		const googlePayload: Record<string, unknown> = {
+			summary: args.updates.title ?? event.title,
+			description: args.updates.description ?? event.description ?? "",
+			location: args.updates.location ?? event.location ?? "",
+		};
+
+		// Convert timestamps to Google dateTime/date format
+		if (finalAllDay) {
+			const startDateStr =
+				args.updates.startDateStr ??
+				event.startDateStr ??
+				new Date(finalStartTimestamp).toISOString().slice(0, 10);
+			const endDateStr =
+				args.updates.endDateStr ??
+				event.endDateStr ??
+				new Date(finalEndTimestamp).toISOString().slice(0, 10);
+			googlePayload.start = { date: startDateStr };
+			googlePayload.end = { date: endDateStr };
+		} else {
+			const timeZone =
+				args.updates.timeZone ?? event.timeZone ?? "UTC";
+			const startDateTime = new Date(finalStartTimestamp).toISOString();
+			const endDateTime = new Date(finalEndTimestamp).toISOString();
+			googlePayload.start = {
+				dateTime: startDateTime,
+				timeZone,
+			};
+			googlePayload.end = {
+				dateTime: endDateTime,
+				timeZone,
+			};
+		}
+
+		// 5. Determine API endpoint
+		let url = `${GOOGLE_EVENTS_URL}/${encodeURIComponent(event.externalCalendarId)}/events/${encodeURIComponent(event.externalEventId)}`;
+
+		// 6. For recurring events, add originalStartTime if editing single instance
+		if (event.recurringEventId && args.recurringEditMode === "this") {
+			// Use the original startTimestamp (before update) if provided, otherwise use current
+			const originalStartTime = args.originalStartTimestamp
+				? new Date(args.originalStartTimestamp).toISOString()
+				: new Date(event.startTimestamp).toISOString();
+			url += `?originalStartTime=${encodeURIComponent(originalStartTime)}`;
+		}
+
+		// 7. PATCH to Google Calendar API
+		const res = await fetch(url, {
+			method: "PATCH",
+			headers: {
+				Authorization: `Bearer ${accessToken}`,
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(googlePayload),
+		});
+
+		if (!res.ok) {
+			const errorText = await res.text();
+			throw new Error(`Google Calendar sync failed: ${errorText}`);
 		}
 	},
 });

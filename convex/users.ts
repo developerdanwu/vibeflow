@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import type { MutationCtx } from "./_generated/server";
-import { mutation, query } from "./_generated/server";
+import { internalQuery, mutation, query } from "./_generated/server";
 
 // Helper for mutations (internal use)
 export async function getUserIdFromAuth(ctx: MutationCtx) {
@@ -85,6 +85,14 @@ export const getUserByAuthId = query({
 			.query("users")
 			.withIndex("authId", (q) => q.eq("authId", args.authId))
 			.unique();
+	},
+});
+
+/** Internal: get user by id for sync operations. */
+export const getUserById = internalQuery({
+	args: { userId: v.id("users") },
+	handler: async (ctx, args) => {
+		return await ctx.db.get(args.userId);
 	},
 });
 

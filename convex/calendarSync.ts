@@ -98,6 +98,23 @@ export const addExternalCalendar = internalMutation({
 	},
 });
 
+/** Internal: get external calendar by provider and externalCalendarId. */
+export const getExternalCalendarByExternalId = internalQuery({
+	args: {
+		provider: providerValidator,
+		externalCalendarId: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const all = await ctx.db.query("externalCalendars").collect();
+		const ext = all.find(
+			(e) =>
+				e.provider === args.provider &&
+				e.externalCalendarId === args.externalCalendarId,
+		);
+		return ext ?? null;
+	},
+});
+
 /** Internal: get connection and external calendar for sync (sensitive). */
 export const getConnectionAndExternalCalendar = internalQuery({
 	args: {
@@ -151,6 +168,10 @@ const upsertEventPayloadValidator = {
 	color: v.optional(v.string()),
 	recurringEventId: v.optional(v.string()),
 	recurrence: v.optional(v.array(v.string())),
+	creatorEmail: v.optional(v.string()),
+	organizerEmail: v.optional(v.string()),
+	guestsCanModify: v.optional(v.boolean()),
+	isEditable: v.optional(v.boolean()),
 };
 
 /** Internal: upsert event from external provider by (provider, externalCalendarId, externalEventId). */

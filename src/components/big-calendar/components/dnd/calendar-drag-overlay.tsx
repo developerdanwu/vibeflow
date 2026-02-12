@@ -1,7 +1,6 @@
 "use client";
 
 import { ZCalendarDragData } from "@/components/big-calendar/components/dnd/dnd-schemas";
-import { isEventResizeData } from "@/components/big-calendar/components/dnd/draggable-event";
 import { eventBadgeVariants } from "@/components/big-calendar/components/month-view/month-event-badge";
 import { calendarWeekEventCardVariants } from "@/components/big-calendar/components/week-and-day-view/event-block";
 import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
@@ -178,7 +177,14 @@ export function CalendarDragOverlayContent() {
 
 	const overlay = useMemo(() => {
 		if (!active || !data) return null;
-		if (isEventResizeData(data)) {
+		// Don't show overlay for locked events - this prevents visual movement
+		if (data.type === "event" && data.event.isEditable === false) {
+			return null;
+		}
+		if (data.type === "event-resize" && data.event.isEditable === false) {
+			return null;
+		}
+		if (data.type === "event-resize") {
 			return <ResizeLine />;
 		}
 		if (data.type === "event" && data.event) {

@@ -15,7 +15,8 @@ import {
 	resizeEventToSlot,
 } from "@/components/big-calendar/components/dnd/droppable-time-block";
 import { useUpdateEventMutation } from "@/components/big-calendar/hooks/use-update-event-mutation";
-import type { DragEndEvent, Modifier } from "@dnd-kit/core";
+import { dialogStore } from "@/lib/dialog-store";
+import type { DragEndEvent, DragStartEvent, Modifier } from "@dnd-kit/core";
 import {
 	DndContext,
 	DragOverlay,
@@ -24,6 +25,7 @@ import {
 	useSensors,
 } from "@dnd-kit/core";
 import { parseISO } from "date-fns";
+import { toast } from "sonner";
 
 const DND_CONTEXT_ID_MONTH = "calendar-dnd-month";
 const DND_CONTEXT_ID_DAY_WEEK = "calendar-dnd-day-week";
@@ -45,18 +47,53 @@ export function MonthDndProvider({ children }: { children: React.ReactNode }) {
 		}),
 	);
 
+	const onDragStart = (event: DragStartEvent) => {
+		const activeData = ZCalendarDragData.safeParse(
+			event.active.data.current,
+		).data;
+		const isLocked = activeData?.event.isEditable === false;
+
+		if (isLocked) {
+			toast.error(`You cannot move this event!`, {
+				duration: 3000,
+			});
+		}
+	};
+
 	const onDragEnd = (event: DragEndEvent) => {
 		const activeResult = ZCalendarDragData.safeParse(event.active.data.current);
 		const overResult = ZDayCellOverData.safeParse(event.over?.data.current);
 		const activeData = activeResult.success ? activeResult.data : undefined;
 		const overData = overResult.success ? overResult.data : undefined;
+
 		if (!activeData || !activeData.event?.convexId) {
+			return;
+		}
+		// Don't proceed if event is locked
+		if (activeData.event.isEditable === false) {
 			return;
 		}
 		if (!event.over || !overData) {
 			return;
 		}
 		if (activeData.type === "event") {
+			// Check if recurring event needs dialog
+			if (activeData.event.recurringEventId) {
+				dialogStore.send({
+					type: "openRecurringEventDialog",
+					onConfirm: (mode) => {
+						moveEventToDay(
+							activeData.event,
+							overData.cell.date,
+							mutateAsync,
+							mode,
+						);
+					},
+					onCancel: () => {},
+				});
+				return;
+			}
+			// Not recurring, proceed directly
 			moveEventToDay(activeData.event, overData.cell.date, mutateAsync);
 		}
 	};
@@ -65,6 +102,7 @@ export function MonthDndProvider({ children }: { children: React.ReactNode }) {
 		<DndContext
 			id={DND_CONTEXT_ID_MONTH}
 			sensors={sensors}
+			onDragStart={onDragStart}
 			onDragEnd={onDragEnd}
 		>
 			{children}
@@ -95,11 +133,27 @@ export function DayWeekDndProvider({
 	);
 	const modifiers = view === "day" ? [restrictToVerticalAxis] : undefined;
 
+	const onDragStart = (event: DragStartEvent) => {
+		const activeData = ZCalendarDragData.safeParse(
+			event.active.data.current,
+		).data;
+
+		if (activeData?.event.isEditable === false) {
+			toast.error(`You cannot move this event!`, {
+				duration: 3000,
+			});
+		}
+	};
+
 	const onDragEnd = (event: DragEndEvent) => {
 		const activeResult = ZCalendarDragData.safeParse(event.active.data.current);
 		const activeData = activeResult.success ? activeResult.data : undefined;
 
 		if (!activeData || !activeData.event.convexId) {
+			return;
+		}
+		// Don't proceed if event is locked
+		if (activeData.event.isEditable === false) {
 			return;
 		}
 		if (!event.over) {
@@ -110,6 +164,23 @@ export function DayWeekDndProvider({
 			event.over.data.current,
 		);
 		if (dayCellOverResult.success && activeData.type === "event") {
+			// Check if recurring event needs dialog
+			if (activeData.event.recurringEventId) {
+				dialogStore.send({
+					type: "openRecurringEventDialog",
+					onConfirm: (mode) => {
+						moveEventToAllDay(
+							activeData.event,
+							dayCellOverResult.data.cell.date,
+							mutateAsync,
+							mode,
+						);
+					},
+					onCancel: () => {},
+				});
+				return;
+			}
+			// Not recurring, proceed directly
 			moveEventToAllDay(
 				activeData.event,
 				dayCellOverResult.data.cell.date,
@@ -126,6 +197,24 @@ export function DayWeekDndProvider({
 
 		const slotStartTimestamp = overData.slotStartTimestamp;
 		if (activeData.type === "event-resize") {
+			// Check if recurring event needs dialog
+			if (activeData.event.recurringEventId) {
+				dialogStore.send({
+					type: "openRecurringEventDialog",
+					onConfirm: (mode) => {
+						resizeEventToSlot(
+							activeData.event,
+							activeData.edge,
+							slotStartTimestamp,
+							mutateAsync,
+							mode,
+						);
+					},
+					onCancel: () => {},
+				});
+				return;
+			}
+			// Not recurring, proceed directly
 			resizeEventToSlot(
 				activeData.event,
 				activeData.edge,
@@ -137,6 +226,23 @@ export function DayWeekDndProvider({
 		// Skip API when dropped on same slot (no change)
 		const currentStart = parseISO(activeData.event.startDate).getTime();
 		if (currentStart === slotStartTimestamp) return;
+		// Check if recurring event needs dialog
+		if (activeData.event.recurringEventId) {
+			dialogStore.send({
+				type: "openRecurringEventDialog",
+				onConfirm: (mode) => {
+					moveEventToSlot(
+						activeData.event,
+						slotStartTimestamp,
+						mutateAsync,
+						mode,
+					);
+				},
+				onCancel: () => {},
+			});
+			return;
+		}
+		// Not recurring, proceed directly
 		moveEventToSlot(activeData.event, slotStartTimestamp, mutateAsync);
 	};
 
@@ -145,6 +251,7 @@ export function DayWeekDndProvider({
 			id={DND_CONTEXT_ID_DAY_WEEK}
 			sensors={sensors}
 			modifiers={modifiers}
+			onDragStart={onDragStart}
 			onDragEnd={onDragEnd}
 		>
 			{children}

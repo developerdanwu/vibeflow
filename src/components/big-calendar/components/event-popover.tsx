@@ -1,19 +1,5 @@
 "use client";
 
-import type { PopoverRootProps } from "@base-ui/react";
-import type { Id } from "@convex/_generated/dataModel";
-import { Time } from "@internationalized/date";
-import { formOptions, useStore } from "@tanstack/react-form-start";
-import { addDays, format, parseISO, set, startOfDay, subDays } from "date-fns";
-import { InfoIcon, Trash2 } from "lucide-react";
-import {
-	forwardRef,
-	useEffect,
-	useId,
-	useImperativeHandle,
-	useRef,
-} from "react";
-import { z } from "zod";
 import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
 import { useCreateEventMutation } from "@/components/big-calendar/hooks/use-create-event-mutation";
 import { useDeleteEventMutation } from "@/components/big-calendar/hooks/use-delete-event-mutation";
@@ -25,6 +11,15 @@ import {
 import type { TEventColor } from "@/components/big-calendar/types";
 import { Button } from "@/components/ui/button";
 import ColorPickerCompact from "@/components/ui/color-picker-compact";
+import {
+	Combobox,
+	ComboboxContent,
+	ComboboxEmpty,
+	ComboboxInput,
+	ComboboxItem,
+	ComboboxList,
+	ComboboxTrigger,
+} from "@/components/ui/combobox";
 import { DayPicker } from "@/components/ui/day-picker";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { useAppForm } from "@/components/ui/form";
@@ -39,6 +34,24 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { TimeInput } from "@/components/ui/time-input";
 import { useDisclosure } from "@/hooks/use-disclosure";
+import { dialogStore } from "@/lib/dialog-store";
+import type { PopoverRootProps } from "@base-ui/react";
+import { convexQuery } from "@convex-dev/react-query";
+import { api } from "@convex/_generated/api";
+import type { Id } from "@convex/_generated/dataModel";
+import { Time } from "@internationalized/date";
+import { formOptions, useStore } from "@tanstack/react-form-start";
+import { useQuery } from "@tanstack/react-query";
+import { addDays, format, parseISO, set, startOfDay, subDays } from "date-fns";
+import { CalendarIcon, InfoIcon, Trash2 } from "lucide-react";
+import {
+	forwardRef,
+	useEffect,
+	useId,
+	useImperativeHandle,
+	useRef,
+} from "react";
+import { z } from "zod";
 
 const colorNameToHex: Record<TEventColor, string> = {
 	blue: "#3B82F6",
@@ -123,6 +136,7 @@ export const eventFormSchema = z
 			.string()
 			.regex(/^#[0-9A-Fa-f]{6}$/, "Color must be a valid hex color")
 			.optional(),
+		calendarId: z.custom<Id<"calendars">>().optional(),
 	})
 	.superRefine((data, ctx) => {
 		if (data.allDay) {
@@ -170,6 +184,7 @@ type GetCreateDefaultValuesInput = {
 	description?: string;
 	allDay?: boolean;
 	color?: string;
+	calendarId?: Id<"calendars">;
 };
 
 function getCreateDefaultValues(
@@ -184,6 +199,7 @@ function getCreateDefaultValues(
 		description = "",
 		allDay = true,
 		color = "#3B82F6",
+		calendarId,
 	} = input;
 	return {
 		title,
@@ -194,6 +210,7 @@ function getCreateDefaultValues(
 		startTime,
 		endTime,
 		color,
+		calendarId,
 	};
 }
 
@@ -260,106 +277,151 @@ const EventPopoverContent = forwardRef<
 	const [storeStartTime] = useCalendar((s) => s.context.newEventStartTime);
 	const [storeEndTime] = useCalendar((s) => s.context.newEventEndTime);
 
+	// Fetch all user calendars (local + Google)
+	const { data: calendars } = useQuery(
+		convexQuery(api.calendars.getAllUserCalendars),
+	);
+
 	const handleDelete = () => {
 		if (!event?.convexId) return;
+		// Check if recurring event needs dialog
+		if (event.recurringEventId) {
+			dialogStore.send({
+				type: "openRecurringEventDialog",
+				onConfirm: () => {
+					// Note: recurringEditMode not needed for delete yet, but can be added later
+					deleteEvent({ id: event.convexId as Id<"events"> });
+					onClose();
+				},
+				onCancel: () => {},
+			});
+			return;
+		}
+		// Not recurring, delete directly
 		runAfterCloseRef.current = () => {
 			deleteEvent({ id: event.convexId as Id<"events"> });
 		};
 		onClose();
 	};
 
+	const performSubmit = async (
+		values: TEventFormData,
+		recurringEditMode?: "this" | "all",
+	) => {
+		try {
+			const colorName = values.color ? hexToColorName(values.color) : "blue";
+
+			if (mode === "edit" && event?.convexId) {
+				if (values.allDay) {
+					await updateEvent({
+						id: event.convexId as Id<"events">,
+						title: values.title,
+						description: values.description || "",
+						allDay: true,
+						startDateStr: format(values.startDate, "yyyy-MM-dd"),
+						endDateStr: format(addDays(values.endDate, 1), "yyyy-MM-dd"),
+						color: colorName,
+						calendarId: values.calendarId,
+						recurringEditMode,
+					});
+				} else {
+					const startTimeVal = values.startTime ?? new Time(9, 0);
+					const endTimeVal = values.endTime ?? new Time(10, 0);
+
+					const startDateTime = set(startOfDay(values.startDate), {
+						hours: startTimeVal.hour,
+						minutes: startTimeVal.minute,
+						seconds: 0,
+						milliseconds: 0,
+					});
+					const endDateTime = set(startOfDay(values.endDate), {
+						hours: endTimeVal.hour,
+						minutes: endTimeVal.minute,
+						seconds: 0,
+						milliseconds: 0,
+					});
+
+					await updateEvent({
+						id: event.convexId as Id<"events">,
+						title: values.title,
+						description: values.description || "",
+						allDay: false,
+						startTimestamp: startDateTime.getTime(),
+						endTimestamp: endDateTime.getTime(),
+						color: colorName,
+						calendarId: values.calendarId,
+						recurringEditMode,
+					});
+				}
+			} else {
+				if (values.allDay) {
+					await createEvent({
+						title: values.title,
+						description: values.description || "",
+						allDay: true,
+						startDateStr: format(values.startDate, "yyyy-MM-dd"),
+						endDateStr: format(addDays(values.endDate, 1), "yyyy-MM-dd"),
+						color: colorName,
+						calendarId: values.calendarId,
+					});
+				} else {
+					const startTimeVal = values.startTime ?? new Time(9, 0);
+					const endTimeVal = values.endTime ?? new Time(10, 0);
+
+					const startDateTime = set(startOfDay(values.startDate), {
+						hours: startTimeVal.hour,
+						minutes: startTimeVal.minute,
+						seconds: 0,
+						milliseconds: 0,
+					});
+					const endDateTime = set(startOfDay(values.endDate), {
+						hours: endTimeVal.hour,
+						minutes: endTimeVal.minute,
+						seconds: 0,
+						milliseconds: 0,
+					});
+
+					await createEvent({
+						title: values.title,
+						description: values.description || "",
+						allDay: false,
+						startTimestamp: startDateTime.getTime(),
+						endTimestamp: endDateTime.getTime(),
+						color: colorName,
+						calendarId: values.calendarId,
+					});
+				}
+			}
+
+			form.reset();
+			calendarStore.trigger.resetNewEvent();
+		} catch (error) {
+			console.error(
+				`Failed to ${mode === "edit" ? "update" : "create"} event:`,
+				error,
+			);
+		}
+	};
+
 	const form = useAppForm({
 		...eventFormOptions,
 		defaultValues: initialValues,
 		onSubmit: async ({ value }) => {
-			try {
-				const values = value as TEventFormData;
-				const colorName = values.color ? hexToColorName(values.color) : "blue";
-
-				if (mode === "edit" && event?.convexId) {
-					if (values.allDay) {
-						await updateEvent({
-							id: event.convexId as Id<"events">,
-							title: values.title,
-							description: values.description || "",
-							allDay: true,
-							startDateStr: format(values.startDate, "yyyy-MM-dd"),
-							endDateStr: format(addDays(values.endDate, 1), "yyyy-MM-dd"),
-							color: colorName,
-						});
-					} else {
-						const startTimeVal = values.startTime ?? new Time(9, 0);
-						const endTimeVal = values.endTime ?? new Time(10, 0);
-
-						const startDateTime = set(startOfDay(values.startDate), {
-							hours: startTimeVal.hour,
-							minutes: startTimeVal.minute,
-							seconds: 0,
-							milliseconds: 0,
-						});
-						const endDateTime = set(startOfDay(values.endDate), {
-							hours: endTimeVal.hour,
-							minutes: endTimeVal.minute,
-							seconds: 0,
-							milliseconds: 0,
-						});
-
-						await updateEvent({
-							id: event.convexId as Id<"events">,
-							title: values.title,
-							description: values.description || "",
-							allDay: false,
-							startTimestamp: startDateTime.getTime(),
-							endTimestamp: endDateTime.getTime(),
-							color: colorName,
-						});
-					}
-				} else {
-					if (values.allDay) {
-						await createEvent({
-							title: values.title,
-							description: values.description || "",
-							allDay: true,
-							startDateStr: format(values.startDate, "yyyy-MM-dd"),
-							endDateStr: format(addDays(values.endDate, 1), "yyyy-MM-dd"),
-							color: colorName,
-						});
-					} else {
-						const startTimeVal = values.startTime ?? new Time(9, 0);
-						const endTimeVal = values.endTime ?? new Time(10, 0);
-
-						const startDateTime = set(startOfDay(values.startDate), {
-							hours: startTimeVal.hour,
-							minutes: startTimeVal.minute,
-							seconds: 0,
-							milliseconds: 0,
-						});
-						const endDateTime = set(startOfDay(values.endDate), {
-							hours: endTimeVal.hour,
-							minutes: endTimeVal.minute,
-							seconds: 0,
-							milliseconds: 0,
-						});
-
-						await createEvent({
-							title: values.title,
-							description: values.description || "",
-							allDay: false,
-							startTimestamp: startDateTime.getTime(),
-							endTimestamp: endDateTime.getTime(),
-							color: colorName,
-						});
-					}
-				}
-
-				form.reset();
-				calendarStore.trigger.resetNewEvent();
-			} catch (error) {
-				console.error(
-					`Failed to ${mode === "edit" ? "update" : "create"} event:`,
-					error,
-				);
+			const values = value as TEventFormData;
+			// Check if this is a recurring event that needs user choice
+			if (mode === "edit" && event?.recurringEventId) {
+				dialogStore.send({
+					type: "openRecurringEventDialog",
+					onConfirm: async (recurringEditMode) => {
+						await performSubmit(values, recurringEditMode);
+						onClose();
+					},
+					onCancel: () => {},
+				});
+				return;
 			}
+			// Not recurring, submit directly
+			await performSubmit(values);
 		},
 	});
 	const isDirty = useStore(form.store, (state) => state.isDirty);
@@ -588,14 +650,8 @@ const EventPopoverContent = forwardRef<
 							}
 						</form.Subscribe>
 
-						<form.AppField
-							name="endDate"
-							listeners={{
-								onMount: ({ value }) => {},
-								onBlur: ({ value }) => {},
-							}}
-						>
-							{({ state, handleChange, handleBlur }) => {
+						<form.AppField name="endDate">
+							{({ state, handleChange }) => {
 								const isInvalid = state.meta.isTouched && !state.meta.isValid;
 								return (
 									<Field data-invalid={isInvalid}>
@@ -739,6 +795,93 @@ const EventPopoverContent = forwardRef<
 						);
 					}}
 				</form.AppField>
+				<Separator />
+				<div className="flex items-center gap-2 px-2 py-2">
+					<form.AppField name="calendarId">
+						{(field) => {
+							const selectedCalendar = calendars?.find(
+								(cal) => cal.id === field.state.value,
+							);
+							return (
+								<div className="w-full">
+									<Combobox
+										items={calendars ?? []}
+										value={selectedCalendar ?? null}
+										onValueChange={(value) => {
+											field.handleChange(
+												value === null ? undefined : value.id,
+											);
+										}}
+										itemToStringValue={(item) => item.id}
+										isItemEqualToValue={(item, value) =>
+											item.id === value.id
+										}
+									>
+										<ComboboxTrigger
+											render={
+												<Button
+													startIcon={<CalendarIcon />}
+													variant="outline"
+													size={"xs"}
+												>
+													{selectedCalendar ? (
+														<div className="flex items-center gap-2">
+															<div
+																className="h-3 w-3 shrink-0 rounded-full"
+																style={{
+																	backgroundColor: selectedCalendar.color,
+																}}
+															/>
+															<span>{selectedCalendar.name}</span>
+															{selectedCalendar.isGoogle && (
+																<span className="text-muted-foreground text-xs">
+																	Google
+																</span>
+															)}
+														</div>
+													) : (
+														<span className="text-muted-foreground">
+															Select calendar
+														</span>
+													)}
+												</Button>
+											}
+										/>
+										<ComboboxContent width="min">
+											<ComboboxInput
+												showFocusRing={false}
+												placeholder="Type calendar name"
+												showTrigger={false}
+											/>
+											<ComboboxList>
+												{calendars && calendars.length > 0 ? (
+													calendars.map((calendar) => (
+														<ComboboxItem key={calendar.id} value={calendar}>
+															<div className="flex items-center gap-2">
+																<div
+																	className="h-3 w-3 shrink-0 rounded-full"
+																	style={{ backgroundColor: calendar.color }}
+																/>
+																<span className="flex-1">{calendar.name}</span>
+																{calendar.isGoogle && (
+																	<span className="text-muted-foreground text-xs">
+																		Google
+																	</span>
+																)}
+															</div>
+														</ComboboxItem>
+													))
+												) : (
+													<ComboboxEmpty>No calendars available</ComboboxEmpty>
+												)}
+											</ComboboxList>
+										</ComboboxContent>
+									</Combobox>
+								</div>
+							);
+						}}
+					</form.AppField>
+				</div>
 			</form>
 		</PopoverContent>
 	);
@@ -758,6 +901,12 @@ export function EventPopover({
 	}
 	prevIsOpenRef.current = isOpen;
 	const openId = openIdRef.current;
+
+	// Fetch calendars to get default calendar for create mode
+	const { data: calendars } = useQuery(
+		convexQuery(api.calendars.getAllUserCalendars),
+	);
+	const defaultCalendar = calendars?.find((cal) => cal.isDefault);
 
 	const handleClose = () => {
 		onClose();
@@ -800,6 +949,7 @@ export function EventPopover({
 						description: event.description ?? "",
 						allDay: event.allDay,
 						color: colorNameToHex[event.color] ?? "#3B82F6",
+						calendarId: event.calendarId as Id<"calendars"> | undefined,
 					});
 					return (
 						<EventPopoverContent
@@ -824,6 +974,7 @@ export function EventPopover({
 							title: payload?.title,
 							allDay: payload?.allDay,
 							description: payload?.description,
+							calendarId: defaultCalendar?.id as Id<"calendars"> | undefined,
 						})}
 						mode="create"
 						onClose={handleClose}

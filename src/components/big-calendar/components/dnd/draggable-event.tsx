@@ -1,22 +1,18 @@
 "use client";
 
-import type { TEvent } from "@/components/big-calendar/interfaces";
-import { cn } from "@/lib/utils";
-import { useDraggable } from "@dnd-kit/core";
 import type {
 	CalendarDragData,
 	EventDragData,
 	EventResizeDragData,
 } from "@/components/big-calendar/components/dnd/dnd-schemas";
+import type { TEvent } from "@/components/big-calendar/interfaces";
+import { cn } from "@/lib/utils";
+import { useDraggable } from "@dnd-kit/core";
+import { useRef } from "react";
+import { toast } from "sonner";
 
 export type { CalendarDragData, EventDragData, EventResizeDragData };
 export type EventResizeEdge = EventResizeDragData["edge"];
-
-export function isEventResizeData(
-	data: CalendarDragData | undefined,
-): data is EventResizeDragData {
-	return data?.type === "event-resize";
-}
 
 interface DraggableEventProps {
 	event: TEvent;
@@ -31,6 +27,10 @@ export function DraggableEvent({
 	children,
 }: DraggableEventProps) {
 	const id = `event-${event.id}`;
+	const isLocked = event.isEditable === false;
+	const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
+	const DRAG_THRESHOLD = 5; // pixels
+
 	const { attributes, isDragging, listeners, setNodeRef } = useDraggable({
 		id,
 		data: {
@@ -39,6 +39,56 @@ export function DraggableEvent({
 			...(sourceView && { sourceView }),
 		} satisfies EventDragData,
 	});
+
+	const handlePointerDown = (e: React.PointerEvent) => {
+		if (!isLocked) {
+			return;
+		}
+		// Track initial pointer position
+		pointerStartRef.current = { x: e.clientX, y: e.clientY };
+	};
+
+	const handlePointerMove = (e: React.PointerEvent) => {
+		if (!isLocked || !pointerStartRef.current) {
+			return;
+		}
+
+		const deltaX = Math.abs(e.clientX - pointerStartRef.current.x);
+		const deltaY = Math.abs(e.clientY - pointerStartRef.current.y);
+		const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+		// Only show toast if user actually moved the pointer (drag attempt)
+		if (distance > DRAG_THRESHOLD) {
+			toast.error(
+				"This event cannot be moved. It was created by someone else.",
+			);
+			// Prevent the drag from starting
+			e.stopPropagation();
+			e.preventDefault();
+			pointerStartRef.current = null;
+		}
+	};
+
+	const handlePointerUp = () => {
+		pointerStartRef.current = null;
+	};
+
+	// For locked events, don't attach listeners and handle pointer events manually
+	if (isLocked) {
+		return (
+			<div
+				ref={setNodeRef}
+				className={cn(isDragging && "opacity-40", "cursor-not-allowed")}
+				onPointerDown={handlePointerDown}
+				onPointerMove={handlePointerMove}
+				onPointerUp={handlePointerUp}
+				onPointerCancel={handlePointerUp}
+				{...attributes}
+			>
+				{children}
+			</div>
+		);
+	}
 
 	return (
 		<div
@@ -67,7 +117,11 @@ export function EventResizeHandle({
 	children,
 }: EventResizeHandleProps) {
 	const eventForData = originalEvent ?? event;
+	const isLocked = eventForData.isEditable === false;
 	const id = `event-resize-${event.id}-${edge}`;
+	const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
+	const DRAG_THRESHOLD = 5; // pixels
+
 	const { listeners, setNodeRef } = useDraggable({
 		id,
 		data: {
@@ -76,6 +130,55 @@ export function EventResizeHandle({
 			edge,
 		} satisfies EventResizeDragData,
 	});
+
+	const handlePointerDown = (e: React.PointerEvent) => {
+		if (!isLocked) {
+			return;
+		}
+		// Track initial pointer position
+		pointerStartRef.current = { x: e.clientX, y: e.clientY };
+	};
+
+	const handlePointerMove = (e: React.PointerEvent) => {
+		if (!isLocked || !pointerStartRef.current) {
+			return;
+		}
+
+		const deltaX = Math.abs(e.clientX - pointerStartRef.current.x);
+		const deltaY = Math.abs(e.clientY - pointerStartRef.current.y);
+		const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+		// Only show toast if user actually moved the pointer (drag attempt)
+		if (distance > DRAG_THRESHOLD) {
+			toast.error(
+				"This event cannot be resized. It was created by someone else.",
+			);
+			// Prevent the drag from starting
+			e.stopPropagation();
+			e.preventDefault();
+			pointerStartRef.current = null;
+		}
+	};
+
+	const handlePointerUp = () => {
+		pointerStartRef.current = null;
+	};
+
+	// For locked events, don't attach listeners and handle pointer events manually
+	if (isLocked) {
+		return (
+			<div
+				ref={setNodeRef}
+				onPointerDown={handlePointerDown}
+				onPointerMove={handlePointerMove}
+				onPointerUp={handlePointerUp}
+				onPointerCancel={handlePointerUp}
+				className="cursor-not-allowed"
+			>
+				{children}
+			</div>
+		);
+	}
 
 	return (
 		<div ref={setNodeRef} {...listeners}>

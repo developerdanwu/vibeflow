@@ -2,6 +2,7 @@
 
 import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import { cva, type VariantProps } from "class-variance-authority";
+import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -50,14 +51,33 @@ function Button({
 	className,
 	variant = "default",
 	size = "default",
+	startIcon,
+	endIcon,
+	children,
 	...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+}: ButtonPrimitive.Props &
+	VariantProps<typeof buttonVariants> & {
+		startIcon?: ReactNode;
+		endIcon?: ReactNode;
+	}) {
 	return (
 		<ButtonPrimitive
 			data-slot="button"
 			className={cn(buttonVariants({ variant, size, className }))}
 			{...props}
-		/>
+		>
+			{startIcon && (
+				<span data-icon="inline-start" className="flex items-center">
+					{startIcon}
+				</span>
+			)}
+			{children}
+			{endIcon && (
+				<span data-icon="inline-end" className="flex items-center">
+					{endIcon}
+				</span>
+			)}
+		</ButtonPrimitive>
 	);
 }
 

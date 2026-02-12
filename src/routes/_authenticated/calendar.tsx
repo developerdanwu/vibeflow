@@ -81,6 +81,9 @@ function CalendarContent() {
 			endTime: event.endTime,
 			timeZone: event.timeZone,
 			createdAt: event._creationTime,
+			recurringEventId: event.recurringEventId,
+			isEditable: event.isEditable,
+			calendarId: event.calendarId,
 		}));
 	}, [convexEvents, currentUser]);
 

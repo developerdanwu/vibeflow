@@ -66,8 +66,12 @@ export function moveEventToSlot(
 	event: TEvent,
 	slotStartTimestamp: number,
 	updateEvent: (payload: UpdateEventPayload) => Promise<unknown>,
+	recurringEditMode?: "this" | "all",
 ): void {
 	if (!event.convexId) return;
+	if (event.isEditable === false) {
+		return; // Event is locked, cannot move (toast shown in onDragStart)
+	}
 	const slotStart = new Date(slotStartTimestamp);
 	const durationMs = event.allDay
 		? MIN_DURATION_MS
@@ -78,6 +82,7 @@ export function moveEventToSlot(
 		startTimestamp: slotStartTimestamp,
 		endTimestamp: newEndDate.getTime(),
 		allDay: false,
+		recurringEditMode,
 	});
 }
 
@@ -86,8 +91,12 @@ export function resizeEventToSlot(
 	edge: "top" | "bottom",
 	slotStartTimestamp: number,
 	updateEvent: (payload: UpdateEventPayload) => Promise<unknown>,
+	recurringEditMode?: "this" | "all",
 ): boolean {
 	if (!event.convexId) return false;
+	if (event.isEditable === false) {
+		return false; // Event is locked, cannot resize (toast shown in onDragStart)
+	}
 	const eventStartTimestamp = parseISO(event.startDate).getTime();
 	const eventEndTimestamp = parseISO(event.endDate).getTime();
 
@@ -99,6 +108,7 @@ export function resizeEventToSlot(
 		updateEvent({
 			id: event.convexId as Id<"events">,
 			endTimestamp: slotEndTimestamp,
+			recurringEditMode,
 		});
 		return true;
 	}
@@ -108,6 +118,7 @@ export function resizeEventToSlot(
 	updateEvent({
 		id: event.convexId as Id<"events">,
 		startTimestamp: slotStartTimestamp,
+		recurringEditMode,
 	});
 	return true;
 }

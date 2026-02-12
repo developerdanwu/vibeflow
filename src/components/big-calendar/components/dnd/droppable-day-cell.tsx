@@ -72,14 +72,19 @@ export function moveEventToAllDay(
 	event: TEvent,
 	cellDate: Date,
 	updateEvent: (payload: UpdateEventPayload) => Promise<unknown>,
+	recurringEditMode?: "this" | "all",
 ): void {
 	if (!event.convexId) return;
+	if (event.isEditable === false) {
+		return; // Event is locked, cannot move (toast shown in onDragStart)
+	}
 	const dateStr = format(startOfDay(cellDate), "yyyy-MM-dd");
 	updateEvent({
 		id: event.convexId as Id<"events">,
 		allDay: true,
 		startDateStr: dateStr,
 		endDateStr: dateStr,
+		recurringEditMode,
 	});
 }
 
@@ -88,8 +93,12 @@ export function moveEventToDay(
 	event: TEvent,
 	cellDate: Date,
 	updateEvent: (payload: UpdateEventPayload) => Promise<unknown>,
+	recurringEditMode?: "this" | "all",
 ): void {
 	if (!event.convexId) return;
+	if (event.isEditable === false) {
+		return; // Event is locked, cannot move (toast shown in onDragStart)
+	}
 	const eventStartDate = parseISO(event.startDate);
 	const eventEndDate = parseISO(event.endDate);
 	const newStartDate = set(startOfDay(cellDate), {
@@ -105,6 +114,7 @@ export function moveEventToDay(
 	const basePayload = {
 		id: event.convexId as Id<"events">,
 		allDay: event.allDay,
+		recurringEditMode,
 	};
 
 	if (event.allDay) {

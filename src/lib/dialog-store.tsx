@@ -3,16 +3,38 @@
 import { createStore } from "@xstate/store";
 import { createContext, type ReactNode, useContext } from "react";
 
+type DialogState =
+	| {
+			type: "alert";
+			data: {
+				title: string;
+				description: string;
+				confirmText?: string;
+			};
+			onConfirm: () => void | Promise<void>;
+			onCancel?: undefined;
+	  }
+	| {
+			type: "confirm";
+			data: {
+				title: string;
+				description: string;
+				confirmText?: string;
+				cancelText?: string;
+			};
+			onConfirm: () => void | Promise<void>;
+			onCancel?: () => void | Promise<void>;
+	  }
+	| {
+			type: "recurring-event";
+			data: Record<string, never>;
+			onConfirm: (mode: "this" | "all") => void | Promise<void>;
+			onCancel?: () => void | Promise<void>;
+	  };
+
 export const dialogStore = createStore({
 	context: {
-		isOpen: false,
-		type: null as "alert" | "confirm" | null,
-		title: "",
-		description: "",
-		confirmText: "OK",
-		cancelText: "Cancel",
-		onConfirm: undefined as (() => void | Promise<void>) | undefined,
-		onCancel: undefined as (() => void | Promise<void>) | undefined,
+		dialog: null as DialogState | null,
 	},
 	on: {
 		openAlertDialog: (
@@ -21,17 +43,20 @@ export const dialogStore = createStore({
 				title: string;
 				description: string;
 				confirmText?: string;
-				onConfirm?: () => void;
+				onConfirm?: () => void | Promise<void>;
 			},
 		) => ({
 			...context,
-			isOpen: true,
-			type: "alert" as const,
-			title: event.title,
-			description: event.description,
-			confirmText: event.confirmText ?? "OK",
-			onConfirm: event.onConfirm,
-			onCancel: undefined,
+			dialog: {
+				type: "alert" as const,
+				data: {
+					title: event.title,
+					description: event.description,
+					confirmText: event.confirmText ?? "OK",
+				},
+				onConfirm: event.onConfirm ?? (() => {}),
+				onCancel: undefined,
+			},
 		}),
 		openConfirmDialog: (
 			context,
@@ -40,29 +65,40 @@ export const dialogStore = createStore({
 				description: string;
 				confirmText?: string;
 				cancelText?: string;
-				onConfirm?: () => void;
-				onCancel?: () => void;
+				onConfirm?: () => void | Promise<void>;
+				onCancel?: () => void | Promise<void>;
 			},
 		) => ({
 			...context,
-			isOpen: true,
-			type: "confirm" as const,
-			title: event.title,
-			description: event.description,
-			confirmText: event.confirmText ?? "Continue",
-			cancelText: event.cancelText ?? "Cancel",
-			onConfirm: event.onConfirm,
-			onCancel: event.onCancel,
+			dialog: {
+				type: "confirm" as const,
+				data: {
+					title: event.title,
+					description: event.description,
+					confirmText: event.confirmText ?? "Continue",
+					cancelText: event.cancelText ?? "Cancel",
+				},
+				onConfirm: event.onConfirm ?? (() => {}),
+				onCancel: event.onCancel,
+			},
+		}),
+		openRecurringEventDialog: (
+			context,
+			event: {
+				onConfirm: (mode: "this" | "all") => void | Promise<void>;
+				onCancel?: () => void | Promise<void>;
+			},
+		) => ({
+			...context,
+			dialog: {
+				type: "recurring-event" as const,
+				data: {} as Record<string, never>,
+				onConfirm: event.onConfirm,
+				onCancel: event.onCancel,
+			},
 		}),
 		closeDialog: () => ({
-			isOpen: false,
-			type: null as "alert" | "confirm" | null,
-			title: "",
-			description: "",
-			confirmText: "OK",
-			cancelText: "Cancel",
-			onConfirm: undefined,
-			onCancel: undefined,
+			dialog: null,
 		}),
 	},
 });

@@ -33,6 +33,9 @@ export const ZEventSchema = z.object({
 	timeZone: z.string().optional(),
 	createdAt: z.number().optional(),
 	updatedAt: z.number().optional(),
+	recurringEventId: z.string().optional(),
+	isEditable: z.boolean().optional(),
+	calendarId: z.string().optional(),
 });
 
 export type TUser = z.infer<typeof ZUserSchema>;

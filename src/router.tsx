@@ -9,7 +9,7 @@ import {
 } from "@workos/authkit-tanstack-react-start/client";
 import { ConvexProviderWithAuth, ConvexReactClient } from "convex/react";
 import { useCallback, useMemo } from "react";
-import { GlobalAlertDialog } from "./components/dialogs/global-alert-dialog";
+import { GlobalDialog } from "./components/dialogs/global-dialog";
 import { Toaster } from "./components/ui/sonner";
 import { DialogStoreProvider } from "./lib/dialog-store";
 import { routeTree } from "./routeTree.gen";
@@ -76,7 +76,7 @@ export const getRouter = () => {
 				>
 					<DialogStoreProvider>
 						{children}
-						<GlobalAlertDialog />
+						<GlobalDialog />
 						<Toaster />
 					</DialogStoreProvider>
 				</ConvexProviderWithAuth>

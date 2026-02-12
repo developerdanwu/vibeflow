@@ -44,6 +44,10 @@ export default defineSchema({
 		externalEventId: v.optional(v.string()),
 		recurringEventId: v.optional(v.string()),
 		recurrence: v.optional(v.array(v.string())),
+		creatorEmail: v.optional(v.string()),
+		organizerEmail: v.optional(v.string()),
+		guestsCanModify: v.optional(v.boolean()),
+		isEditable: v.optional(v.boolean()),
 	})
 		.index("by_user", ["userId"])
 		.index("by_user_and_date", ["userId", "startTimestamp"])

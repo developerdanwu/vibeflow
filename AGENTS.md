@@ -106,6 +106,7 @@ vibeflow/
 - **Shared Components:** Add to `src/components/`
 - **Database Logic:** Create functions in `convex/`
 - **UI Components:** Use `pnpm dlx shadcn@latest add [component]`
+  - **Overwrite prompts:** If shadcn prompts to overwrite existing files, ask the user whether to overwrite or not. Do not use `--overwrite` flag automatically. The `--yes` flag only skips initial confirmation, not overwrite prompts.
 - **Static Content:** Add markdown files to `content/`
 
 ### Agent Skills
@@ -296,7 +297,8 @@ import { useUser } from "../../hooks/useUser";
 - **Product Requirements:** Refer to `spec.md` for feature details
 - **UI/UX Design:** Refer to `UI_SPEC.md` for visual design and component specifications
 - **UI Components:** Check `components.json` for shadcn configuration
-- **Forms and popover patterns:** See [src/docs/ui.md](src/docs/ui.md) for TanStack Form, form-components, shared Popover handle, submit-dirty-form-on-close/unmount, and clearing external store on unmount.
+- **Forms and popover patterns:** See [src/docs/ui.md](src/docs/ui.md) for TanStack Form, form-components, shared Popover handle, submit-dirty-form-on-close/unmount, clearing external store on unmount, and Base UI Combobox value handling.
+- **Drag and Drop:** See [src/docs/dnd-handling.md](src/docs/dnd-handling.md) for locked event handling, distinguishing clicks from drags, and preventing visual drag movement.
 - **Deployment:** Review `wrangler.jsonc` for Cloudflare settings
 
 ---
@@ -330,6 +332,14 @@ pnpm run          # List all available scripts
 npx convex --help # Convex CLI help
 pnpm dlx shadcn@latest add --help # shadcn component help
 ```
+
+### shadcn Component Installation
+
+**Important:** When installing shadcn components that already exist:
+- If prompted to overwrite files, **ask the user** whether to overwrite or skip
+- Do not automatically use `--overwrite` flag
+- The `--yes` flag only skips initial confirmation, not overwrite prompts
+- Available flags: `-y/--yes` (skip initial prompt), `-o/--overwrite` (overwrite without prompts)
 
 ---
 

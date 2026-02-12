@@ -118,3 +118,60 @@ export const getDefaultCalendar = authQuery({
 			.first();
 	},
 });
+
+export const getAllUserCalendars = authQuery({
+	args: {},
+	handler: async (ctx) => {
+		// Get all calendars for the user
+		const calendars = await ctx.db
+			.query("calendars")
+			.withIndex("by_user", (q) => q.eq("userId", ctx.user._id))
+			.collect();
+
+		// Get all external calendars to identify Google calendars
+		const allExternalCalendars = await ctx.db
+			.query("externalCalendars")
+			.collect();
+
+		// Create a map of calendarId -> externalCalendarId for quick lookup
+		const googleCalendarMap = new Map<
+			string,
+			{ externalCalendarId: string; provider: "google" | "microsoft" }
+		>();
+		for (const ext of allExternalCalendars) {
+			if (ext.calendarId) {
+				googleCalendarMap.set(ext.calendarId, {
+					externalCalendarId: ext.externalCalendarId,
+					provider: ext.provider,
+				});
+			}
+		}
+
+		// Transform calendars with Google flag
+		const calendarsWithGoogleFlag = calendars.map((cal) => {
+			const googleInfo = googleCalendarMap.get(cal._id);
+			return {
+				id: cal._id,
+				name: cal.name,
+				color: cal.color,
+				isGoogle: googleInfo?.provider === "google" || false,
+				isDefault: cal.isDefault,
+				externalCalendarId: googleInfo?.externalCalendarId,
+			};
+		});
+
+		// Sort: default first, then Google calendars, then local calendars
+		return calendarsWithGoogleFlag.sort((a, b) => {
+			// Default calendar first
+			if (a.isDefault && !b.isDefault) return -1;
+			if (!a.isDefault && b.isDefault) return 1;
+
+			// Then Google calendars
+			if (a.isGoogle && !b.isGoogle) return -1;
+			if (!a.isGoogle && b.isGoogle) return 1;
+
+			// Then alphabetically by name
+			return a.name.localeCompare(b.name);
+		});
+	},
+});

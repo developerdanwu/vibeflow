@@ -321,6 +321,79 @@ dialogStore.send({
 dialogStore.send({ type: "closeDialog" });
 ```
 
+## Toast Configuration
+
+**Global default duration:** Toasts default to 3000ms (3 seconds). Configure in `src/components/ui/sonner.tsx`:
+
+```tsx
+toastOptions={{
+  duration: 3000, // Default duration for all toasts
+  classNames: {
+    toast: "cn-toast",
+  },
+}}
+```
+
+Individual toasts can override this by passing a `duration` option:
+
+```tsx
+toast.error("Message", { duration: 5000 }); // Override to 5 seconds
+```
+
+**Toast behavior:** By default, each toast call creates a new notification. To update the same toast, pass an `id`:
+
+```tsx
+// New toast each time
+toast.error("Message");
+
+// Updates same toast if called again with same id
+toast.error("Updated message", { id: "unique-id" });
+```
+
+## Combobox (Base UI)
+
+Base UI Combobox expects **full item objects** as values, not primitive IDs. Use `itemToStringValue` and `isItemEqualToValue` to handle object-to-ID conversion.
+
+### ❌ Wrong - Using primitive IDs
+```tsx
+<Combobox
+  items={calendars}
+  value={field.state.value} // ID string
+  onValueChange={(value) => field.handleChange(value)} // Expects ID
+>
+  {calendars.map((calendar) => (
+    <ComboboxItem key={calendar.id} value={calendar.id}>
+      {calendar.name}
+    </ComboboxItem>
+  ))}
+</Combobox>
+```
+
+### ✅ Correct - Using full objects
+```tsx
+const selectedCalendar = calendars?.find(
+  (cal) => cal.id === field.state.value,
+);
+
+<Combobox
+  items={calendars ?? []}
+  value={selectedCalendar ?? null} // Full object
+  onValueChange={(value) => {
+    field.handleChange(value === null ? undefined : value.id);
+  }}
+  itemToStringValue={(item) => item.id}
+  isItemEqualToValue={(item, value) => item.id === value.id}
+>
+  {calendars.map((calendar) => (
+    <ComboboxItem key={calendar.id} value={calendar}>
+      {calendar.name}
+    </ComboboxItem>
+  ))}
+</Combobox>
+```
+
+**Why:** Base UI Combobox works with object references for value matching. `itemToStringValue` extracts the ID for form submission, and `isItemEqualToValue` compares objects by ID.
+
 ## Quick Reference
 
 | Component | Base UI ✅ | Radix UI ❌ |
@@ -331,4 +404,4 @@ dialogStore.send({ type: "closeDialog" });
 
 ---
 
-*Updated: Feb 8, 2026*
+*Updated: Feb 12, 2026*

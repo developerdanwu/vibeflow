@@ -13,7 +13,6 @@ import {
 	ZCalendarDragData,
 	ZTimeBlockOverData,
 } from "@/components/big-calendar/components/dnd/dnd-schemas";
-import { isEventResizeData } from "@/components/big-calendar/components/dnd/draggable-event";
 import { DropRangeRing } from "@/components/big-calendar/components/dnd/drop-range-ring";
 import { DroppableDayCell } from "@/components/big-calendar/components/dnd/droppable-day-cell";
 import { DroppableTimeBlock } from "@/components/big-calendar/components/dnd/droppable-time-block";
@@ -59,7 +58,7 @@ export function CalendarDayView({ singleDayEvents, multiDayEvents }: IProps) {
 	const overResult = ZTimeBlockOverData.safeParse(over?.data?.current);
 	const overData = overResult.success ? overResult.data : undefined;
 	const resizingEventId =
-		activeData && isEventResizeData(activeData) ? activeData.event.id : null;
+		activeData && activeData.type === "event-resize" ? activeData.event.id : null;
 	const quickAddEventPopoverHandle = useMemo(
 		() => PopoverBase.createHandle(),
 		[],
