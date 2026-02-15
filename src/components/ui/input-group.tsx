@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import type * as React from "react";
+import { forwardRef } from "react";
 
 const inputGroupVariants = cva(
 	"group/input-group relative flex w-full items-center rounded-md border border-input shadow-xs outline-none transition-[color,box-shadow] dark:bg-input/30",
@@ -141,12 +142,13 @@ function InputGroupText({ className, ...props }: React.ComponentProps<"span">) {
 	);
 }
 
-function InputGroupInput({
-	className,
-	...props
-}: Omit<React.ComponentProps<"input">, "size">) {
+const InputGroupInput = forwardRef<
+	HTMLInputElement,
+	Omit<React.ComponentProps<"input">, "size">
+>(function InputGroupInput({ className, ...props }, ref) {
 	return (
 		<Input
+			ref={ref}
 			data-slot="input-group-control"
 			className={cn(
 				"flex-1 rounded-none border-0 bg-transparent shadow-none focus-visible:ring-0 dark:bg-transparent",
@@ -155,7 +157,7 @@ function InputGroupInput({
 			{...props}
 		/>
 	);
-}
+});
 
 function InputGroupTextarea({
 	className,

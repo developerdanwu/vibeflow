@@ -42,6 +42,11 @@
 			"suspicious": {
 				"noArrayIndexKey": "warn"
 			},
+			"a11y": {
+				"useKeyWithClickEvents": "off",
+				"useSemanticElements": "off",
+				"noStaticElementInteractions": "off"
+			},
 			"recommended": true
 		}
 	},

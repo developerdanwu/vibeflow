@@ -178,13 +178,10 @@ export function MonthEventBadge({
 						<span>{format(start, "h:mm a")}</span>
 					)}
 				</TooltipTrigger>
-				<TooltipContent
-					side="top"
-					className="max-w-xs border bg-popover px-3 py-2 text-popover-foreground shadow-md"
-				>
+				<TooltipContent side="top" className="max-w-xs px-3 py-2">
 					<p className="font-semibold">{event.title}</p>
 					{!event.allDay && (
-						<p className="text-2xs text-muted-foreground">{timeRange}</p>
+						<p className="text-2xs opacity-70">{timeRange}</p>
 					)}
 				</TooltipContent>
 			</Tooltip>

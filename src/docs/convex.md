@@ -18,7 +18,7 @@ const [isDeleting, setIsDeleting] = useState(false); // Manual loading state
 ```tsx
 // Don't use Convex's useMutation directly when you want React Query benefits.
 import { useMutation } from "convex/react";
-const updateEvent = useMutation(api.events.updateEvent);
+const updateEvent = useMutation(api.events.mutations.updateEvent);
 ```
 
 ### ✅ Correct
@@ -30,9 +30,9 @@ import { useMutation } from "@tanstack/react-query";
 import { useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
 
-const updateEventFn = useConvexMutation(api.events.updateEvent);
+const updateEventFn = useConvexMutation(api.events.mutations.updateEvent);
 const { mutate: deleteEvent, isPending } = useMutation({
-  mutationFn: useConvexMutation(api.events.deleteEvent),
+  mutationFn: useConvexMutation(api.events.mutations.deleteEvent),
 });
 
 // isPending replaces manual loading state
@@ -42,7 +42,7 @@ const { mutate: deleteEvent, isPending } = useMutation({
 **When you need to await (e.g. in onSubmit or passing to a callback):**
 
 ```tsx
-const updateEventFn = useConvexMutation(api.events.updateEvent);
+const updateEventFn = useConvexMutation(api.events.mutations.updateEvent);
 const { mutateAsync } = useMutation({ mutationFn: updateEventFn });
 
 // In a submit handler or passed to a helper that expects (payload) => Promise<unknown>
@@ -53,7 +53,7 @@ Use `mutateAsync` when the caller needs to `await` the mutation (forms, DnD drop
 
 ### Why?
 
-TanStack Query gives you `isPending`, `isError`, `onSuccess`, `onError`, retry logic, and devtools for free. Calling `api.events.updateEvent` (and other mutations) through React Query keeps server state and loading/error handling consistent.
+TanStack Query gives you `isPending`, `isError`, `onSuccess`, `onError`, retry logic, and devtools for free. Calling `api.events.mutations.updateEvent` (and other mutations) through React Query keeps server state and loading/error handling consistent.
 
 ### Exception
 
@@ -67,7 +67,7 @@ You don't have to manually type mutation payloads. Use Convex's `FunctionArgs` f
 import type { FunctionArgs } from "convex/server";
 import { api } from "@convex/_generated/api";
 
-type UpdateEventPayload = FunctionArgs<typeof api.events.updateEvent>;
+type UpdateEventPayload = FunctionArgs<typeof api.events.mutations.updateEvent>;
 // Use this type for helpers or for a returned function's parameter
 ```
 

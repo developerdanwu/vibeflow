@@ -4,7 +4,7 @@ import { useMutation } from "convex/react";
 import { set, startOfDay } from "date-fns";
 
 export function useAddEvent() {
-	const createEvent = useMutation(api.events.createEvent);
+	const createEvent = useMutation(api.events.mutations.createEvent);
 
 	const addEvent = async (formData: TEventFormData) => {
 		const startDateTime = set(startOfDay(formData.startDate), {

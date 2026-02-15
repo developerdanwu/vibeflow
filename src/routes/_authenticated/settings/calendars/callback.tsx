@@ -20,7 +20,7 @@ export const Route = createFileRoute(
 function GoogleCalendarCallback() {
 	const { code, state } = Route.useSearch();
 	const navigate = useNavigate();
-	const exchangeCode = useAction(api.googleCalendar.exchangeCode);
+	const exchangeCode = useAction(api.googleCalendar.actionsNode.exchangeCode);
 	const didRun = useRef(false);
 
 	useEffect(() => {

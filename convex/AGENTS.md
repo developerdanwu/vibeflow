@@ -31,13 +31,24 @@ convex/
 ├── schema.ts
 ├── helpers.ts    # authQuery, authMutation
 ├── auth.ts
+├── auth.config.ts
+├── convex.config.ts
 ├── users.ts
 ├── events.ts
 ├── calendars.ts
 ├── http.ts
+├── crons.ts
+├── todos.ts
 ├── docs/         # Best-practice documentation
-└── *.test.ts
+├── *.test.ts
+└── <feature>/    # Feature folders (e.g. googleCalendar/)
+    ├── actionsNode.ts   # Actions (use "use node" if needed)
+    ├── http.ts          # HTTP handlers
+    ├── queries.ts       # Queries (auth + internal)
+    └── mutations.ts    # Internal mutations
 ```
+
+**Folder structure:** Root holds shared/core modules. Feature-specific logic lives in feature folders (e.g. `googleCalendar/`) with procedures grouped by type: `actionsNode.ts`, `http.ts`, `queries.ts`, `mutations.ts`. Add new procedures for a feature in the appropriate file under that feature's folder.
 
 ## Documentation
 

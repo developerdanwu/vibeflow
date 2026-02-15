@@ -22,9 +22,9 @@ src/
 
 ### Routing
 - File-based routing via TanStack Router
-- `__root.tsx` - Root layout with devtools
-- `_authenticated.tsx` - Auth-protected layout wrapper
-- `_authenticated/*.tsx` - Protected routes (e.g., `calendar.tsx`)
+- **Root:** `__root.tsx`, `_authenticated.tsx`, `index.tsx`, `callback.tsx` (app-wide layout and top-level routes)
+- **Feature folders** under `_authenticated/`: one folder per feature (e.g. `calendar/`, `settings/`) with route files by type (layout, index, child routes). Mirrors Convex folder structure (root + feature folders with procedures by type).
+- Add new routes for a feature in the appropriate file under that feature's folder.
 
 ### Components
 - **UI primitives** (`components/ui/`): shadcn/ui components, use `pnpm dlx shadcn@latest add [name]` to add new ones

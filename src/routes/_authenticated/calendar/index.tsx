@@ -6,7 +6,11 @@ import { CalendarHeader } from "@/components/big-calendar/components/header/cale
 import { CalendarMonthView } from "@/components/big-calendar/components/month-view/calendar-month-view";
 import { CalendarDayView } from "@/components/big-calendar/components/week-and-day-view/calendar-day-view";
 import { CalendarProvider } from "@/components/big-calendar/contexts/calendar-context";
-import type { TEvent, TUser } from "@/components/big-calendar/interfaces";
+import {
+	type TEvent,
+	type TUser,
+	ZEventSchema,
+} from "@/components/big-calendar/interfaces";
 import type { TEventColor } from "@/components/big-calendar/types";
 import "@/styles/calendar.css";
 import { convexQuery } from "@convex-dev/react-query";
@@ -22,7 +26,7 @@ const calendarSearchSchema = z.object({
 	date: z.coerce.date().default(new Date()),
 });
 
-export const Route = createFileRoute("/_authenticated/calendar")({
+export const Route = createFileRoute("/_authenticated/calendar/")({
 	validateSearch: calendarSearchSchema,
 	component: CalendarRoute,
 });
@@ -58,33 +62,41 @@ function CalendarContent() {
 		: null;
 
 	const { data: convexEvents } = useQuery(
-		convexQuery(api.events.getEventsByUser),
+		convexQuery(api.events.queries.getEventsByUser),
 	);
 
 	const events: TEvent[] = useMemo(() => {
-		if (!convexEvents || !currentUser) return [];
-		return convexEvents.map((event) => ({
-			id: event._id,
-			convexId: event._id,
-			title: event.title,
-			description: event.description ?? "",
-			startDate: new Date(event.startTimestamp).toISOString(),
-			endDate: new Date(event.endTimestamp).toISOString(),
-			color: (validColors.includes(event.color as TEventColor)
-				? event.color
-				: "blue") as TEventColor,
-			user: currentUser,
-			allDay: event.allDay,
-			startDateStr: event.startDateStr,
-			endDateStr: event.endDateStr,
-			startTime: event.startTime,
-			endTime: event.endTime,
-			timeZone: event.timeZone,
-			createdAt: event._creationTime,
-			recurringEventId: event.recurringEventId,
-			isEditable: event.isEditable,
-			calendarId: event.calendarId,
-		}));
+		if (!convexEvents || !currentUser) {
+			return [];
+		}
+		return convexEvents.map((event) => {
+			const mappedEvent = {
+				id: event._id,
+				convexId: event._id,
+				title: event.title,
+				description: event.description ?? "",
+				startDate: new Date(event.startTimestamp).toISOString(),
+				endDate: new Date(event.endTimestamp).toISOString(),
+				color: (validColors.includes(event.color as TEventColor)
+					? event.color
+					: "blue") as TEventColor,
+				user: currentUser,
+				allDay: event.allDay,
+				startDateStr: event.startDateStr,
+				endDateStr: event.endDateStr,
+				startTime: event.startTime,
+				endTime: event.endTime,
+				timeZone: event.timeZone,
+				createdAt: event._creationTime,
+				recurringEventId: event.recurringEventId,
+				isEditable: event.isEditable,
+				calendarId: event.calendarId,
+				busy: event.busy,
+				visibility: event.visibility,
+			};
+
+			return ZEventSchema.parse(mappedEvent);
+		});
 	}, [convexEvents, currentUser]);
 
 	const singleDayEvents = useMemo(() => {

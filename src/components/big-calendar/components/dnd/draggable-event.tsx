@@ -59,9 +59,7 @@ export function DraggableEvent({
 
 		// Only show toast if user actually moved the pointer (drag attempt)
 		if (distance > DRAG_THRESHOLD) {
-			toast.error(
-				"This event cannot be moved. It was created by someone else.",
-			);
+			toast.error("You cannot move this event!");
 			// Prevent the drag from starting
 			e.stopPropagation();
 			e.preventDefault();

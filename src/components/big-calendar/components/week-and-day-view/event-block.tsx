@@ -239,13 +239,10 @@ export function EventBlock({
 						/>
 					</EventResizeHandle>
 				</TooltipTrigger>
-				<TooltipContent
-					side="top"
-					className="max-w-xs border bg-popover px-3 py-2 text-popover-foreground shadow-md"
-				>
+				<TooltipContent side="top" className="max-w-xs px-3 py-2">
 					<p className="font-semibold">{event.title || "Untitled"}</p>
 					{tooltipTimeStr && (
-						<p className="text-2xs text-muted-foreground">{tooltipTimeStr}</p>
+						<p className="text-2xs opacity-70">{tooltipTimeStr}</p>
 					)}
 				</TooltipContent>
 			</Tooltip>

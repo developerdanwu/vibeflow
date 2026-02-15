@@ -9,15 +9,21 @@
  */
 
 import type * as auth from "../auth.js";
-import type * as calendarSync from "../calendarSync.js";
-import type * as calendars from "../calendars.js";
+import type * as calendars_mutations from "../calendars/mutations.js";
+import type * as calendars_queries from "../calendars/queries.js";
 import type * as crons from "../crons.js";
-import type * as events from "../events.js";
-import type * as googleCalendar from "../googleCalendar.js";
+import type * as events_mutations from "../events/mutations.js";
+import type * as events_queries from "../events/queries.js";
+import type * as googleCalendar_actionsNode from "../googleCalendar/actionsNode.js";
+import type * as googleCalendar_http from "../googleCalendar/http.js";
+import type * as googleCalendar_mutations from "../googleCalendar/mutations.js";
+import type * as googleCalendar_queries from "../googleCalendar/queries.js";
 import type * as helpers from "../helpers.js";
 import type * as http from "../http.js";
-import type * as todos from "../todos.js";
-import type * as users from "../users.js";
+import type * as todos_mutations from "../todos/mutations.js";
+import type * as todos_queries from "../todos/queries.js";
+import type * as users_mutations from "../users/mutations.js";
+import type * as users_queries from "../users/queries.js";
 
 import type {
   ApiFromModules,
@@ -27,15 +33,21 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
-  calendarSync: typeof calendarSync;
-  calendars: typeof calendars;
+  "calendars/mutations": typeof calendars_mutations;
+  "calendars/queries": typeof calendars_queries;
   crons: typeof crons;
-  events: typeof events;
-  googleCalendar: typeof googleCalendar;
+  "events/mutations": typeof events_mutations;
+  "events/queries": typeof events_queries;
+  "googleCalendar/actionsNode": typeof googleCalendar_actionsNode;
+  "googleCalendar/http": typeof googleCalendar_http;
+  "googleCalendar/mutations": typeof googleCalendar_mutations;
+  "googleCalendar/queries": typeof googleCalendar_queries;
   helpers: typeof helpers;
   http: typeof http;
-  todos: typeof todos;
-  users: typeof users;
+  "todos/mutations": typeof todos_mutations;
+  "todos/queries": typeof todos_queries;
+  "users/mutations": typeof users_mutations;
+  "users/queries": typeof users_queries;
 }>;
 
 /**

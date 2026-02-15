@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { Combobox as ComboboxPrimitive } from "@base-ui/react";
 import { CheckIcon, ChevronDownIcon, XIcon } from "lucide-react";
 import * as React from "react";
+import { forwardRef } from "react";
 
 const Combobox = ComboboxPrimitive.Root;
 
@@ -50,25 +51,32 @@ function ComboboxClear({ className, ...props }: ComboboxPrimitive.Clear.Props) {
 	);
 }
 
-function ComboboxInput({
-	className,
-	children,
-	disabled = false,
-	showTrigger = true,
-	showClear = false,
-	showFocusRing = true,
-	...props
-}: ComboboxPrimitive.Input.Props & {
-	showTrigger?: boolean;
-	showClear?: boolean;
-	showFocusRing?: boolean;
-}) {
+const ComboboxInput = forwardRef<
+	HTMLInputElement,
+	ComboboxPrimitive.Input.Props & {
+		showTrigger?: boolean;
+		showClear?: boolean;
+		showFocusRing?: boolean;
+	}
+>(function ComboboxInput(
+	{
+		className,
+		children,
+		disabled = false,
+		showTrigger = true,
+		showClear = false,
+		showFocusRing = true,
+		...props
+	},
+	ref,
+) {
 	return (
 		<InputGroup
 			className={cn("w-auto", className)}
 			showFocusRing={showFocusRing}
 		>
 			<ComboboxPrimitive.Input
+				ref={ref}
 				render={<InputGroupInput disabled={disabled} />}
 				{...props}
 			/>
@@ -88,7 +96,7 @@ function ComboboxInput({
 			{children}
 		</InputGroup>
 	);
-}
+});
 
 function ComboboxContent({
 	className,

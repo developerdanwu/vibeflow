@@ -5,9 +5,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { FunctionArgs } from "convex/server";
 import { toast } from "sonner";
 
-export type CreateEventPayload = FunctionArgs<typeof api.events.createEvent>;
+export type CreateEventPayload = FunctionArgs<typeof api.events.mutations.createEvent>;
 
-const eventsQueryKey = convexQuery(api.events.getEventsByUser).queryKey;
+const eventsQueryKey = convexQuery(api.events.queries.getEventsByUser).queryKey;
 
 const TEMP_ID_PREFIX = "temp-";
 
@@ -48,13 +48,13 @@ function buildTempDoc(
 }
 
 /**
- * useMutation for api.events.createEvent with optimistic update of the
+ * useMutation for api.events.mutations.createEvent with optimistic update of the
  * getEventsByUser query cache. Use this instead of raw useConvexMutation
  * so the new event appears in the UI immediately.
  */
 export function useCreateEventMutation() {
 	const queryClient = useQueryClient();
-	const createEventFn = useConvexMutation(api.events.createEvent);
+	const createEventFn = useConvexMutation(api.events.mutations.createEvent);
 
 	const mutation = useMutation({
 		mutationFn: createEventFn,

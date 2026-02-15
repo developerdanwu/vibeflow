@@ -112,7 +112,7 @@ vibeflow/
 ### Agent Skills
 - **Master copy:** Skills live in `.agents/skills/`. This is the single source of truth.
 - **Copies:** Copies live in `.cursor/skills/` and `.opencode/skills/` because Cursor and OpenCode do not reliably discover symlinked skills.
-- **Editing skills:** If you need to edit skill files, edit the master copy in `.agents/skills/` and copy the updated version to `.cursor/skills/` and `.opencode/skill/`.
+- **Editing skills:** Edit the master copy in `.agents/skills/` only. Then sync to copies using `cp` (do not manually re-write the same content into each copy). Example for a skill named `planning`: `cp -r .agents/skills/planning/. .cursor/skills/planning/` and `cp -r .agents/skills/planning/. .opencode/skills/planning/`.
 
 ---
 
@@ -143,7 +143,16 @@ vibeflow/
 - **Variable declarations:** Prefer `const` over `let`; use `let` only when reassignment is required. Refactor conditionally assigned values (e.g. `let x; if (a) x = ...; else x = ...`) into a single `const` (e.g. ternary, IIFE returning a value, or a small helper that returns the value).
 - **Control flow:** Prefer early returns / short-circuit with `return` to keep conditional logic linear; avoid nested if/else where a linear flow is clearer. Applies to any conditional logic (validation, handlers, utilities). See [src/docs/ui.md](src/docs/ui.md) for a form-validation example.
 - **Guards with return:** Prefer braces for return statements, even when the body is only `return`. Write `if (condition) { return; }` rather than `if (condition) return;`.
-- **Building objects:** Prefer object spreading over mutating a single object. Build payloads and config objects with one object literal and conditional spreads (e.g. `{ id, ...(x ? { key: x } : {}) }`) instead of declaring a base object and assigning properties in multiple `if` blocks.
+- **Building objects:** Prefer object spreading over mutating a single object. Build payloads and config objects with one object literal and conditional spreads (e.g. `{ id, ...(x ? { key: x } : {}) }`) instead of declaring a base object and assigning properties in multiple `if` blocks. When you need to type the object, use **`satisfies SomeType`** rather than `: SomeType` or `as SomeType`. See [convex/docs/patterns.md](convex/docs/patterns.md) (Building object literals and typing).
+
+### Biome Linter Configuration
+
+**Disabled accessibility rules:** The following a11y rules are disabled in `biome.json` to allow interactive static elements (e.g., divs with onClick handlers):
+- `useKeyWithClickEvents` - Allows onClick without keyboard handlers
+- `useSemanticElements` - Allows divs/span with interactive roles
+- `noStaticElementInteractions` - Allows static elements (div, span) with click handlers
+
+**Why:** Some UI patterns (e.g., TipTap editor wrapper, custom interactive components) require interactive static elements. These rules are disabled globally to avoid false positives.
 
 ### Date and time
 - **Prefer date-fns for date/time manipulation** - Use date-fns utilities (e.g. `set`, `setHours`, `startOfDay`, `addDays`, `differenceInMinutes`) for consistency and immutability. Avoid mutating native `Date` with `setHours`/`setMinutes`; use date-fns equivalents that return new dates instead.
@@ -253,10 +262,11 @@ import { useUser } from "../../hooks/useUser";
 1. **Check spec.md** for requirements and acceptance criteria
 2. **Check UI_SPEC.md** for visual design, routes, and component specifications
 3. **Review existing similar features** for patterns to follow
-4. **Start with Convex schema** if database changes needed
-5. **Build UI components** using existing component library
-6. **Add proper TypeScript types** for all new code
-7. **Write tests** for critical functionality
+4. **For multi-step or multi-file plans,** structure tasks with agent and sub-agent assignment in mind (owners, dependencies, handoffs). See [docs/planning.md](docs/planning.md).
+5. **Start with Convex schema** if database changes needed
+6. **Build UI components** using existing component library
+7. **Add proper TypeScript types** for all new code
+8. **Write tests** for critical functionality
 
 ### Before Creating New Files
 - **Routes:** Check if route already exists or can be nested
@@ -292,12 +302,14 @@ import { useUser } from "../../hooks/useUser";
 5. Are there security implications?
 
 ### Related Documentation
+- **Planning:** See [docs/planning.md](docs/planning.md) for creating plans with agent and sub-agent usage in mind (owners, dependencies, handoffs). Do not create or save plan artifacts in `docs/`; use the plan tool output or `.cursor/plans/`.
 - **Convex data patterns (frontend):** See [src/docs/convex.md](src/docs/convex.md) for mutations (TanStack Query + `useConvexMutation`), no wrapper hooks, and when to use `mutateAsync` vs `mutate`.
 - **Convex Best Practices:** See `.cursorrules` for schema examples
 - **Product Requirements:** Refer to `spec.md` for feature details
 - **UI/UX Design:** Refer to `UI_SPEC.md` for visual design and component specifications
 - **UI Components:** Check `components.json` for shadcn configuration
-- **Forms and popover patterns:** See [src/docs/ui.md](src/docs/ui.md) for TanStack Form, form-components, shared Popover handle, submit-dirty-form-on-close/unmount, clearing external store on unmount, and Base UI Combobox value handling.
+- **Forms and popover patterns:** See [src/docs/ui.md](src/docs/ui.md) for TanStack Form, form-components, shared Popover handle, submit-dirty-form-on-close/unmount, clearing external store on unmount, Base UI Combobox value handling, and Button/Toggle component icon sizing.
+- **Calendar events:** See [src/docs/calendar-events.md](src/docs/calendar-events.md) for event time display patterns and timezone handling.
 - **Drag and Drop:** See [src/docs/dnd-handling.md](src/docs/dnd-handling.md) for locked event handling, distinguishing clicks from drags, and preventing visual drag movement.
 - **Deployment:** Review `wrangler.jsonc` for Cloudflare settings
 

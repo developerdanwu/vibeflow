@@ -41,21 +41,12 @@ export function CalendarHeader({ view, events }: IProps) {
 						T
 					</Button>
 					<Link
-						from="/calendar"
-						search={({ date, view, ...rest }) => {
+						from="/calendar/"
+						search={({ date, view }) => {
 							if (view === "day") {
-								return {
-									date: subDays(date, 1),
-									view,
-									...rest,
-								};
+								return { date: subDays(date, 1), view };
 							}
-
-							return {
-								date: subMonths(date, 1),
-								view,
-								...rest,
-							};
+							return { date: subMonths(date, 1), view };
 						}}
 					>
 						<Button variant="ghost" size="icon-sm">
@@ -64,21 +55,12 @@ export function CalendarHeader({ view, events }: IProps) {
 					</Link>
 
 					<Link
-						from="/calendar"
-						search={({ date, view, ...rest }) => {
+						from="/calendar/"
+						search={({ date, view }) => {
 							if (view === "day") {
-								return {
-									date: addDays(date, 1),
-									view,
-									...rest,
-								};
+								return { date: addDays(date, 1), view };
 							}
-
-							return {
-								date: addMonths(date, 1),
-								view,
-								...rest,
-							};
+							return { date: addMonths(date, 1), view };
 						}}
 					>
 						<Button variant="ghost" size="icon-sm">

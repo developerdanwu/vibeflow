@@ -89,3 +89,39 @@ const upcomingEvents = await ctx.db
   )
   .collect();
 ```
+
+## Building object literals and typing
+
+**When this applies:** Building payloads, config objects, or API params in one place.
+
+- Prefer **one object literal with conditional spreads** instead of declaring a variable and assigning properties in multiple blocks.
+- Type the object with **`satisfies SomeType`** instead of an explicit type annotation (`: SomeType`) or a cast (`as SomeType`). That keeps inference while still checking shape.
+
+### Wrong
+
+```typescript
+const payload: Record<string, unknown> = { summary, description };
+if (allDay) {
+  payload.start = { date: startStr };
+  payload.end = { date: endStr };
+} else {
+  payload.start = { dateTime: startIso, timeZone };
+  payload.end = { dateTime: endIso, timeZone };
+}
+await client.patch({ requestBody: payload as Schema$Event });
+```
+
+### Correct
+
+```typescript
+const payload = {
+  summary,
+  description,
+  ...(allDay
+    ? { start: { date: startStr }, end: { date: endStr } }
+    : { start: { dateTime: startIso, timeZone }, end: { dateTime: endIso, timeZone } }),
+} satisfies Schema$Event;
+await client.patch({ requestBody: payload });
+```
+
+**Why:** Single object literal is easier to read and avoids mutation; `satisfies` gives type checking without widening the type or requiring a cast.

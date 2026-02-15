@@ -223,6 +223,31 @@ This follows the general preference (see AGENTS.md) for **linear conditional log
 });
 ```
 
+### Auto-focusing fields
+
+TanStack Form doesn't have a built-in `autoFocus` prop. Use a **callback ref** on the input component to focus when the field mounts:
+
+```tsx
+<form.AppField name="title">
+	{(field) => (
+		<Input
+			ref={(el) => {
+				// Focus when creating a new event
+				if (mode === "create" && el) {
+					setTimeout(() => {
+						el.focus();
+					}, 0);
+				}
+			}}
+			value={field.state.value}
+			onChange={(e) => field.handleChange(e.target.value)}
+		/>
+	)}
+</form.AppField>
+```
+
+The callback ref runs when the Input mounts, and `setTimeout` ensures the popover/form is fully rendered before focusing.
+
 ## Shared Popover with handle
 
 To open the **same** popover from multiple triggers (e.g. month day cells and day/week time slots):
@@ -352,7 +377,7 @@ toast.error("Updated message", { id: "unique-id" });
 
 ## Combobox (Base UI)
 
-Base UI Combobox expects **full item objects** as values, not primitive IDs. Use `itemToStringValue` and `isItemEqualToValue` to handle object-to-ID conversion.
+Base UI Combobox expects **full item objects** as values, not primitive IDs. Use `itemToStringValue`, `itemToStringLabel`, and `isItemEqualToValue` to handle object-to-ID conversion and filtering.
 
 ### ❌ Wrong - Using primitive IDs
 ```tsx
@@ -369,7 +394,7 @@ Base UI Combobox expects **full item objects** as values, not primitive IDs. Use
 </Combobox>
 ```
 
-### ✅ Correct - Using full objects
+### ✅ Correct - Using full objects with filtering
 ```tsx
 const selectedCalendar = calendars?.find(
   (cal) => cal.id === field.state.value,
@@ -382,17 +407,92 @@ const selectedCalendar = calendars?.find(
     field.handleChange(value === null ? undefined : value.id);
   }}
   itemToStringValue={(item) => item.id}
+  itemToStringLabel={(item) => item.name}
   isItemEqualToValue={(item, value) => item.id === value.id}
 >
-  {calendars.map((calendar) => (
-    <ComboboxItem key={calendar.id} value={calendar}>
-      {calendar.name}
-    </ComboboxItem>
-  ))}
+  <ComboboxInput placeholder="Type calendar name" />
+  <ComboboxEmpty>No calendars found</ComboboxEmpty>
+  <ComboboxList>
+    {(calendar) => (
+      <ComboboxItem key={calendar.id} value={calendar}>
+        {calendar.name}
+      </ComboboxItem>
+    )}
+  </ComboboxList>
 </Combobox>
 ```
 
-**Why:** Base UI Combobox works with object references for value matching. `itemToStringValue` extracts the ID for form submission, and `isItemEqualToValue` compares objects by ID.
+**Why:** Base UI Combobox works with object references for value matching. `itemToStringValue` extracts the ID for form submission, `itemToStringLabel` is used for filtering/searching (defaults to `itemToStringValue` if not provided), and `isItemEqualToValue` compares objects by ID. Use the render prop pattern `{(item) => ...}` in `ComboboxList` instead of `.map()` so Base UI can automatically filter items based on the input value.
+
+## Icon Button Toggles
+
+Use `Button` components with conditional icon rendering for toggle states. Different icons represent different states.
+
+### ✅ Correct - Icon buttons for toggle states
+```tsx
+<form.AppField name="busy">
+  {(field) => {
+    const isBusy = field.state.value === "busy";
+    return (
+      <Button
+        type="button"
+        variant="outline"
+        size="icon-sm"
+        onClick={() => {
+          field.handleChange(isBusy ? "free" : "busy");
+        }}
+        aria-label={isBusy ? "Busy" : "Free"}
+      >
+        {isBusy ? <Briefcase /> : <BriefcaseBusiness />}
+      </Button>
+    );
+  }}
+</form.AppField>
+```
+
+**Why:** Use `Button` with conditional icons for toggle states. Use `size="icon-sm"` for icon-only buttons (not `sm` or `icon-xs`). Always include `aria-label` for accessibility. Different icons (e.g., `BriefcaseBusiness` for empty/free, `Briefcase` for full/busy) clearly communicate state.
+
+## Button and Toggle Icon Sizing
+
+Both `Button` and `Toggle` components automatically size SVG icons via CSS selectors. Don't add explicit size classes to icons inside these components.
+
+### Button Icon Sizing
+
+Button sizes icons based on the button size variant:
+- Default: `size-4` (16px)
+- `xs`: `size-3` (12px)
+- `sm`: `size-3.5` (14px)
+- `2xs`: `size-2.5` (10px)
+
+### Toggle Icon Sizing
+
+Toggle uses `size-4` (16px) for all sizes by default.
+
+### ❌ Wrong
+```tsx
+<Button size="sm">
+  <Bold className="size-4" />
+  Save
+</Button>
+
+<Toggle size="xs" aria-label="Bold">
+  <Bold className="size-4" />
+</Toggle>
+```
+
+### ✅ Correct
+```tsx
+<Button size="sm">
+  <Bold />
+  Save
+</Button>
+
+<Toggle size="xs" aria-label="Bold">
+  <Bold />
+</Toggle>
+```
+
+**Why:** Both components handle icon sizing automatically. Only add explicit size classes if you need a different size than the default.
 
 ## Quick Reference
 

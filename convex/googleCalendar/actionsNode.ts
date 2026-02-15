@@ -1,19 +1,49 @@
+"use node";
+
+import { calendar, type calendar_v3 } from "@googleapis/calendar";
 import { v } from "convex/values";
+import { OAuth2Client } from "google-auth-library";
 import {
 	action,
-	httpAction,
 	internalAction,
-	internalQuery,
-} from "./_generated/server";
-import { api } from "./_generated/api";
-import { internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
-import { authQuery } from "./helpers";
+} from "../_generated/server";
+import { api, internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 
-const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
-const GOOGLE_CALENDAR_LIST_URL =
-	"https://www.googleapis.com/calendar/v3/users/me/calendarList";
-const GOOGLE_EVENTS_URL = "https://www.googleapis.com/calendar/v3/calendars";
+function getOAuth2Client(redirectUri?: string): OAuth2Client {
+	const clientId = process.env.GOOGLE_CALENDAR_CLIENT_ID;
+	const clientSecret = process.env.GOOGLE_CALENDAR_CLIENT_SECRET;
+	if (!clientId || !clientSecret) {
+		throw new Error("Google Calendar OAuth not configured");
+	}
+	return new OAuth2Client(clientId, clientSecret, redirectUri ?? "http://localhost");
+}
+
+function getAuthenticatedCalendarClient(
+	accessToken: string
+): calendar_v3.Calendar {
+	const oauth2 = getOAuth2Client();
+	oauth2.setCredentials({ access_token: accessToken });
+	return calendar({ version: "v3", auth: oauth2 });
+}
+
+async function refreshAccessTokenWithOAuth2(refreshToken: string): Promise<{
+	access_token: string;
+	accessTokenExpiresAt: number;
+}> {
+	const oauth2 = getOAuth2Client();
+	oauth2.setCredentials({ refresh_token: refreshToken });
+	await oauth2.getAccessToken();
+	const creds = oauth2.credentials;
+	const expiryDate = creds.expiry_date;
+	if (!creds.access_token || expiryDate == null) {
+		throw new Error("Token refresh failed: no access token or expiry");
+	}
+	return {
+		access_token: creds.access_token,
+		accessTokenExpiresAt: expiryDate,
+	};
+}
 
 type StatePayload = { userId: string; provider?: "google" | "microsoft" };
 
@@ -25,56 +55,6 @@ function decodeState(state: string): StatePayload {
 		throw new Error("Invalid state parameter");
 	}
 }
-
-/** Auth: get current user's Google connection and calendars for UI. */
-export const getMyGoogleConnection = authQuery({
-	args: {},
-	handler: async (ctx) => {
-		const connection = await ctx.db
-			.query("calendarConnections")
-			.withIndex("by_user_and_provider", (q) =>
-				q.eq("userId", ctx.user._id).eq("provider", "google")
-			)
-			.unique();
-		if (!connection) return null;
-		const externalCalendars = await ctx.db
-			.query("externalCalendars")
-			.withIndex("by_connection", (q) => q.eq("connectionId", connection._id))
-			.collect();
-		return {
-			connectionId: connection._id,
-			googleCalendars: externalCalendars.map((ext) => ({
-				_id: ext._id,
-				googleCalendarId: ext.externalCalendarId,
-				calendarId: ext.calendarId,
-				name: ext.name,
-				color: ext.color,
-			})),
-		};
-	},
-});
-
-/** Internal: get connection id and external calendar ids for a user (for syncMyCalendars). */
-export const getConnectionByUserId = internalQuery({
-	args: { userId: v.id("users") },
-	handler: async (ctx, args) => {
-		const connection = await ctx.db
-			.query("calendarConnections")
-			.withIndex("by_user_and_provider", (q) =>
-				q.eq("userId", args.userId).eq("provider", "google")
-			)
-			.unique();
-		if (!connection) return null;
-		const externalCalendars = await ctx.db
-			.query("externalCalendars")
-			.withIndex("by_connection", (q) => q.eq("connectionId", connection._id))
-			.collect();
-		return {
-			connectionId: connection._id,
-			externalCalendarIds: externalCalendars.map((ext) => ext.externalCalendarId),
-		};
-	},
-});
 
 type UpsertEventPayload = {
 	userId: Id<"users">;
@@ -116,7 +96,7 @@ function computeIsEditable(
 function googleEventToPayload(
 	userId: Id<"users">,
 	calendarId: Id<"calendars"> | undefined,
-	item: GoogleCalendarEvent,
+	item: calendar_v3.Schema$Event,
 	userEmail: string,
 ): UpsertEventPayload & { externalEventId: string } {
 	const start = item.start?.dateTime
@@ -146,9 +126,9 @@ function googleEventToPayload(
 		startTime = s.toISOString().slice(11, 16);
 		endTime = e.toISOString().slice(11, 16);
 	}
-	const creatorEmail = item.creator?.email;
-	const organizerEmail = item.organizer?.email;
-	const guestsCanModify = item.guestsCanModify;
+	const creatorEmail = item.creator?.email ?? undefined;
+	const organizerEmail = item.organizer?.email ?? undefined;
+	const guestsCanModify = item.guestsCanModify ?? undefined;
 	const isEditable = computeIsEditable(
 		userEmail,
 		creatorEmail,
@@ -160,7 +140,7 @@ function googleEventToPayload(
 		calendarId,
 		externalEventId: item.id ?? "",
 		title: item.summary ?? "(No title)",
-		description: item.description,
+		description: item.description ?? undefined,
 		startTimestamp: start,
 		endTimestamp: end,
 		allDay,
@@ -168,8 +148,8 @@ function googleEventToPayload(
 		endDateStr,
 		startTime,
 		endTime,
-		timeZone: tz,
-		location: item.location,
+		timeZone: tz ?? undefined,
+		location: item.location ?? undefined,
 		color: undefined,
 		recurringEventId: item.recurringEventId ?? undefined,
 		creatorEmail,
@@ -179,21 +159,16 @@ function googleEventToPayload(
 	};
 }
 
-type GoogleCalendarEvent = {
-	id?: string;
-	summary?: string;
-	description?: string;
-	location?: string;
-	start?: { date?: string; dateTime?: string; timeZone?: string };
-	end?: { date?: string; dateTime?: string; timeZone?: string };
-	status?: string;
-	recurringEventId?: string;
-	recurrence?: string[];
-	originalStartTime?: { date?: string; dateTime?: string; timeZone?: string };
-	creator?: { email?: string };
-	organizer?: { email?: string };
-	guestsCanModify?: boolean;
-};
+/** Refresh access token using refresh_token (via OAuth2Client). */
+async function refreshAccessToken(refreshToken: string): Promise<{
+	access_token: string;
+	expires_in: number;
+}> {
+	const { access_token, accessTokenExpiresAt } =
+		await refreshAccessTokenWithOAuth2(refreshToken);
+	const expires_in = Math.round((accessTokenExpiresAt - Date.now()) / 1000);
+	return { access_token, expires_in };
+}
 
 /** Exchange OAuth code for tokens, store connection, fetch and store calendar list. */
 export const exchangeCode = action({
@@ -209,60 +184,30 @@ export const exchangeCode = action({
 		const { userId: userIdStr } = decodeState(args.state);
 		const userId = userIdStr as Id<"users">;
 
-		const clientId = process.env.GOOGLE_CALENDAR_CLIENT_ID;
-		const clientSecret = process.env.GOOGLE_CALENDAR_CLIENT_SECRET;
-		if (!clientId || !clientSecret) {
-			throw new Error("Google Calendar OAuth not configured");
-		}
-
-		const tokenRes = await fetch(GOOGLE_TOKEN_URL, {
-			method: "POST",
-			headers: { "Content-Type": "application/x-www-form-urlencoded" },
-			body: new URLSearchParams({
-				code: args.code,
-				client_id: clientId,
-				client_secret: clientSecret,
-				redirect_uri: args.redirectUri,
-				grant_type: "authorization_code",
-			}),
-		});
-		if (!tokenRes.ok) {
-			const err = await tokenRes.text();
-			throw new Error(`Token exchange failed: ${err}`);
-		}
-		const tokens = (await tokenRes.json()) as {
-			access_token: string;
-			refresh_token?: string;
-			expires_in?: number;
-		};
+		const oauth2 = getOAuth2Client(args.redirectUri);
+		const { tokens } = await oauth2.getToken(args.code);
 		if (!tokens.refresh_token) {
 			throw new Error("No refresh token returned");
 		}
-		const now = Date.now();
-		const accessTokenExpiresAt = tokens.expires_in
-			? now + tokens.expires_in * 1000
-			: undefined;
+		const accessTokenExpiresAt = tokens.expiry_date ?? undefined;
 
 		const connectionId = (await ctx.runMutation(
-			internal.calendarSync.saveConnection,
+			internal.googleCalendar.mutations.saveConnection,
 			{
 				provider: "google",
 				userId,
 				refreshToken: tokens.refresh_token,
-				accessToken: tokens.access_token,
+				accessToken: tokens.access_token ?? "",
 				accessTokenExpiresAt,
 			}
 		)) as Id<"calendarConnections">;
 
-		// Fetch calendar list and add each as external calendar + Convex calendar
-		const listRes = await fetch(GOOGLE_CALENDAR_LIST_URL, {
-			headers: { Authorization: `Bearer ${tokens.access_token}` },
-		});
-		if (listRes.ok) {
-			const data = (await listRes.json()) as {
-				items?: { id: string; summary?: string; backgroundColor?: string }[];
-			};
-			const items = data.items ?? [];
+		// Fetch calendar list via client and add each as external calendar + Convex calendar
+		oauth2.setCredentials(tokens);
+		const calendarClient = calendar({ version: "v3", auth: oauth2 });
+		const listRes = await calendarClient.calendarList.list();
+		const items = listRes.data.items ?? [];
+		if (items.length > 0) {
 			const colorMap: Record<string, string> = {
 				"#9e69af": "purple",
 				"#7986cb": "blue",
@@ -285,23 +230,24 @@ export const exchangeCode = action({
 				"#757575": "gray",
 			};
 			for (const cal of items) {
+				const calId = cal.id ?? "";
 				const color = cal.backgroundColor
 					? colorMap[cal.backgroundColor.toLowerCase()] ?? "blue"
 					: "blue";
-				await ctx.runMutation(internal.calendarSync.addExternalCalendar, {
+				await ctx.runMutation(internal.googleCalendar.mutations.addExternalCalendar, {
 					connectionId,
 					provider: "google",
-					externalCalendarId: cal.id,
-					name: cal.summary ?? cal.id,
+					externalCalendarId: calId,
+					name: cal.summary ?? calId,
 					color,
 				});
 				try {
-					await ctx.runAction(internal.googleCalendar.registerWatch, {
+					await ctx.runAction(internal.googleCalendar.actionsNode.registerWatch, {
 						connectionId,
-						externalCalendarId: cal.id,
+						externalCalendarId: calId,
 					});
 				} catch (e) {
-					console.warn("registerWatch failed for", cal.id, e);
+					console.warn("registerWatch failed for", calId, e);
 				}
 			}
 		}
@@ -309,33 +255,6 @@ export const exchangeCode = action({
 		return { connectionId };
 	},
 });
-
-/** Refresh access token using refresh_token. */
-async function refreshAccessToken(refreshToken: string): Promise<{
-	access_token: string;
-	expires_in: number;
-}> {
-	const clientId = process.env.GOOGLE_CALENDAR_CLIENT_ID;
-	const clientSecret = process.env.GOOGLE_CALENDAR_CLIENT_SECRET;
-	if (!clientId || !clientSecret) {
-		throw new Error("Google Calendar OAuth not configured");
-	}
-	const res = await fetch(GOOGLE_TOKEN_URL, {
-		method: "POST",
-		headers: { "Content-Type": "application/x-www-form-urlencoded" },
-		body: new URLSearchParams({
-			refresh_token: refreshToken,
-			client_id: clientId,
-			client_secret: clientSecret,
-			grant_type: "refresh_token",
-		}),
-	});
-	if (!res.ok) {
-		throw new Error(`Token refresh failed: ${await res.text()}`);
-	}
-	const data = (await res.json()) as { access_token: string; expires_in: number };
-	return data;
-}
 
 /** Internal: sync one Google calendar (used by syncMyCalendars and webhook/cron). */
 export const syncCalendar = internalAction({
@@ -345,7 +264,7 @@ export const syncCalendar = internalAction({
 	},
 	handler: async (ctx, args) => {
 		const data = await ctx.runQuery(
-			internal.calendarSync.getConnectionAndExternalCalendar,
+			internal.googleCalendar.queries.getConnectionAndExternalCalendar,
 			{
 				connectionId: args.connectionId,
 				externalCalendarId: args.externalCalendarId,
@@ -366,32 +285,57 @@ export const syncCalendar = internalAction({
 			const refreshed = await refreshAccessToken(connection.refreshToken);
 			accessToken = refreshed.access_token;
 			accessTokenExpiresAt = now + refreshed.expires_in * 1000;
-			await ctx.runMutation(internal.calendarSync.updateConnectionTokens, {
+			await ctx.runMutation(internal.googleCalendar.mutations.updateConnectionTokens, {
 				connectionId: args.connectionId,
 				accessToken,
 				accessTokenExpiresAt,
 			});
 		}
 
-		const url = new URL(
-			`${GOOGLE_EVENTS_URL}/${encodeURIComponent(args.externalCalendarId)}/events`
-		);
-		url.searchParams.set("singleEvents", "true");
-		if (externalCalendar.syncToken) {
-			url.searchParams.set("syncToken", externalCalendar.syncToken);
-		} else {
-			const timeMin = new Date();
-			timeMin.setMonth(timeMin.getMonth() - 1);
-			url.searchParams.set("timeMin", timeMin.toISOString());
+		const userId = connection.userId;
+		const calendarId = externalCalendar.calendarId;
+
+		const calendarClient = getAuthenticatedCalendarClient(accessToken);
+		let timeMin: string | undefined;
+		if (!externalCalendar.syncToken) {
+			const prefs = await ctx.runQuery(
+				internal.users.queries.getUserPreferencesByUserId,
+				{ userId: connection.userId },
+			);
+			const months = prefs?.calendarSyncFromMonths ?? 1;
+			const capped = Math.min(Math.max(1, months), 24);
+			const minDate = new Date();
+			minDate.setMonth(minDate.getMonth() - capped);
+			timeMin = minDate.toISOString();
 		}
 
-		const eventsRes = await fetch(url.toString(), {
-			headers: { Authorization: `Bearer ${accessToken}` },
-		});
-		if (!eventsRes.ok) {
-			if (eventsRes.status === 410) {
+		const allItems: calendar_v3.Schema$Event[] = [];
+		let lastNextSyncToken: string | undefined;
+		let pageToken: string | undefined;
+
+		try {
+			do {
+				const listParams: calendar_v3.Params$Resource$Events$List = {
+					calendarId: args.externalCalendarId,
+					singleEvents: true,
+					pageToken,
+				};
+				if (externalCalendar.syncToken) {
+					listParams.syncToken = externalCalendar.syncToken;
+				} else {
+					listParams.timeMin = timeMin;
+				}
+				const eventsRes = await calendarClient.events.list(listParams);
+				const data = eventsRes.data;
+				allItems.push(...(data.items ?? []));
+				lastNextSyncToken = data.nextSyncToken ?? undefined;
+				pageToken = data.nextPageToken ?? undefined;
+			} while (pageToken);
+		} catch (err: unknown) {
+			const status = (err as { response?: { status?: number } })?.response?.status;
+			if (status === 410) {
 				await ctx.runMutation(
-					internal.calendarSync.updateExternalCalendarSyncToken,
+					internal.googleCalendar.mutations.updateExternalCalendarSyncToken,
 					{
 						connectionId: args.connectionId,
 						externalCalendarId: args.externalCalendarId,
@@ -399,42 +343,71 @@ export const syncCalendar = internalAction({
 					}
 				);
 			}
-			throw new Error(`Events list failed: ${await eventsRes.text()}`);
+			throw err;
 		}
-		const eventsData = (await eventsRes.json()) as {
-			items?: GoogleCalendarEvent[];
-			nextSyncToken?: string;
-		};
-		const items = eventsData.items ?? [];
-		const userId = connection.userId;
-		const calendarId = externalCalendar.calendarId;
 
 		// Get user email for computing isEditable
-		const user = await ctx.runQuery(internal.users.getUserById, { userId });
+		const user = await ctx.runQuery(internal.users.queries.getUserById, { userId });
 		const userEmail = user?.email ?? "";
 
-		for (const item of items) {
+		const BATCH_SIZE = 100;
+		const toDelete: {
+			provider: "google";
+			externalCalendarId: string;
+			externalEventId: string;
+		}[] = [];
+		const toUpsert: {
+			provider: "google";
+			externalCalendarId: string;
+			externalEventId: string;
+			userId: Id<"users">;
+			calendarId: Id<"calendars"> | undefined;
+			title: string;
+			description?: string;
+			startTimestamp: number;
+			endTimestamp: number;
+			allDay: boolean;
+			startDateStr?: string;
+			endDateStr?: string;
+			startTime?: string;
+			endTime?: string;
+			timeZone?: string;
+			location?: string;
+			color?: string;
+			recurringEventId?: string;
+			creatorEmail?: string;
+			organizerEmail?: string;
+			guestsCanModify?: boolean;
+			isEditable?: boolean;
+		}[] = [];
+
+		for (const item of allItems) {
 			if (item.status === "cancelled") {
 				if (item.id) {
-					await ctx.runMutation(
-						internal.calendarSync.deleteEventByExternalId,
-						{
-							provider: "google",
-							externalCalendarId: args.externalCalendarId,
-							externalEventId: item.id,
-						}
-					);
+					toDelete.push({
+						provider: "google",
+						externalCalendarId: args.externalCalendarId,
+						externalEventId: item.id,
+					});
 				}
 				continue;
 			}
-			if (!item.id) continue;
+			if (!item.id) {
+				console.warn("[googleCalendar] Event missing id, skipping", {
+					summary: item.summary,
+					status: item.status,
+					recurringEventId: item.recurringEventId,
+					externalCalendarId: args.externalCalendarId,
+				});
+				continue;
+			}
 			const payload = googleEventToPayload(
 				userId,
 				calendarId ?? undefined,
 				item,
 				userEmail,
 			);
-			await ctx.runMutation(internal.calendarSync.upsertEventFromExternal, {
+			toUpsert.push({
 				provider: "google",
 				externalCalendarId: args.externalCalendarId,
 				externalEventId: payload.externalEventId,
@@ -460,13 +433,28 @@ export const syncCalendar = internalAction({
 			});
 		}
 
-		if (eventsData.nextSyncToken) {
+		for (let i = 0; i < toDelete.length; i += BATCH_SIZE) {
+			const chunk = toDelete.slice(i, i + BATCH_SIZE);
 			await ctx.runMutation(
-				internal.calendarSync.updateExternalCalendarSyncToken,
+				internal.googleCalendar.mutations.deleteEventsByExternalIdBatch,
+				{ deletes: chunk },
+			);
+		}
+		for (let i = 0; i < toUpsert.length; i += BATCH_SIZE) {
+			const chunk = toUpsert.slice(i, i + BATCH_SIZE);
+			await ctx.runMutation(
+				internal.googleCalendar.mutations.upsertEventsFromExternalBatch,
+				{ events: chunk },
+			);
+		}
+
+		if (lastNextSyncToken) {
+			await ctx.runMutation(
+				internal.googleCalendar.mutations.updateExternalCalendarSyncToken,
 				{
 					connectionId: args.connectionId,
 					externalCalendarId: args.externalCalendarId,
-					syncToken: eventsData.nextSyncToken,
+					syncToken: lastNextSyncToken,
 				}
 			);
 		}
@@ -485,7 +473,7 @@ export const registerWatch = internalAction({
 			throw new Error("GOOGLE_CALENDAR_WEBHOOK_URL not set");
 		}
 		const data = await ctx.runQuery(
-			internal.calendarSync.getConnectionAndExternalCalendar,
+			internal.googleCalendar.queries.getConnectionAndExternalCalendar,
 			{
 				connectionId: args.connectionId,
 				externalCalendarId: args.externalCalendarId,
@@ -505,7 +493,7 @@ export const registerWatch = internalAction({
 			const refreshed = await refreshAccessToken(data.connection.refreshToken);
 			accessToken = refreshed.access_token;
 			accessTokenExpiresAt = now + refreshed.expires_in * 1000;
-			await ctx.runMutation(internal.calendarSync.updateConnectionTokens, {
+			await ctx.runMutation(internal.googleCalendar.mutations.updateConnectionTokens, {
 				connectionId: args.connectionId,
 				accessToken,
 				accessTokenExpiresAt,
@@ -513,59 +501,28 @@ export const registerWatch = internalAction({
 		}
 		const channelId = crypto.randomUUID();
 		const expirationMs = now + 7 * 24 * 60 * 60 * 1000; // 7 days (Google max)
-		const watchRes = await fetch(
-			`${GOOGLE_EVENTS_URL}/${encodeURIComponent(args.externalCalendarId)}/events/watch`,
-			{
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${accessToken}`,
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					id: channelId,
-					type: "web_hook",
-					address: webhookUrl,
-					expiration: expirationMs,
-				}),
-			}
-		);
-		if (!watchRes.ok) {
-			throw new Error(`events.watch failed: ${await watchRes.text()}`);
-		}
-		const watchData = (await watchRes.json()) as {
-			id: string;
-			resourceId: string;
-			expiration?: string;
-		};
+		const calendarClient = getAuthenticatedCalendarClient(accessToken);
+		const watchRes = await calendarClient.events.watch({
+			calendarId: args.externalCalendarId,
+			requestBody: {
+				id: channelId,
+				type: "web_hook",
+				address: webhookUrl,
+				expiration: String(expirationMs),
+			},
+		});
+		const watchData = watchRes.data;
 		const expiration = watchData.expiration
-			? new Date(watchData.expiration).getTime()
+			? new Date(Number(watchData.expiration)).getTime()
 			: expirationMs;
-		await ctx.runMutation(internal.calendarSync.updateExternalCalendarChannel, {
+		await ctx.runMutation(internal.googleCalendar.mutations.updateExternalCalendarChannel, {
 			connectionId: args.connectionId,
 			externalCalendarId: args.externalCalendarId,
-			channelId: watchData.id,
-			resourceId: watchData.resourceId,
+			channelId: watchData.id ?? channelId,
+			resourceId: watchData.resourceId ?? "",
 			expiration,
 		});
 	},
-});
-
-/** HTTP webhook: Google POSTs here on calendar changes; return 200 and schedule sync. */
-export const googleCalendarWebhook = httpAction(async (ctx, request) => {
-	const channelId = request.headers.get("X-Goog-Channel-ID");
-	if (!channelId) {
-		return new Response("Missing X-Goog-Channel-ID", { status: 400 });
-	}
-	const data = await ctx.runQuery(internal.calendarSync.getByChannelId, {
-		channelId,
-	});
-	if (data) {
-		await ctx.scheduler.runAfter(0, internal.googleCalendar.syncCalendar, {
-			connectionId: data.connectionId,
-			externalCalendarId: data.externalCalendarId,
-		});
-	}
-	return new Response(null, { status: 200 });
 });
 
 /** Internal: renew watch channels that expire within 48h (for cron). */
@@ -573,12 +530,12 @@ export const renewExpiringChannels = internalAction({
 	args: {},
 	handler: async (ctx) => {
 		const list = await ctx.runQuery(
-			internal.calendarSync.getCalendarsNeedingChannelRenewal,
+			internal.googleCalendar.queries.getCalendarsNeedingChannelRenewal,
 			{}
 		);
 		for (const { connectionId, externalCalendarId } of list) {
 			try {
-				await ctx.runAction(internal.googleCalendar.registerWatch, {
+				await ctx.runAction(internal.googleCalendar.actionsNode.registerWatch, {
 					connectionId,
 					externalCalendarId,
 				});
@@ -599,12 +556,12 @@ export const runFallbackSync = internalAction({
 	args: {},
 	handler: async (ctx) => {
 		const list = await ctx.runQuery(
-			internal.calendarSync.getAllSyncedCalendars,
+			internal.googleCalendar.queries.getAllSyncedCalendars,
 			{}
 		);
 		for (const { connectionId, externalCalendarId } of list) {
 			try {
-				await ctx.runAction(internal.googleCalendar.syncCalendar, {
+				await ctx.runAction(internal.googleCalendar.actionsNode.syncCalendar, {
 					connectionId,
 					externalCalendarId,
 				});
@@ -642,7 +599,7 @@ export const syncEventToGoogle = internalAction({
 	},
 	handler: async (ctx, args) => {
 		// 1. Get event data
-		const event = await ctx.runQuery(internal.events.getEventByIdInternal, {
+		const event = await ctx.runQuery(internal.events.queries.getEventByIdInternal, {
 			id: args.eventId,
 		});
 		if (
@@ -656,7 +613,7 @@ export const syncEventToGoogle = internalAction({
 
 		// 2. Get connection via external calendar
 		const externalCalendar = await ctx.runQuery(
-			internal.calendarSync.getExternalCalendarByExternalId,
+			internal.googleCalendar.queries.getExternalCalendarByExternalId,
 			{
 				provider: "google",
 				externalCalendarId: event.externalCalendarId,
@@ -667,7 +624,7 @@ export const syncEventToGoogle = internalAction({
 		}
 
 		const connectionData = await ctx.runQuery(
-			internal.calendarSync.getConnectionAndExternalCalendar,
+			internal.googleCalendar.queries.getConnectionAndExternalCalendar,
 			{
 				connectionId: externalCalendar.connectionId,
 				externalCalendarId: event.externalCalendarId,
@@ -691,78 +648,65 @@ export const syncEventToGoogle = internalAction({
 			const refreshed = await refreshAccessToken(connection.refreshToken);
 			accessToken = refreshed.access_token;
 			accessTokenExpiresAt = now + refreshed.expires_in * 1000;
-			await ctx.runMutation(internal.calendarSync.updateConnectionTokens, {
+			await ctx.runMutation(internal.googleCalendar.mutations.updateConnectionTokens, {
 				connectionId: externalCalendar.connectionId,
 				accessToken,
 				accessTokenExpiresAt,
 			});
 		}
 
-		// 4. Build Google Calendar API payload
+		// 4. Build Google Calendar API payload (single object with spread; type via satisfies)
 		const finalStartTimestamp =
 			args.updates.startTimestamp ?? event.startTimestamp;
 		const finalEndTimestamp = args.updates.endTimestamp ?? event.endTimestamp;
 		const finalAllDay = args.updates.allDay ?? event.allDay;
 
-		const googlePayload: Record<string, unknown> = {
+		const timeZone = args.updates.timeZone ?? event.timeZone ?? "UTC";
+		const startIso = new Date(finalStartTimestamp).toISOString();
+		const endIso = new Date(finalEndTimestamp).toISOString();
+		const googlePayload = {
 			summary: args.updates.title ?? event.title,
 			description: args.updates.description ?? event.description ?? "",
 			location: args.updates.location ?? event.location ?? "",
+			...(finalAllDay
+				? {
+						start: {
+							date:
+								args.updates.startDateStr ??
+								event.startDateStr ??
+								startIso.slice(0, 10),
+						},
+						end: {
+							date:
+								args.updates.endDateStr ??
+								event.endDateStr ??
+								endIso.slice(0, 10),
+						},
+					}
+				: {
+						start: { dateTime: startIso, timeZone },
+						end: { dateTime: endIso, timeZone },
+					}),
+		} satisfies calendar_v3.Schema$Event;
+
+		// 5. PATCH via calendar client (params built with spread; type via satisfies)
+		const calendarClient = getAuthenticatedCalendarClient(accessToken);
+		const patchParams = {
+			calendarId: event.externalCalendarId,
+			eventId: event.externalEventId,
+			requestBody: googlePayload,
+			...(event.recurringEventId && args.recurringEditMode === "this"
+				? {
+						originalStartTime:
+							args.originalStartTimestamp != null
+								? new Date(args.originalStartTimestamp).toISOString()
+								: new Date(event.startTimestamp).toISOString(),
+					}
+				: {}),
+		} satisfies calendar_v3.Params$Resource$Events$Patch & {
+			originalStartTime?: string;
 		};
-
-		// Convert timestamps to Google dateTime/date format
-		if (finalAllDay) {
-			const startDateStr =
-				args.updates.startDateStr ??
-				event.startDateStr ??
-				new Date(finalStartTimestamp).toISOString().slice(0, 10);
-			const endDateStr =
-				args.updates.endDateStr ??
-				event.endDateStr ??
-				new Date(finalEndTimestamp).toISOString().slice(0, 10);
-			googlePayload.start = { date: startDateStr };
-			googlePayload.end = { date: endDateStr };
-		} else {
-			const timeZone =
-				args.updates.timeZone ?? event.timeZone ?? "UTC";
-			const startDateTime = new Date(finalStartTimestamp).toISOString();
-			const endDateTime = new Date(finalEndTimestamp).toISOString();
-			googlePayload.start = {
-				dateTime: startDateTime,
-				timeZone,
-			};
-			googlePayload.end = {
-				dateTime: endDateTime,
-				timeZone,
-			};
-		}
-
-		// 5. Determine API endpoint
-		let url = `${GOOGLE_EVENTS_URL}/${encodeURIComponent(event.externalCalendarId)}/events/${encodeURIComponent(event.externalEventId)}`;
-
-		// 6. For recurring events, add originalStartTime if editing single instance
-		if (event.recurringEventId && args.recurringEditMode === "this") {
-			// Use the original startTimestamp (before update) if provided, otherwise use current
-			const originalStartTime = args.originalStartTimestamp
-				? new Date(args.originalStartTimestamp).toISOString()
-				: new Date(event.startTimestamp).toISOString();
-			url += `?originalStartTime=${encodeURIComponent(originalStartTime)}`;
-		}
-
-		// 7. PATCH to Google Calendar API
-		const res = await fetch(url, {
-			method: "PATCH",
-			headers: {
-				Authorization: `Bearer ${accessToken}`,
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify(googlePayload),
-		});
-
-		if (!res.ok) {
-			const errorText = await res.text();
-			throw new Error(`Google Calendar sync failed: ${errorText}`);
-		}
+		await calendarClient.events.patch(patchParams);
 	},
 });
 
@@ -770,19 +714,19 @@ export const syncEventToGoogle = internalAction({
 export const syncMyCalendars = action({
 	args: {},
 	handler: async (ctx) => {
-		const userId = await ctx.runQuery(api.users.getCurrentUserId);
+		const userId = await ctx.runQuery(api.users.queries.getCurrentUserId);
 		if (!userId) {
 			throw new Error("Not authenticated");
 		}
 		const data = await ctx.runQuery(
-			internal.googleCalendar.getConnectionByUserId,
+			internal.googleCalendar.queries.getConnectionByUserId,
 			{ userId }
 		);
 		if (!data) {
 			return; // No Google connection
 		}
 		for (const externalCalendarId of data.externalCalendarIds) {
-			await ctx.runAction(internal.googleCalendar.syncCalendar, {
+			await ctx.runAction(internal.googleCalendar.actionsNode.syncCalendar, {
 				connectionId: data.connectionId,
 				externalCalendarId,
 			});

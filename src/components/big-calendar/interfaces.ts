@@ -36,6 +36,8 @@ export const ZEventSchema = z.object({
 	recurringEventId: z.string().optional(),
 	isEditable: z.boolean().optional(),
 	calendarId: z.string().optional(),
+	busy: z.enum(["busy", "free", "tentative", "outOfOffice"]).optional(),
+	visibility: z.enum(["public", "private"]).optional(),
 });
 
 export type TUser = z.infer<typeof ZUserSchema>;

@@ -5,9 +5,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { FunctionArgs } from "convex/server";
 import { toast } from "sonner";
 
-export type DeleteEventPayload = FunctionArgs<typeof api.events.deleteEvent>;
+export type DeleteEventPayload = FunctionArgs<typeof api.events.mutations.deleteEvent>;
 
-const eventsQueryKey = convexQuery(api.events.getEventsByUser).queryKey;
+const eventsQueryKey = convexQuery(api.events.queries.getEventsByUser).queryKey;
 
 function removeEventFromCache(prev: unknown, id: Id<"events">): unknown {
 	if (!Array.isArray(prev)) {
@@ -17,13 +17,13 @@ function removeEventFromCache(prev: unknown, id: Id<"events">): unknown {
 }
 
 /**
- * useMutation for api.events.deleteEvent with optimistic update of the
+ * useMutation for api.events.mutations.deleteEvent with optimistic update of the
  * getEventsByUser query cache. Use this instead of raw useConvexMutation
  * so the event disappears from the UI immediately.
  */
 export function useDeleteEventMutation() {
 	const queryClient = useQueryClient();
-	const deleteEventFn = useConvexMutation(api.events.deleteEvent);
+	const deleteEventFn = useConvexMutation(api.events.mutations.deleteEvent);
 
 	const mutation = useMutation({
 		mutationFn: deleteEventFn,

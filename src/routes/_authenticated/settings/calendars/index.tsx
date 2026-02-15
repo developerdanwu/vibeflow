@@ -65,15 +65,27 @@ const GOOGLE_SCOPES =
 
 function CalendarsSettings() {
 	const { data: calendars, isLoading } = useQuery(
-		convexQuery(api.calendars.getUserCalendars),
+		convexQuery(api.calendars.queries.getUserCalendars),
 	);
 	const { data: googleConnection } = useQuery(
-		convexQuery(api.googleCalendar.getMyGoogleConnection),
+		convexQuery(api.googleCalendar.queries.getMyGoogleConnection),
 	);
 	const { data: currentUserId } = useQuery(
-		convexQuery(api.users.getCurrentUserId),
+		convexQuery(api.users.queries.getCurrentUserId),
 	);
-	const syncMyCalendars = useAction(api.googleCalendar.syncMyCalendars);
+	const { data: userPreferences } = useQuery(
+		convexQuery(api.users.queries.getUserPreferences),
+	);
+	const syncMyCalendars = useAction(api.googleCalendar.actionsNode.syncMyCalendars);
+	const updateUserPreferencesFn = useConvexMutation(
+		api.users.mutations.updateUserPreferences,
+	);
+	const { mutate: updateSyncFromMonths } = useMutation({
+		mutationFn: updateUserPreferencesFn,
+		onError: (err) => {
+			toast.error(err.message);
+		},
+	});
 
 	const [syncLoading, setSyncLoading] = useState(false);
 	const clientId = import.meta.env.VITE_GOOGLE_CALENDAR_CLIENT_ID as
@@ -106,7 +118,7 @@ function CalendarsSettings() {
 		}
 	};
 
-	const createCalendarFn = useConvexMutation(api.calendars.createCalendar);
+	const createCalendarFn = useConvexMutation(api.calendars.mutations.createCalendar);
 	const { mutateAsync: createCalendar, isPending: isCreating } = useMutation({
 		mutationFn: createCalendarFn,
 		onSuccess: () => {
@@ -121,7 +133,7 @@ function CalendarsSettings() {
 		},
 	});
 
-	const updateCalendarFn = useConvexMutation(api.calendars.updateCalendar);
+	const updateCalendarFn = useConvexMutation(api.calendars.mutations.updateCalendar);
 	const { mutateAsync: updateCalendar, isPending: isUpdating } = useMutation({
 		mutationFn: updateCalendarFn,
 		onSuccess: () => {
@@ -134,7 +146,7 @@ function CalendarsSettings() {
 		},
 	});
 
-	const deleteCalendarFn = useConvexMutation(api.calendars.deleteCalendar);
+	const deleteCalendarFn = useConvexMutation(api.calendars.mutations.deleteCalendar);
 	const { mutateAsync: deleteCalendar, isPending: isDeleting } = useMutation({
 		mutationFn: deleteCalendarFn,
 		onSuccess: () => {
@@ -247,6 +259,32 @@ function CalendarsSettings() {
 								>
 									{syncLoading ? "Syncing…" : "Sync now"}
 								</Button>
+							</div>
+							<div className="grid gap-2">
+								<Label>Sync events from</Label>
+								<Select
+									value={String(userPreferences?.calendarSyncFromMonths ?? 1)}
+									onValueChange={(v) => {
+										updateSyncFromMonths({
+											calendarSyncFromMonths: Number(v) as 1 | 3 | 6 | 12 | 24,
+										});
+									}}
+								>
+									<SelectTrigger className="w-[180px]">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="1">Last month</SelectItem>
+										<SelectItem value="3">Last 3 months</SelectItem>
+										<SelectItem value="6">Last 6 months</SelectItem>
+										<SelectItem value="12">Last year</SelectItem>
+										<SelectItem value="24">Last 2 years</SelectItem>
+									</SelectContent>
+								</Select>
+								<p className="text-muted-foreground text-xs">
+									Only affects the next full sync; incremental syncs stay in sync
+									automatically.
+								</p>
 							</div>
 							{googleConnection.googleCalendars.length > 0 ? (
 								<ul className="flex flex-col gap-2">

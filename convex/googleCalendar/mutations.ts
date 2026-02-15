@@ -1,7 +1,7 @@
 import { v } from "convex/values";
-import { internalMutation, internalQuery } from "./_generated/server";
+import { internalMutation } from "../_generated/server";
 
-/** Provider literal union for reuse by provider modules. */
+/** Provider literal union for reuse in this module. */
 export const providerValidator = v.union(
 	v.literal("google"),
 	v.literal("microsoft"),
@@ -98,59 +98,6 @@ export const addExternalCalendar = internalMutation({
 	},
 });
 
-/** Internal: get external calendar by provider and externalCalendarId. */
-export const getExternalCalendarByExternalId = internalQuery({
-	args: {
-		provider: providerValidator,
-		externalCalendarId: v.string(),
-	},
-	handler: async (ctx, args) => {
-		const all = await ctx.db.query("externalCalendars").collect();
-		const ext = all.find(
-			(e) =>
-				e.provider === args.provider &&
-				e.externalCalendarId === args.externalCalendarId,
-		);
-		return ext ?? null;
-	},
-});
-
-/** Internal: get connection and external calendar for sync (sensitive). */
-export const getConnectionAndExternalCalendar = internalQuery({
-	args: {
-		connectionId: v.id("calendarConnections"),
-		externalCalendarId: v.string(),
-	},
-	handler: async (ctx, args) => {
-		const connection = await ctx.db.get(args.connectionId);
-		if (!connection) return null;
-		const ext = await ctx.db
-			.query("externalCalendars")
-			.withIndex("by_connection_and_external_id", (q) =>
-				q
-					.eq("connectionId", args.connectionId)
-					.eq("externalCalendarId", args.externalCalendarId)
-			)
-			.unique();
-		if (!ext) return null;
-		return {
-			connection: {
-				_id: connection._id,
-				userId: connection.userId,
-				refreshToken: connection.refreshToken,
-				accessToken: connection.accessToken,
-				accessTokenExpiresAt: connection.accessTokenExpiresAt,
-			},
-			externalCalendar: {
-				_id: ext._id,
-				calendarId: ext.calendarId,
-				externalCalendarId: ext.externalCalendarId,
-				syncToken: ext.syncToken,
-			},
-		};
-	},
-});
-
 const upsertEventPayloadValidator = {
 	userId: v.id("users"),
 	calendarId: v.optional(v.id("calendars")),
@@ -172,6 +119,15 @@ const upsertEventPayloadValidator = {
 	organizerEmail: v.optional(v.string()),
 	guestsCanModify: v.optional(v.boolean()),
 	isEditable: v.optional(v.boolean()),
+	busy: v.optional(
+		v.union(
+			v.literal("busy"),
+			v.literal("free"),
+			v.literal("tentative"),
+			v.literal("outOfOffice"),
+		),
+	),
+	visibility: v.optional(v.union(v.literal("public"), v.literal("private"))),
 };
 
 /** Internal: upsert event from external provider by (provider, externalCalendarId, externalEventId). */
@@ -198,6 +154,8 @@ export const upsertEventFromExternal = internalMutation({
 			externalProvider: provider,
 			externalCalendarId,
 			externalEventId,
+			busy: payload.busy ?? "free",
+			visibility: payload.visibility ?? "public",
 		};
 		if (existing) {
 			await ctx.db.patch(existing._id, doc);
@@ -230,52 +188,73 @@ export const deleteEventByExternalId = internalMutation({
 	},
 });
 
-/** Internal: get connectionId and externalCalendarId by channelId (Google webhook). */
-export const getByChannelId = internalQuery({
-	args: { channelId: v.string() },
+const deleteEventByExternalIdItemValidator = {
+	provider: providerValidator,
+	externalCalendarId: v.string(),
+	externalEventId: v.string(),
+};
+
+/** Internal: delete multiple events by external id (batch for sync). */
+export const deleteEventsByExternalIdBatch = internalMutation({
+	args: {
+		deletes: v.array(v.object(deleteEventByExternalIdItemValidator)),
+	},
 	handler: async (ctx, args) => {
-		const ext = await ctx.db
-			.query("externalCalendars")
-			.withIndex("by_channel", (q) => q.eq("channelId", args.channelId))
-			.unique();
-		if (!ext) return null;
-		const connection = await ctx.db.get(ext.connectionId);
-		if (!connection) return null;
-		return {
-			connectionId: ext.connectionId,
-			externalCalendarId: ext.externalCalendarId,
-		};
+		for (const d of args.deletes) {
+			const event = await ctx.db
+				.query("events")
+				.withIndex("by_external_event", (q) =>
+					q
+						.eq("externalProvider", d.provider)
+						.eq("externalCalendarId", d.externalCalendarId)
+						.eq("externalEventId", d.externalEventId)
+				)
+				.unique();
+			if (event) {
+				await ctx.db.delete(event._id);
+			}
+		}
 	},
 });
 
-/** Internal: list (connectionId, externalCalendarId) where channel expires within 48h. */
-export const getCalendarsNeedingChannelRenewal = internalQuery({
-	args: {},
-	handler: async (ctx) => {
-		const cutoff = Date.now() + 48 * 60 * 60 * 1000;
-		const all = await ctx.db.query("externalCalendars").collect();
-		return all
-			.filter(
-				(ext) =>
-					ext.channelId &&
-					(!ext.expiration || ext.expiration < cutoff),
-			)
-			.map((ext) => ({
-				connectionId: ext.connectionId,
-				externalCalendarId: ext.externalCalendarId,
-			}));
-	},
-});
+const upsertEventFromExternalItemValidator = {
+	provider: providerValidator,
+	externalCalendarId: v.string(),
+	externalEventId: v.string(),
+	...upsertEventPayloadValidator,
+};
 
-/** Internal: list all (connectionId, externalCalendarId) for fallback sync. */
-export const getAllSyncedCalendars = internalQuery({
-	args: {},
-	handler: async (ctx) => {
-		const all = await ctx.db.query("externalCalendars").collect();
-		return all.map((ext) => ({
-			connectionId: ext.connectionId,
-			externalCalendarId: ext.externalCalendarId,
-		}));
+/** Internal: upsert multiple events from external provider (batch for sync). */
+export const upsertEventsFromExternalBatch = internalMutation({
+	args: {
+		events: v.array(v.object(upsertEventFromExternalItemValidator)),
+	},
+	handler: async (ctx, args) => {
+		for (const ev of args.events) {
+			const { provider, externalCalendarId, externalEventId, ...payload } = ev;
+			const existing = await ctx.db
+				.query("events")
+				.withIndex("by_external_event", (q) =>
+					q
+						.eq("externalProvider", provider)
+						.eq("externalCalendarId", externalCalendarId)
+						.eq("externalEventId", externalEventId)
+				)
+				.unique();
+			const doc = {
+				...payload,
+				externalProvider: provider,
+				externalCalendarId,
+				externalEventId,
+				busy: payload.busy ?? "free",
+				visibility: payload.visibility ?? "public",
+			};
+			if (existing) {
+				await ctx.db.patch(existing._id, doc);
+			} else {
+				await ctx.db.insert("events", doc);
+			}
+		}
 	},
 });
 

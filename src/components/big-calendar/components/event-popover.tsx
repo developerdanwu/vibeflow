@@ -29,10 +29,15 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import { TimeInput } from "@/components/ui/time-input";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useDisclosure } from "@/hooks/use-disclosure";
 import { dialogStore } from "@/lib/dialog-store";
 import type { PopoverRootProps } from "@base-ui/react";
@@ -43,7 +48,15 @@ import { Time } from "@internationalized/date";
 import { formOptions, useStore } from "@tanstack/react-form-start";
 import { useQuery } from "@tanstack/react-query";
 import { addDays, format, parseISO, set, startOfDay, subDays } from "date-fns";
-import { CalendarIcon, InfoIcon, Trash2 } from "lucide-react";
+import {
+	Briefcase,
+	BriefcaseBusiness,
+	CalendarIcon,
+	Eye,
+	EyeOff,
+	InfoIcon,
+	Trash2,
+} from "lucide-react";
 import {
 	forwardRef,
 	useEffect,
@@ -137,6 +150,8 @@ export const eventFormSchema = z
 			.regex(/^#[0-9A-Fa-f]{6}$/, "Color must be a valid hex color")
 			.optional(),
 		calendarId: z.custom<Id<"calendars">>().optional(),
+		busy: z.enum(["busy", "free", "tentative", "outOfOffice"]).optional(),
+		visibility: z.enum(["public", "private"]).optional(),
 	})
 	.superRefine((data, ctx) => {
 		if (data.allDay) {
@@ -185,6 +200,8 @@ type GetCreateDefaultValuesInput = {
 	allDay?: boolean;
 	color?: string;
 	calendarId?: Id<"calendars">;
+	busy?: "busy" | "free" | "tentative" | "outOfOffice";
+	visibility?: "public" | "private";
 };
 
 function getCreateDefaultValues(
@@ -200,6 +217,8 @@ function getCreateDefaultValues(
 		allDay = true,
 		color = "#3B82F6",
 		calendarId,
+		busy = "free",
+		visibility = "public",
 	} = input;
 	return {
 		title,
@@ -211,6 +230,8 @@ function getCreateDefaultValues(
 		endTime,
 		color,
 		calendarId,
+		busy,
+		visibility,
 	};
 }
 
@@ -219,17 +240,8 @@ function getTimes(
 	startDate: Date,
 	rawEndDate: Date,
 ): { startTime: Time | undefined; endTime: Time | undefined } {
-	const startTimeStr = event.startTime;
-	const endTimeStr = event.endTime;
-	if (!event.allDay && startTimeStr && endTimeStr) {
-		const [startHour, startMin] = startTimeStr.split(":").map(Number);
-		const [endHour, endMin] = endTimeStr.split(":").map(Number);
-		return {
-			startTime: new Time(startHour, startMin),
-			endTime: new Time(endHour, endMin),
-		};
-	}
 	if (!event.allDay) {
+		// Derive times from Date objects (already in local timezone from parseISO)
 		return {
 			startTime: new Time(startDate.getHours(), startDate.getMinutes()),
 			endTime: new Time(rawEndDate.getHours(), rawEndDate.getMinutes()),
@@ -267,6 +279,8 @@ const EventPopoverContent = forwardRef<
 ) {
 	const formId = useId();
 	const titleId = useId();
+	const titleInputRef = useRef<HTMLInputElement | null>(null);
+	const hasFocusedTitleRef = useRef(false);
 
 	const { mutateAsync: updateEvent } = useUpdateEventMutation({
 		meta: { updateType: "edit" },
@@ -279,7 +293,7 @@ const EventPopoverContent = forwardRef<
 
 	// Fetch all user calendars (local + Google)
 	const { data: calendars } = useQuery(
-		convexQuery(api.calendars.getAllUserCalendars),
+		convexQuery(api.calendars.queries.getAllUserCalendars),
 	);
 
 	const handleDelete = () => {
@@ -322,6 +336,8 @@ const EventPopoverContent = forwardRef<
 						endDateStr: format(addDays(values.endDate, 1), "yyyy-MM-dd"),
 						color: colorName,
 						calendarId: values.calendarId,
+						busy: values.busy,
+						visibility: values.visibility,
 						recurringEditMode,
 					});
 				} else {
@@ -350,6 +366,8 @@ const EventPopoverContent = forwardRef<
 						endTimestamp: endDateTime.getTime(),
 						color: colorName,
 						calendarId: values.calendarId,
+						busy: values.busy,
+						visibility: values.visibility,
 						recurringEditMode,
 					});
 				}
@@ -363,6 +381,8 @@ const EventPopoverContent = forwardRef<
 						endDateStr: format(addDays(values.endDate, 1), "yyyy-MM-dd"),
 						color: colorName,
 						calendarId: values.calendarId,
+						busy: values.busy,
+						visibility: values.visibility,
 					});
 				} else {
 					const startTimeVal = values.startTime ?? new Time(9, 0);
@@ -389,6 +409,8 @@ const EventPopoverContent = forwardRef<
 						endTimestamp: endDateTime.getTime(),
 						color: colorName,
 						calendarId: values.calendarId,
+						busy: values.busy,
+						visibility: values.visibility,
 					});
 				}
 			}
@@ -719,6 +741,9 @@ const EventPopoverContent = forwardRef<
 						name="title"
 						listeners={{
 							onMount: ({ value }) => {
+								if (mode === "create") {
+									titleInputRef.current?.focus();
+								}
 								calendarStore.trigger.setNewEventTitle({
 									title: value ?? "",
 								});
@@ -737,6 +762,7 @@ const EventPopoverContent = forwardRef<
 								field.state.meta.isTouched && !field.state.meta.isValid;
 							return (
 								<Input
+									ref={titleInputRef}
 									className="rounded-none text-base placeholder:text-base hover:bg-transparent focus:bg-transparent focus-visible:bg-transparent"
 									variant="ghost"
 									id={titleId}
@@ -774,19 +800,18 @@ const EventPopoverContent = forwardRef<
 							<Field data-invalid={isInvalid}>
 								<FieldLabel
 									className="sr-only"
-									htmlFor={`${field.name}-textarea`}
+									htmlFor={`${field.name}-rich-text-editor`}
 								>
 									Description
 								</FieldLabel>
-								<Textarea
-									id={`${field.name}-textarea`}
+								<RichTextEditor
+									id={`${field.name}-rich-text-editor`}
 									name={field.name}
-									rows={3}
 									className="min-h-24 resize-none rounded-none hover:bg-transparent focus:bg-transparent focus-visible:bg-transparent"
 									variant="ghost"
 									value={field.state.value ?? ""}
 									onBlur={field.handleBlur}
-									onChange={(e) => field.handleChange(e.target.value)}
+									onChange={(value) => field.handleChange(value)}
 									aria-invalid={isInvalid}
 									placeholder="Add a description..."
 								/>
@@ -808,14 +833,11 @@ const EventPopoverContent = forwardRef<
 										items={calendars ?? []}
 										value={selectedCalendar ?? null}
 										onValueChange={(value) => {
-											field.handleChange(
-												value === null ? undefined : value.id,
-											);
+											field.handleChange(value === null ? undefined : value.id);
 										}}
 										itemToStringValue={(item) => item.id}
-										isItemEqualToValue={(item, value) =>
-											item.id === value.id
-										}
+										itemToStringLabel={(item) => item.name}
+										isItemEqualToValue={(item, value) => item.id === value.id}
 									>
 										<ComboboxTrigger
 											render={
@@ -853,31 +875,83 @@ const EventPopoverContent = forwardRef<
 												placeholder="Type calendar name"
 												showTrigger={false}
 											/>
+											<ComboboxEmpty>No calendars found</ComboboxEmpty>
 											<ComboboxList>
-												{calendars && calendars.length > 0 ? (
-													calendars.map((calendar) => (
-														<ComboboxItem key={calendar.id} value={calendar}>
-															<div className="flex items-center gap-2">
-																<div
-																	className="h-3 w-3 shrink-0 rounded-full"
-																	style={{ backgroundColor: calendar.color }}
-																/>
-																<span className="flex-1">{calendar.name}</span>
-																{calendar.isGoogle && (
-																	<span className="text-muted-foreground text-xs">
-																		Google
-																	</span>
-																)}
-															</div>
-														</ComboboxItem>
-													))
-												) : (
-													<ComboboxEmpty>No calendars available</ComboboxEmpty>
+												{(calendar) => (
+													<ComboboxItem key={calendar.id} value={calendar}>
+														<div className="flex items-center gap-2">
+															<div
+																className="h-3 w-3 shrink-0 rounded-full"
+																style={{ backgroundColor: calendar.color }}
+															/>
+															<span className="flex-1">{calendar.name}</span>
+															{calendar.isGoogle && (
+																<span className="text-muted-foreground text-xs">
+																	Google
+																</span>
+															)}
+														</div>
+													</ComboboxItem>
 												)}
 											</ComboboxList>
 										</ComboboxContent>
 									</Combobox>
 								</div>
+							);
+						}}
+					</form.AppField>
+					<form.AppField name="busy">
+						{(field) => {
+							// Treat undefined as "free" for display purposes
+							const currentValue = field.state.value ?? "free";
+							const isBusy = currentValue === "busy";
+							const tooltipText = isBusy ? "Busy" : "Free";
+							return (
+								<Tooltip>
+									<TooltipTrigger
+										render={
+											<Button
+												type="button"
+												variant="outline"
+												size="icon-sm"
+												onClick={() => {
+													// Toggle between "busy" and "free"
+													field.handleChange(isBusy ? "free" : "busy");
+												}}
+												aria-label={tooltipText}
+											>
+												{isBusy ? <Briefcase /> : <BriefcaseBusiness />}
+											</Button>
+										}
+									/>
+									<TooltipContent>{tooltipText}</TooltipContent>
+								</Tooltip>
+							);
+						}}
+					</form.AppField>
+					<form.AppField name="visibility">
+						{(field) => {
+							const isPrivate = field.state.value === "private";
+							const tooltipText = isPrivate ? "Private" : "Public";
+							return (
+								<Tooltip>
+									<TooltipTrigger
+										render={
+											<Button
+												type="button"
+												variant="outline"
+												size="icon-sm"
+												onClick={() => {
+													field.handleChange(isPrivate ? "public" : "private");
+												}}
+												aria-label={tooltipText}
+											>
+												{isPrivate ? <EyeOff /> : <Eye />}
+											</Button>
+										}
+									/>
+									<TooltipContent>{tooltipText}</TooltipContent>
+								</Tooltip>
 							);
 						}}
 					</form.AppField>
@@ -904,7 +978,7 @@ export function EventPopover({
 
 	// Fetch calendars to get default calendar for create mode
 	const { data: calendars } = useQuery(
-		convexQuery(api.calendars.getAllUserCalendars),
+		convexQuery(api.calendars.queries.getAllUserCalendars),
 	);
 	const defaultCalendar = calendars?.find((cal) => cal.isDefault);
 
@@ -950,6 +1024,8 @@ export function EventPopover({
 						allDay: event.allDay,
 						color: colorNameToHex[event.color] ?? "#3B82F6",
 						calendarId: event.calendarId as Id<"calendars"> | undefined,
+						busy: event.busy,
+						visibility: event.visibility,
 					});
 					return (
 						<EventPopoverContent

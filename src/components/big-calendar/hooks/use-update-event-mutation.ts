@@ -6,13 +6,13 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 
 /** Use Convex’s FunctionArgs so you don’t have to manually type mutation payloads. */
-export type UpdateEventPayload = FunctionArgs<typeof api.events.updateEvent>;
+export type UpdateEventPayload = FunctionArgs<typeof api.events.mutations.updateEvent>;
 
 export type UpdateEventMutationOptions = {
 	meta?: { updateType?: "drag" | "edit" };
 };
 
-const eventsQueryKey = convexQuery(api.events.getEventsByUser).queryKey;
+const eventsQueryKey = convexQuery(api.events.queries.getEventsByUser).queryKey;
 
 function patchEventsCache(prev: unknown, payload: UpdateEventPayload): unknown {
 	if (!Array.isArray(prev)) {
@@ -25,7 +25,7 @@ function patchEventsCache(prev: unknown, payload: UpdateEventPayload): unknown {
 }
 
 /**
- * useMutation for api.events.updateEvent with optimistic update of the
+ * useMutation for api.events.mutations.updateEvent with optimistic update of the
  * getEventsByUser query cache. Use this instead of raw useConvexMutation
  * so drag-and-drop and form updates feel instant.
  */
@@ -33,7 +33,7 @@ export function useUpdateEventMutation(options: {
 	meta: { updateType: "drag" | "edit" };
 }) {
 	const queryClient = useQueryClient();
-	const updateEventFn = useConvexMutation(api.events.updateEvent);
+	const updateEventFn = useConvexMutation(api.events.mutations.updateEvent);
 
 	const mutation = useMutation({
 		mutationFn: updateEventFn,

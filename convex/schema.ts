@@ -48,6 +48,13 @@ export default defineSchema({
 		organizerEmail: v.optional(v.string()),
 		guestsCanModify: v.optional(v.boolean()),
 		isEditable: v.optional(v.boolean()),
+		busy: v.union(
+			v.literal("busy"),
+			v.literal("free"),
+			v.literal("tentative"),
+			v.literal("outOfOffice"),
+		),
+		visibility: v.union(v.literal("public"), v.literal("private")),
 	})
 		.index("by_user", ["userId"])
 		.index("by_user_and_date", ["userId", "startTimestamp"])
@@ -112,5 +119,6 @@ export default defineSchema({
 		weekStartDay: v.optional(v.number()),
 		timeFormat: v.optional(v.union(v.literal("12h"), v.literal("24h"))),
 		timezone: v.optional(v.string()),
+		calendarSyncFromMonths: v.optional(v.number()),
 	}).index("by_user", ["userId"]),
 });

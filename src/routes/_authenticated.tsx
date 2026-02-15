@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_authenticated")({
 		}
 
 		// Ensure user exists in database before proceeding
-		await convex.mutation(api.users.ensureUserExists, {
+		await convex.mutation(api.users.mutations.ensureUserExists, {
 			authId: user.id,
 			email: user.email,
 			firstName: user.firstName ?? undefined,
