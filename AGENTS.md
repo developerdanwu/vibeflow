@@ -197,6 +197,7 @@ import { useUser } from "../../hooks/useUser";
 - Changing type definitions
 - Updating dependencies
 - Refactoring existing code
+- Changing Convex functions or test setup (and run `pnpm test` so Convex tests pass)
 
 ### Test Coverage Requirements
 - **New Features:** Must include tests for critical paths
@@ -302,6 +303,7 @@ import { useUser } from "../../hooks/useUser";
 ### Related Documentation
 - **Planning:** See [docs/planning.md](docs/planning.md) for creating plans with agent and sub-agent usage in mind (owners, dependencies, handoffs). Do not create or save plan artifacts in `docs/`; use the plan tool output or `.cursor/plans/`.
 - **Convex data patterns (frontend):** See [src/docs/convex.md](src/docs/convex.md) for mutations (TanStack Query + `useConvexMutation`), no wrapper hooks, and when to use `mutateAsync` vs `mutate`.
+- **Convex backend testing:** See [convex/docs/testing.md](convex/docs/testing.md) for when to add tests, running tests after Convex changes, convex-test, fixtures, cleanup, API typing (`api.events.mutations`), multi-user tests (`addUserToTest`), factory types (`Doc`, `MutationCtx`), fixture bundling (`.nobundle.ts`), path naming (no dashes in convex paths), and `import.meta.glob` typing (`/// <reference types="vite/client" />`).
 - **Convex Best Practices:** See `.cursorrules` for schema examples
 - **Product Requirements:** Refer to `spec.md` for feature details
 - **UI/UX Design:** Refer to `UI_SPEC.md` for visual design and component specifications

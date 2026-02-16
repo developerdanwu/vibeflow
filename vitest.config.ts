@@ -5,8 +5,12 @@ import { fileURLToPath, URL } from "node:url";
 export default defineConfig({
 	plugins: [react()],
 	test: {
-		environment: "jsdom",
+		environmentMatchGlobs: [
+			["convex/**", "edge-runtime"],
+			["**", "jsdom"],
+		],
 		globals: true,
+		server: { deps: { inline: ["convex-test"] } },
 		setupFiles: ["./src/test/setup.ts"],
 	},
 	resolve: {
