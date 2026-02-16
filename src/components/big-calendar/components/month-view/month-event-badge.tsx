@@ -138,7 +138,7 @@ export function MonthEventBadge({
 
 	return (
 		<DraggableEvent event={event} sourceView="month">
-			<Tooltip>
+			<Tooltip disableHoverablePopup>
 				<TooltipTrigger
 					render={
 						<PopoverTrigger

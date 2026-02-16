@@ -132,7 +132,7 @@ export function EventBlock({
 
 	return (
 		<DraggableEvent event={event}>
-			<Tooltip>
+			<Tooltip disableHoverablePopup>
 				<TooltipTrigger
 					render={
 						<PopoverTrigger
