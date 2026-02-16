@@ -25,32 +25,32 @@ Create test files with the `.test.ts` suffix next to the code they test (e.g. `c
 
 Use the Vitest fixture in `convex/testFixture.nobundle.ts` so each test gets a fresh convex-test instance and **test data is cleared after each test**. The `.nobundle.ts` suffix uses Convex’s “multiple dots” heuristic so this file is not bundled on deploy (it imports Vitest, which would fail outside the test runner).
 
-- **`t`** – raw convex-test instance (no user). Use for unauthenticated tests.
-- **`auth`** – same backend with one user in the DB and `asUser` (identity). Use for authenticated tests.
+- **`t`** – raw convex-test instance (no user). Use for unauthenticated tests or for DB access (`t.run`) in any test.
+- **`auth`** – same backend with one user in the DB and `asUser` (identity). Contains only `{ asUser, userId, authId }`; get `t` from the fixture when you need both (e.g. `async ({ t, auth }) => { const { asUser } = auth; ... }`).
 
 After the test runs, `clearAllTables(t)` is called so no data leaks between tests.
 
 ```typescript
-import { test, describe, expect } from "../testFixture.nobundle";
+import { test, describe } from "../testFixture.nobundle";
 import { api } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
 import { addUserToTest, factories } from "../test.setup";
 
 describe("createEvent", () => {
-  test("creates event when authenticated", async ({ auth }) => {
-    const { t, asUser, userId } = auth;
+  test("creates event when authenticated", async ({ t, auth, expect }) => {
+    const { asUser, userId } = auth;
     const eventId = await asUser.mutation(api.events.mutations.createEvent, factories.event());
     const event = await t.run((ctx: MutationCtx) => ctx.db.get(eventId));
     expect(event?.userId).toEqual(userId);
   });
 
-  test("requires auth", async ({ t }) => {
+  test("requires auth", async ({ t, expect }) => {
     await expect(t.mutation(api.events.mutations.createEvent, factories.event()))
       .rejects.toThrowError("Not authenticated");
   });
 
-  test("two users same DB", async ({ auth }) => {
-    const { t, asUser: asAlice } = auth;
+  test("two users same DB", async ({ t, auth, expect }) => {
+    const { asUser: asAlice } = auth;
     const { asUser: asBob } = await addUserToTest(t, { firstName: "Bob" });
     // ... use asAlice and asBob on same t
   });

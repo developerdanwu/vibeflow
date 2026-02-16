@@ -1,11 +1,11 @@
 import { api } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
-import { describe, expect, test } from "../testFixture.nobundle";
+import { describe, test } from "../testFixture.nobundle";
 import { addUserToTest, factories } from "../test.setup";
 
 describe("createEvent", () => {
-	test("creates a timed event", async ({ auth }) => {
-		const { t, asUser, userId } = auth;
+	test("creates a timed event", async ({ t, auth, expect }) => {
+		const { asUser, userId } = auth;
 		const eventData = factories.event();
 
 		const eventId = await asUser.mutation(
@@ -22,7 +22,7 @@ describe("createEvent", () => {
 		});
 	});
 
-	test("rejects end date before start date", async ({ auth }) => {
+	test("rejects end date before start date", async ({ auth, expect }) => {
 		const { asUser } = auth;
 		const now = Date.now();
 
@@ -36,14 +36,18 @@ describe("createEvent", () => {
 		).rejects.toThrowError("End date must be after start date");
 	});
 
-	test("requires auth", async ({ t }) => {
+	test("requires auth", async ({ t, expect }) => {
 		await expect(
 			t.mutation(api.events.mutations.createEvent, factories.event()),
 		).rejects.toThrowError("Not authenticated");
 	});
 
-	test("creates all-day event from date strings", async ({ auth }) => {
-		const { t, asUser, userId } = auth;
+	test("creates all-day event from date strings", async ({
+		t,
+		auth,
+		expect,
+	}) => {
+		const { asUser, userId } = auth;
 		const eventId = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event({
@@ -66,6 +70,7 @@ describe("createEvent", () => {
 
 	test("rejects timed event without timestamps or date strings", async ({
 		auth,
+		expect,
 	}) => {
 		const { asUser } = auth;
 		await expect(
@@ -82,8 +87,8 @@ describe("createEvent", () => {
 });
 
 describe("updateEvent", () => {
-	test("updates event title", async ({ auth }) => {
-		const { t, asUser, userId } = auth;
+	test("updates event title", async ({ t, auth, expect }) => {
+		const { asUser, userId } = auth;
 		const eventId = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
@@ -97,8 +102,12 @@ describe("updateEvent", () => {
 		expect(event?.userId).toEqual(userId);
 	});
 
-	test("prevents updating another user's event", async ({ auth }) => {
-		const { t, asUser: asAlice } = auth;
+	test("prevents updating another user's event", async ({
+		t,
+		auth,
+		expect,
+	}) => {
+		const { asUser: asAlice } = auth;
 		const { asUser: asBob } = await addUserToTest(t, { firstName: "Bob" });
 		const eventId = await asAlice.mutation(
 			api.events.mutations.createEvent,
@@ -112,8 +121,12 @@ describe("updateEvent", () => {
 		).rejects.toThrowError("Not authorized to update this event");
 	});
 
-	test("rejects update when event not found", async ({ auth }) => {
-		const { t, asUser } = auth;
+	test("rejects update when event not found", async ({
+		t,
+		auth,
+		expect,
+	}) => {
+		const { asUser } = auth;
 		const fakeId = await t.run(async (ctx: MutationCtx) => {
 			const userId = (await ctx.db.query("users").first())!._id;
 			const id = await ctx.db.insert("events", {
@@ -133,8 +146,12 @@ describe("updateEvent", () => {
 		).rejects.toThrowError("Event not found");
 	});
 
-	test("rejects updating non-editable Google event", async ({ auth }) => {
-		const { t, asUser, userId } = auth;
+	test("rejects updating non-editable Google event", async ({
+		t,
+		auth,
+		expect,
+	}) => {
+		const { asUser, userId } = auth;
 		const eventId = await t.run(async (ctx: MutationCtx) => {
 			return await ctx.db.insert("events", {
 				...factories.event(),
@@ -155,8 +172,8 @@ describe("updateEvent", () => {
 });
 
 describe("deleteEvent", () => {
-	test("deletes own event", async ({ auth }) => {
-		const { t, asUser } = auth;
+	test("deletes own event", async ({ t, auth, expect }) => {
+		const { asUser } = auth;
 		const eventId = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
@@ -168,8 +185,12 @@ describe("deleteEvent", () => {
 		expect(event).toBeNull();
 	});
 
-	test("prevents deleting another user's event", async ({ auth }) => {
-		const { t, asUser: asAlice } = auth;
+	test("prevents deleting another user's event", async ({
+		t,
+		auth,
+		expect,
+	}) => {
+		const { asUser: asAlice } = auth;
 		const { asUser: asBob } = await addUserToTest(t, { firstName: "Bob" });
 		const eventId = await asAlice.mutation(
 			api.events.mutations.createEvent,
@@ -180,8 +201,12 @@ describe("deleteEvent", () => {
 		).rejects.toThrowError("Not authorized to delete this event");
 	});
 
-	test("rejects delete when event not found", async ({ auth }) => {
-		const { t, asUser } = auth;
+	test("rejects delete when event not found", async ({
+		t,
+		auth,
+		expect,
+	}) => {
+		const { asUser } = auth;
 		const fakeId = await t.run(async (ctx: MutationCtx) => {
 			const userId = (await ctx.db.query("users").first())!._id;
 			const id = await ctx.db.insert("events", {

@@ -13,9 +13,8 @@ type ConvexT = Awaited<ReturnType<typeof convexTest>>;
 export const test = base.extend<{
 	/** Fresh convex-test instance for this test. Cleared after test. */
 	t: ConvexT;
-	/** Authenticated context (user in DB + asUser). Uses same t; cleared with t. */
+	/** Authenticated context (user in DB + asUser). Use with t from fixture for DB access. */
 	auth: {
-		t: ConvexT;
 		asUser: ReturnType<ConvexT["withIdentity"]>;
 		userId: Id<"users">;
 		authId: string;
@@ -32,4 +31,4 @@ export const test = base.extend<{
 	},
 });
 
-export { describe, it, expect } from "vitest";
+export { describe, it } from "vitest";

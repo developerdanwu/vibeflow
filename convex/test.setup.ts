@@ -91,7 +91,7 @@ export async function setupAuthenticatedTestWithT(
 		name: `${firstName} ${lastName}`,
 	});
 
-	return { t, asUser, userId, authId };
+	return { asUser, userId, authId };
 }
 
 /** Add a second user to an existing test instance (same DB). Use when testing multi-user scenarios. */

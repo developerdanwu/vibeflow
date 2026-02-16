@@ -1,9 +1,9 @@
 import { api } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
-import { describe, expect, test } from "../testFixture.nobundle";
+import { describe, test } from "../testFixture.nobundle";
 
 describe("ensureUserExists", () => {
-	test("creates user when none exists", async ({ t }) => {
+	test("creates user when none exists", async ({ t, expect }) => {
 		const authId = `auth-${crypto.randomUUID()}`;
 		const result = await t.mutation(api.users.mutations.ensureUserExists, {
 			authId,
@@ -19,6 +19,7 @@ describe("ensureUserExists", () => {
 
 	test("returns existing user when called again with same authId", async ({
 		t,
+		expect,
 	}) => {
 		const authId = `auth-${crypto.randomUUID()}`;
 		const first = await t.mutation(api.users.mutations.ensureUserExists, {
@@ -35,6 +36,7 @@ describe("ensureUserExists", () => {
 
 	test("fullName falls back to email when first/last name empty", async ({
 		t,
+		expect,
 	}) => {
 		const authId = `auth-${crypto.randomUUID()}`;
 		const result = await t.mutation(api.users.mutations.ensureUserExists, {
@@ -46,7 +48,7 @@ describe("ensureUserExists", () => {
 });
 
 describe("updateUserPreferences", () => {
-	test("requires auth", async ({ t }) => {
+	test("requires auth", async ({ t, expect }) => {
 		await expect(
 			t.mutation(api.users.mutations.updateUserPreferences, {
 				calendarSyncFromMonths: 3,
@@ -56,6 +58,7 @@ describe("updateUserPreferences", () => {
 
 	test("sets calendarSyncFromMonths for authenticated user", async ({
 		auth,
+		expect,
 	}) => {
 		const { asUser } = auth;
 		await asUser.mutation(api.users.mutations.updateUserPreferences, {
@@ -66,7 +69,7 @@ describe("updateUserPreferences", () => {
 		expect(prefs?.calendarSyncFromMonths).toBe(6);
 	});
 
-	test("updates existing preferences", async ({ auth }) => {
+	test("updates existing preferences", async ({ auth, expect }) => {
 		const { asUser } = auth;
 		await asUser.mutation(api.users.mutations.updateUserPreferences, {
 			calendarSyncFromMonths: 3,
