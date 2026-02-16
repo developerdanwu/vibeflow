@@ -307,3 +307,22 @@ export const updateExternalCalendarChannel = internalMutation({
 		}
 	},
 });
+
+/** Internal: patch event with Google Calendar external fields after outbound create. */
+export const patchEventExternalFields = internalMutation({
+	args: {
+		eventId: v.id("events"),
+		externalProvider: providerValidator,
+		externalCalendarId: v.string(),
+		externalEventId: v.string(),
+		isEditable: v.boolean(),
+	},
+	handler: async (ctx, args) => {
+		await ctx.db.patch(args.eventId, {
+			externalProvider: args.externalProvider,
+			externalCalendarId: args.externalCalendarId,
+			externalEventId: args.externalEventId,
+			isEditable: args.isEditable,
+		});
+	},
+});

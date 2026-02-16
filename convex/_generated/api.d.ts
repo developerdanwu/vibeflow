@@ -20,8 +20,9 @@ import type * as googleCalendar_mutations from "../googleCalendar/mutations.js";
 import type * as googleCalendar_queries from "../googleCalendar/queries.js";
 import type * as helpers from "../helpers.js";
 import type * as http from "../http.js";
-import type * as todos_mutations from "../todos/mutations.js";
-import type * as todos_queries from "../todos/queries.js";
+import type * as taskProviders_linear_actionsNode from "../taskProviders/linear/actionsNode.js";
+import type * as taskProviders_linear_mutations from "../taskProviders/linear/mutations.js";
+import type * as taskProviders_linear_queries from "../taskProviders/linear/queries.js";
 import type * as users_mutations from "../users/mutations.js";
 import type * as users_queries from "../users/queries.js";
 
@@ -44,8 +45,9 @@ declare const fullApi: ApiFromModules<{
   "googleCalendar/queries": typeof googleCalendar_queries;
   helpers: typeof helpers;
   http: typeof http;
-  "todos/mutations": typeof todos_mutations;
-  "todos/queries": typeof todos_queries;
+  "taskProviders/linear/actionsNode": typeof taskProviders_linear_actionsNode;
+  "taskProviders/linear/mutations": typeof taskProviders_linear_mutations;
+  "taskProviders/linear/queries": typeof taskProviders_linear_queries;
   "users/mutations": typeof users_mutations;
   "users/queries": typeof users_queries;
 }>;

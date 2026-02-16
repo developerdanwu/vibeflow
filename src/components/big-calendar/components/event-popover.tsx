@@ -280,7 +280,6 @@ const EventPopoverContent = forwardRef<
 	const formId = useId();
 	const titleId = useId();
 	const titleInputRef = useRef<HTMLInputElement | null>(null);
-	const hasFocusedTitleRef = useRef(false);
 
 	const { mutateAsync: updateEvent } = useUpdateEventMutation({
 		meta: { updateType: "edit" },
@@ -820,6 +819,26 @@ const EventPopoverContent = forwardRef<
 						);
 					}}
 				</form.AppField>
+				{mode === "edit" &&
+					event?.externalTaskProvider === "linear" &&
+					event?.externalTaskUrl && (
+						<>
+							<Separator />
+							<div className="px-2 py-2">
+								<a
+									href={event.externalTaskUrl}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="text-primary text-sm underline"
+								>
+									Linked to Linear
+									{event.externalTaskId
+										? ` (${event.externalTaskId})`
+										: ""}
+								</a>
+							</div>
+						</>
+					)}
 				<Separator />
 				<div className="flex items-center gap-2 px-2 py-2">
 					<form.AppField name="calendarId">

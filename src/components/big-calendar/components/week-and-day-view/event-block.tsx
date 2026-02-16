@@ -17,6 +17,7 @@ import { cva } from "class-variance-authority";
 import { differenceInMinutes, format, parseISO } from "date-fns";
 import { animate, motion, useMotionValue, useTransform } from "motion/react";
 import { type HTMLAttributes, useEffect } from "react";
+import { ExternalLink } from "lucide-react";
 
 export const calendarWeekEventCardVariants = cva(
 	"flex cursor-pointer select-none flex-col gap-0.5 truncate whitespace-nowrap rounded-md border px-2 text-xs transition-[filter] duration-150 hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
@@ -194,6 +195,12 @@ export function EventBlock({
 									<p className="truncate font-semibold">
 										{event.title || "Untitled"}
 									</p>
+									{event.externalTaskProvider === "linear" && (
+										<ExternalLink
+											className="size-3 shrink-0 opacity-70"
+											aria-label="Linked to Linear"
+										/>
+									)}
 								</div>
 								{!event.allDay && (
 									<span className="shrink-0 text-xs opacity-90">{timeStr}</span>
@@ -217,6 +224,12 @@ export function EventBlock({
 									<p className="truncate text-left font-semibold">
 										{event.title || "Untitled"}
 									</p>
+									{event.externalTaskProvider === "linear" && (
+										<ExternalLink
+											className="size-3 shrink-0 opacity-70"
+											aria-label="Linked to Linear"
+										/>
+									)}
 								</div>
 								{!event.allDay && durationInMinutes > 25 && <p>{timeStr}</p>}
 							</>

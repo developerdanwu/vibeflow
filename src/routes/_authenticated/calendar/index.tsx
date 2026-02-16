@@ -4,6 +4,7 @@ import {
 } from "@/components/big-calendar/components/dnd/dnd-provider";
 import { CalendarHeader } from "@/components/big-calendar/components/header/calendar-header";
 import { CalendarMonthView } from "@/components/big-calendar/components/month-view/calendar-month-view";
+import { TaskSidebar } from "@/components/big-calendar/components/task-sidebar/task-sidebar";
 import { CalendarDayView } from "@/components/big-calendar/components/week-and-day-view/calendar-day-view";
 import { CalendarProvider } from "@/components/big-calendar/contexts/calendar-context";
 import {
@@ -18,8 +19,10 @@ import { api } from "@convex/_generated/api";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAuth } from "@workos/authkit-tanstack-react-start/client";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { PanelRightClose, PanelRightOpen } from "lucide-react";
 
 const calendarSearchSchema = z.object({
 	view: z.enum(["month", "week", "day", "year", "agenda"]).default("month"),
@@ -93,6 +96,9 @@ function CalendarContent() {
 				calendarId: event.calendarId,
 				busy: event.busy,
 				visibility: event.visibility,
+				externalTaskProvider: event.externalTaskProvider,
+				externalTaskId: event.externalTaskId,
+				externalTaskUrl: event.externalTaskUrl,
 			};
 
 			return ZEventSchema.parse(mappedEvent);
@@ -122,12 +128,28 @@ function CalendarContent() {
 	}, [events]);
 
 	const isLoading = convexEvents === undefined;
+	const [taskSidebarOpen, setTaskSidebarOpen] = useState(true);
 
 	return (
-		<div className="calendar-container h-[calc(100vh-52px)] bg-background">
-			<div className="h-full">
-				<CalendarHeader view={view} events={events} />
-				<div className="flex h-full flex-col">
+		<div className="calendar-container flex h-[calc(100vh-52px)] flex-col bg-background">
+			<div className="flex h-full min-w-0">
+				<div className="flex min-h-0 flex-1 flex-col">
+					<div className="flex items-center gap-1">
+						<CalendarHeader view={view} events={events} />
+						<Button
+							variant="ghost"
+							size="icon-sm"
+							onClick={() => setTaskSidebarOpen((o) => !o)}
+							title={taskSidebarOpen ? "Hide tasks" : "Show tasks"}
+						>
+							{taskSidebarOpen ? (
+								<PanelRightClose className="size-4" />
+							) : (
+								<PanelRightOpen className="size-4" />
+							)}
+						</Button>
+					</div>
+					<div className="flex h-full flex-col">
 					{isLoading ? (
 						<div className="flex h-full items-center justify-center">
 							<div className="flex flex-col items-center gap-4">
@@ -155,7 +177,9 @@ function CalendarContent() {
 							) : null}
 						</>
 					)}
+					</div>
 				</div>
+				{taskSidebarOpen && <TaskSidebar />}
 			</div>
 		</div>
 	);

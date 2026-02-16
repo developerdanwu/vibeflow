@@ -53,6 +53,18 @@ export const getConnectionByUserId = internalQuery({
 	},
 });
 
+/** Internal: get external calendar by Convex calendarId (for outbound sync). */
+export const getExternalCalendarByCalendarId = internalQuery({
+	args: { calendarId: v.id("calendars") },
+	handler: async (ctx, args) => {
+		const ext = await ctx.db
+			.query("externalCalendars")
+			.withIndex("by_calendar", (q) => q.eq("calendarId", args.calendarId))
+			.unique();
+		return ext ?? null;
+	},
+});
+
 /** Internal: get external calendar by provider and externalCalendarId. */
 export const getExternalCalendarByExternalId = internalQuery({
 	args: {

@@ -4,7 +4,7 @@ import {
 	Outlet,
 	useRouterState,
 } from "@tanstack/react-router";
-import { ArrowLeft, Calendar, User } from "lucide-react";
+import { ArrowLeft, Calendar, Plug, User } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -15,6 +15,7 @@ export const Route = createFileRoute("/_authenticated/settings")({
 const navItems = [
 	{ to: "/settings/account", label: "Account", icon: User },
 	{ to: "/settings/calendars", label: "Calendars", icon: Calendar },
+	{ to: "/settings/integrations", label: "Integrations", icon: Plug },
 ] as const;
 
 function SettingsLayout() {

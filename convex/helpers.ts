@@ -1,6 +1,8 @@
-import { customMutation, customQuery } from "convex-helpers/server/customFunctions";
+import { customAction, customMutation, customQuery } from "convex-helpers/server/customFunctions";
+import type { Doc } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
-import { mutation, query } from "./_generated/server";
+import { action, mutation, query } from "./_generated/server";
+import { api } from "./_generated/api";
 
 /** Helper for mutations: get current user id from auth (internal use). */
 export async function getUserIdFromAuth(ctx: MutationCtx) {
@@ -70,3 +72,31 @@ export const authMutation = customMutation(mutation, {
 		};
 	},
 });
+
+// Custom action that adds authenticated user to context (uses runQuery for user lookup)
+export const authAction = customAction(action, {
+	args: {},
+	input: async (ctx, _args) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Not authenticated");
+		}
+		const user = (await ctx.runQuery(
+			api.users.queries.getUserByAuthId as import("convex/server").FunctionReference<
+				"query",
+				"public",
+				{ authId: string },
+				Doc<"users"> | null
+			>,
+			{ authId: identity.subject },
+		)) as Doc<"users"> | null;
+		if (!user) {
+			throw new Error("User not found in database");
+		}
+		return {
+			ctx: { user },
+			args: {},
+		};
+	},
+});
+

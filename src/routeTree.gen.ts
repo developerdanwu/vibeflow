@@ -15,9 +15,12 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
 import { Route as AuthenticatedCalendarIndexRouteImport } from './routes/_authenticated/calendar/index'
+import { Route as AuthenticatedSettingsIntegrationsRouteImport } from './routes/_authenticated/settings/integrations'
 import { Route as AuthenticatedSettingsCalendarsRouteImport } from './routes/_authenticated/settings/calendars'
 import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_authenticated/settings/account'
+import { Route as AuthenticatedSettingsIntegrationsIndexRouteImport } from './routes/_authenticated/settings/integrations/index'
 import { Route as AuthenticatedSettingsCalendarsIndexRouteImport } from './routes/_authenticated/settings/calendars/index'
+import { Route as AuthenticatedSettingsIntegrationsLinearCallbackRouteImport } from './routes/_authenticated/settings/integrations/linear-callback'
 import { Route as AuthenticatedSettingsCalendarsCallbackRouteImport } from './routes/_authenticated/settings/calendars/callback'
 
 const CallbackRoute = CallbackRouteImport.update({
@@ -51,6 +54,12 @@ const AuthenticatedCalendarIndexRoute =
     path: '/calendar/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedSettingsIntegrationsRoute =
+  AuthenticatedSettingsIntegrationsRouteImport.update({
+    id: '/integrations',
+    path: '/integrations',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
 const AuthenticatedSettingsCalendarsRoute =
   AuthenticatedSettingsCalendarsRouteImport.update({
     id: '/calendars',
@@ -63,11 +72,23 @@ const AuthenticatedSettingsAccountRoute =
     path: '/account',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedSettingsIntegrationsIndexRoute =
+  AuthenticatedSettingsIntegrationsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedSettingsIntegrationsRoute,
+  } as any)
 const AuthenticatedSettingsCalendarsIndexRoute =
   AuthenticatedSettingsCalendarsIndexRouteImport.update({
     id: '/',
     path: '/',
     getParentRoute: () => AuthenticatedSettingsCalendarsRoute,
+  } as any)
+const AuthenticatedSettingsIntegrationsLinearCallbackRoute =
+  AuthenticatedSettingsIntegrationsLinearCallbackRouteImport.update({
+    id: '/linear-callback',
+    path: '/linear-callback',
+    getParentRoute: () => AuthenticatedSettingsIntegrationsRoute,
   } as any)
 const AuthenticatedSettingsCalendarsCallbackRoute =
   AuthenticatedSettingsCalendarsCallbackRouteImport.update({
@@ -82,10 +103,13 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/calendars': typeof AuthenticatedSettingsCalendarsRouteWithChildren
+  '/settings/integrations': typeof AuthenticatedSettingsIntegrationsRouteWithChildren
   '/calendar/': typeof AuthenticatedCalendarIndexRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/settings/calendars/callback': typeof AuthenticatedSettingsCalendarsCallbackRoute
+  '/settings/integrations/linear-callback': typeof AuthenticatedSettingsIntegrationsLinearCallbackRoute
   '/settings/calendars/': typeof AuthenticatedSettingsCalendarsIndexRoute
+  '/settings/integrations/': typeof AuthenticatedSettingsIntegrationsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -94,7 +118,9 @@ export interface FileRoutesByTo {
   '/calendar': typeof AuthenticatedCalendarIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/settings/calendars/callback': typeof AuthenticatedSettingsCalendarsCallbackRoute
+  '/settings/integrations/linear-callback': typeof AuthenticatedSettingsIntegrationsLinearCallbackRoute
   '/settings/calendars': typeof AuthenticatedSettingsCalendarsIndexRoute
+  '/settings/integrations': typeof AuthenticatedSettingsIntegrationsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -104,10 +130,13 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/_authenticated/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/_authenticated/settings/calendars': typeof AuthenticatedSettingsCalendarsRouteWithChildren
+  '/_authenticated/settings/integrations': typeof AuthenticatedSettingsIntegrationsRouteWithChildren
   '/_authenticated/calendar/': typeof AuthenticatedCalendarIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/_authenticated/settings/calendars/callback': typeof AuthenticatedSettingsCalendarsCallbackRoute
+  '/_authenticated/settings/integrations/linear-callback': typeof AuthenticatedSettingsIntegrationsLinearCallbackRoute
   '/_authenticated/settings/calendars/': typeof AuthenticatedSettingsCalendarsIndexRoute
+  '/_authenticated/settings/integrations/': typeof AuthenticatedSettingsIntegrationsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -117,10 +146,13 @@ export interface FileRouteTypes {
     | '/settings'
     | '/settings/account'
     | '/settings/calendars'
+    | '/settings/integrations'
     | '/calendar/'
     | '/settings/'
     | '/settings/calendars/callback'
+    | '/settings/integrations/linear-callback'
     | '/settings/calendars/'
+    | '/settings/integrations/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -129,7 +161,9 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/settings'
     | '/settings/calendars/callback'
+    | '/settings/integrations/linear-callback'
     | '/settings/calendars'
+    | '/settings/integrations'
   id:
     | '__root__'
     | '/'
@@ -138,10 +172,13 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/settings/account'
     | '/_authenticated/settings/calendars'
+    | '/_authenticated/settings/integrations'
     | '/_authenticated/calendar/'
     | '/_authenticated/settings/'
     | '/_authenticated/settings/calendars/callback'
+    | '/_authenticated/settings/integrations/linear-callback'
     | '/_authenticated/settings/calendars/'
+    | '/_authenticated/settings/integrations/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -194,6 +231,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCalendarIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/settings/integrations': {
+      id: '/_authenticated/settings/integrations'
+      path: '/integrations'
+      fullPath: '/settings/integrations'
+      preLoaderRoute: typeof AuthenticatedSettingsIntegrationsRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
     '/_authenticated/settings/calendars': {
       id: '/_authenticated/settings/calendars'
       path: '/calendars'
@@ -208,12 +252,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsAccountRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/settings/integrations/': {
+      id: '/_authenticated/settings/integrations/'
+      path: '/'
+      fullPath: '/settings/integrations/'
+      preLoaderRoute: typeof AuthenticatedSettingsIntegrationsIndexRouteImport
+      parentRoute: typeof AuthenticatedSettingsIntegrationsRoute
+    }
     '/_authenticated/settings/calendars/': {
       id: '/_authenticated/settings/calendars/'
       path: '/'
       fullPath: '/settings/calendars/'
       preLoaderRoute: typeof AuthenticatedSettingsCalendarsIndexRouteImport
       parentRoute: typeof AuthenticatedSettingsCalendarsRoute
+    }
+    '/_authenticated/settings/integrations/linear-callback': {
+      id: '/_authenticated/settings/integrations/linear-callback'
+      path: '/linear-callback'
+      fullPath: '/settings/integrations/linear-callback'
+      preLoaderRoute: typeof AuthenticatedSettingsIntegrationsLinearCallbackRouteImport
+      parentRoute: typeof AuthenticatedSettingsIntegrationsRoute
     }
     '/_authenticated/settings/calendars/callback': {
       id: '/_authenticated/settings/calendars/callback'
@@ -243,9 +301,28 @@ const AuthenticatedSettingsCalendarsRouteWithChildren =
     AuthenticatedSettingsCalendarsRouteChildren,
   )
 
+interface AuthenticatedSettingsIntegrationsRouteChildren {
+  AuthenticatedSettingsIntegrationsLinearCallbackRoute: typeof AuthenticatedSettingsIntegrationsLinearCallbackRoute
+  AuthenticatedSettingsIntegrationsIndexRoute: typeof AuthenticatedSettingsIntegrationsIndexRoute
+}
+
+const AuthenticatedSettingsIntegrationsRouteChildren: AuthenticatedSettingsIntegrationsRouteChildren =
+  {
+    AuthenticatedSettingsIntegrationsLinearCallbackRoute:
+      AuthenticatedSettingsIntegrationsLinearCallbackRoute,
+    AuthenticatedSettingsIntegrationsIndexRoute:
+      AuthenticatedSettingsIntegrationsIndexRoute,
+  }
+
+const AuthenticatedSettingsIntegrationsRouteWithChildren =
+  AuthenticatedSettingsIntegrationsRoute._addFileChildren(
+    AuthenticatedSettingsIntegrationsRouteChildren,
+  )
+
 interface AuthenticatedSettingsRouteChildren {
   AuthenticatedSettingsAccountRoute: typeof AuthenticatedSettingsAccountRoute
   AuthenticatedSettingsCalendarsRoute: typeof AuthenticatedSettingsCalendarsRouteWithChildren
+  AuthenticatedSettingsIntegrationsRoute: typeof AuthenticatedSettingsIntegrationsRouteWithChildren
   AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
 }
 
@@ -253,6 +330,8 @@ const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
   AuthenticatedSettingsAccountRoute: AuthenticatedSettingsAccountRoute,
   AuthenticatedSettingsCalendarsRoute:
     AuthenticatedSettingsCalendarsRouteWithChildren,
+  AuthenticatedSettingsIntegrationsRoute:
+    AuthenticatedSettingsIntegrationsRouteWithChildren,
   AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
 }
 

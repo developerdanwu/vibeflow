@@ -11,17 +11,6 @@ export default defineSchema({
 		profileImageUrl: v.optional(v.string()),
 		updatedAt: v.number(),
 	}).index("authId", ["authId"]),
-
-	products: defineTable({
-		title: v.string(),
-		imageId: v.string(),
-		price: v.number(),
-	}),
-	todos: defineTable({
-		text: v.string(),
-		completed: v.boolean(),
-	}),
-
 	events: defineTable({
 		title: v.string(),
 		description: v.optional(v.string()),
@@ -55,6 +44,9 @@ export default defineSchema({
 			v.literal("outOfOffice"),
 		),
 		visibility: v.union(v.literal("public"), v.literal("private")),
+		externalTaskProvider: v.optional(v.union(v.literal("linear"))),
+		externalTaskId: v.optional(v.string()),
+		externalTaskUrl: v.optional(v.string()),
 	})
 		.index("by_user", ["userId"])
 		.index("by_user_and_date", ["userId", "startTimestamp"])
@@ -103,7 +95,8 @@ export default defineSchema({
 			"connectionId",
 			"externalCalendarId",
 		])
-		.index("by_channel", ["channelId"]),
+		.index("by_channel", ["channelId"])
+		.index("by_calendar", ["calendarId"]),
 
 	userPreferences: defineTable({
 		userId: v.id("users"),
@@ -121,4 +114,32 @@ export default defineSchema({
 		timezone: v.optional(v.string()),
 		calendarSyncFromMonths: v.optional(v.number()),
 	}).index("by_user", ["userId"]),
+	taskConnections: defineTable({
+		userId: v.id("users"),
+		provider: v.union(v.literal("linear")),
+		accessToken: v.string(),
+		refreshToken: v.optional(v.string()),
+		accessTokenExpiresAt: v.optional(v.number()),
+		providerMetadata: v.optional(v.any()),
+		createdAt: v.number(),
+		updatedAt: v.number(),
+	}).index("by_user_and_provider", ["userId", "provider"]),
+
+	taskItems: defineTable({
+		userId: v.id("users"),
+		connectionId: v.id("taskConnections"),
+		provider: v.union(v.literal("linear")),
+		externalTaskId: v.string(),
+		title: v.string(),
+		identifier: v.optional(v.string()),
+		state: v.optional(v.string()),
+		priority: v.optional(v.number()),
+		dueDate: v.optional(v.string()),
+		projectName: v.optional(v.string()),
+		projectId: v.optional(v.string()),
+		url: v.string(),
+		updatedAt: v.number(),
+	})
+		.index("by_user_and_provider", ["userId", "provider"])
+		.index("by_external_task", ["provider", "externalTaskId"]),
 });

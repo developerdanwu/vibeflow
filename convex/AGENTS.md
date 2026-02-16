@@ -54,7 +54,7 @@ convex/
 
 Convex best practices (detailed):
 
-- [docs/typescript-and-context.md](docs/typescript-and-context.md)
+- [docs/typescript-and-context.md](docs/typescript-and-context.md) (context types, auth patterns, circular types when helpers use api)
 - [docs/custom-functions.md](docs/custom-functions.md)
 - [docs/schema.md](docs/schema.md)
 - [docs/patterns.md](docs/patterns.md)

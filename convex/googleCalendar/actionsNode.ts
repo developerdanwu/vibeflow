@@ -3,12 +3,10 @@
 import { calendar, type calendar_v3 } from "@googleapis/calendar";
 import { v } from "convex/values";
 import { OAuth2Client } from "google-auth-library";
-import {
-	action,
-	internalAction,
-} from "../_generated/server";
-import { api, internal } from "../_generated/api";
+import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
+import { action, internalAction } from "../_generated/server";
+import { authAction } from "../helpers";
 
 function getOAuth2Client(redirectUri?: string): OAuth2Client {
 	const clientId = process.env.GOOGLE_CALENDAR_CLIENT_ID;
@@ -332,16 +330,31 @@ export const syncCalendar = internalAction({
 				pageToken = data.nextPageToken ?? undefined;
 			} while (pageToken);
 		} catch (err: unknown) {
-			const status = (err as { response?: { status?: number } })?.response?.status;
+			const status = (err as { response?: { status?: number } })?.response
+				?.status;
 			if (status === 410) {
+				console.warn(
+					"Sync token expired (410), clearing and scheduling full re-sync",
+					args.connectionId,
+					args.externalCalendarId,
+				);
 				await ctx.runMutation(
 					internal.googleCalendar.mutations.updateExternalCalendarSyncToken,
 					{
 						connectionId: args.connectionId,
 						externalCalendarId: args.externalCalendarId,
 						syncToken: "",
-					}
+					},
 				);
+				await ctx.scheduler.runAfter(
+					0,
+					internal.googleCalendar.actionsNode.syncCalendar,
+					{
+						connectionId: args.connectionId,
+						externalCalendarId: args.externalCalendarId,
+					},
+				);
+				return;
 			}
 			throw err;
 		}
@@ -598,17 +611,22 @@ export const syncEventToGoogle = internalAction({
 		originalStartTimestamp: v.optional(v.number()),
 	},
 	handler: async (ctx, args) => {
+		console.log("[syncEventToGoogle] started eventId=%s", args.eventId);
 		// 1. Get event data
 		const event = await ctx.runQuery(internal.events.queries.getEventByIdInternal, {
 			id: args.eventId,
 		});
+		if (!event) {
+			console.log("[syncEventToGoogle] skipped: event not found");
+			return;
+		}
 		if (
-			!event ||
 			event.externalProvider !== "google" ||
 			!event.externalEventId ||
 			!event.externalCalendarId
 		) {
-			return; // Not a Google Calendar event or missing required fields
+			console.log("[syncEventToGoogle] skipped: not a Google event or missing external ids provider=%s externalEventId=%s externalCalendarId=%s", event.externalProvider, event.externalEventId ?? "(none)", event.externalCalendarId ?? "(none)");
+			return;
 		}
 
 		// 2. Get connection via external calendar
@@ -707,20 +725,156 @@ export const syncEventToGoogle = internalAction({
 			originalStartTime?: string;
 		};
 		await calendarClient.events.patch(patchParams);
+		console.log("[syncEventToGoogle] completed eventId=%s externalEventId=%s", args.eventId, event.externalEventId);
+	},
+});
+
+/** Internal: create a locally-created event in Google Calendar and patch the event with external ids. */
+export const createEventInGoogle = internalAction({
+	args: { eventId: v.id("events") },
+	handler: async (ctx, args) => {
+		const event = await ctx.runQuery(internal.events.queries.getEventByIdInternal, {
+			id: args.eventId,
+		});
+		if (!event?.calendarId) {
+			return;
+		}
+		const externalCalendar = await ctx.runQuery(
+			internal.googleCalendar.queries.getExternalCalendarByCalendarId,
+			{ calendarId: event.calendarId },
+		);
+		if (!externalCalendar || externalCalendar.provider !== "google") {
+			return;
+		}
+		const connectionData = await ctx.runQuery(
+			internal.googleCalendar.queries.getConnectionAndExternalCalendar,
+			{
+				connectionId: externalCalendar.connectionId,
+				externalCalendarId: externalCalendar.externalCalendarId,
+			},
+		);
+		if (!connectionData) {
+			throw new Error("Connection not found");
+		}
+		const { connection } = connectionData;
+		let accessToken = connection.accessToken;
+		let accessTokenExpiresAt = connection.accessTokenExpiresAt;
+		const now = Date.now();
+		if (
+			!accessToken ||
+			!accessTokenExpiresAt ||
+			accessTokenExpiresAt < now + 60 * 1000
+		) {
+			const refreshed = await refreshAccessToken(connection.refreshToken);
+			accessToken = refreshed.access_token;
+			accessTokenExpiresAt = now + refreshed.expires_in * 1000;
+			await ctx.runMutation(internal.googleCalendar.mutations.updateConnectionTokens, {
+				connectionId: externalCalendar.connectionId,
+				accessToken,
+				accessTokenExpiresAt,
+			});
+		}
+		const timeZone = event.timeZone ?? "UTC";
+		const startIso = new Date(event.startTimestamp).toISOString();
+		const endIso = new Date(event.endTimestamp).toISOString();
+		const googlePayload = {
+			summary: event.title,
+			description: event.description ?? "",
+			location: event.location ?? "",
+			...(event.allDay
+				? {
+						start: {
+							date:
+								event.startDateStr ?? startIso.slice(0, 10),
+						},
+						end: {
+							date:
+								event.endDateStr ?? endIso.slice(0, 10),
+						},
+					}
+				: {
+						start: { dateTime: startIso, timeZone },
+						end: { dateTime: endIso, timeZone },
+					}),
+		} satisfies calendar_v3.Schema$Event;
+		const calendarClient = getAuthenticatedCalendarClient(accessToken);
+		const insertRes = await calendarClient.events.insert({
+			calendarId: externalCalendar.externalCalendarId,
+			requestBody: googlePayload,
+		});
+		const externalEventId = insertRes.data.id;
+		if (!externalEventId) {
+			throw new Error("Google Calendar insert did not return event id");
+		}
+		await ctx.runMutation(internal.googleCalendar.mutations.patchEventExternalFields, {
+			eventId: args.eventId,
+			externalProvider: "google",
+			externalCalendarId: externalCalendar.externalCalendarId,
+			externalEventId,
+			isEditable: true,
+		});
+	},
+});
+
+/** Internal: delete an event from Google Calendar (call after local event is deleted). */
+export const deleteEventFromGoogle = internalAction({
+	args: {
+		connectionId: v.id("calendarConnections"),
+		externalCalendarId: v.string(),
+		externalEventId: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const connectionData = await ctx.runQuery(
+			internal.googleCalendar.queries.getConnectionAndExternalCalendar,
+			{
+				connectionId: args.connectionId,
+				externalCalendarId: args.externalCalendarId,
+			},
+		);
+		if (!connectionData) {
+			return;
+		}
+		const { connection } = connectionData;
+		let accessToken = connection.accessToken;
+		let accessTokenExpiresAt = connection.accessTokenExpiresAt;
+		const now = Date.now();
+		if (
+			!accessToken ||
+			!accessTokenExpiresAt ||
+			accessTokenExpiresAt < now + 60 * 1000
+		) {
+			const refreshed = await refreshAccessToken(connection.refreshToken);
+			accessToken = refreshed.access_token;
+			accessTokenExpiresAt = now + refreshed.expires_in * 1000;
+			await ctx.runMutation(internal.googleCalendar.mutations.updateConnectionTokens, {
+				connectionId: args.connectionId,
+				accessToken,
+				accessTokenExpiresAt,
+			});
+		}
+		const calendarClient = getAuthenticatedCalendarClient(accessToken);
+		try {
+			await calendarClient.events.delete({
+				calendarId: args.externalCalendarId,
+				eventId: args.externalEventId,
+			});
+		} catch (err: unknown) {
+			const status = (err as { response?: { status?: number } })?.response?.status;
+			if (status === 404 || status === 410) {
+				return;
+			}
+			throw err;
+		}
 	},
 });
 
 /** Public: sync all Google calendars for the current user (e.g. "Sync now" button). */
-export const syncMyCalendars = action({
+export const syncMyCalendars = authAction({
 	args: {},
 	handler: async (ctx) => {
-		const userId = await ctx.runQuery(api.users.queries.getCurrentUserId);
-		if (!userId) {
-			throw new Error("Not authenticated");
-		}
 		const data = await ctx.runQuery(
 			internal.googleCalendar.queries.getConnectionByUserId,
-			{ userId }
+			{ userId: ctx.user._id },
 		);
 		if (!data) {
 			return; // No Google connection

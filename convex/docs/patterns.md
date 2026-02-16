@@ -125,3 +125,46 @@ await client.patch({ requestBody: payload });
 ```
 
 **Why:** Single object literal is easier to read and avoids mutation; `satisfies` gives type checking without widening the type or requiring a cast.
+
+### Inferring types from Convex function args
+
+When building data that you will pass to a Convex mutation or query (e.g. in an action), infer the shape from the function instead of duplicating it. Use `FunctionArgs` from `convex/server` and `satisfies` so the object is checked against the function’s args.
+
+**Wrong:** Manually typing the payload (duplicates the mutation’s arg shape and can drift).
+
+```typescript
+const items: Array<{
+  externalTaskId: string;
+  title: string;
+  identifier?: string;
+  state?: string;
+  priority?: number;
+  dueDate?: string;
+  projectName?: string;
+  projectId?: string;
+  url: string;
+}> = [];
+// ...
+items.push({ externalTaskId: issue.id, title: issue.title ?? "", /* ... */ });
+await ctx.runMutation(internal.myModule.upsertTaskItems, { userId, connectionId, items });
+```
+
+**Correct:** Infer from the mutation’s args; type the array and use `satisfies` on each pushed object.
+
+```typescript
+import type { FunctionArgs } from "convex/server";
+
+type UpsertTaskItemsArgs = FunctionArgs<typeof internal.myModule.upsertTaskItems>;
+type TaskItem = UpsertTaskItemsArgs["items"][number];
+
+const items: UpsertTaskItemsArgs["items"] = [];
+// ...
+items.push({
+  externalTaskId: issue.id,
+  title: issue.title ?? "",
+  /* ... */
+} satisfies TaskItem);
+await ctx.runMutation(internal.myModule.upsertTaskItems, { userId, connectionId, items });
+```
+
+**Why:** One source of truth (the mutation’s validators); types stay in sync and you get errors if the payload shape changes.

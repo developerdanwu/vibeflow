@@ -38,6 +38,9 @@ export const ZEventSchema = z.object({
 	calendarId: z.string().optional(),
 	busy: z.enum(["busy", "free", "tentative", "outOfOffice"]).optional(),
 	visibility: z.enum(["public", "private"]).optional(),
+	externalTaskProvider: z.string().optional(),
+	externalTaskId: z.string().optional(),
+	externalTaskUrl: z.string().optional(),
 });
 
 export type TUser = z.infer<typeof ZUserSchema>;

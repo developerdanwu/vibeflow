@@ -26,6 +26,9 @@ export const createEvent = authMutation({
 			),
 		),
 		visibility: v.optional(v.union(v.literal("public"), v.literal("private"))),
+		externalTaskProvider: v.optional(v.union(v.literal("linear"))),
+		externalTaskId: v.optional(v.string()),
+		externalTaskUrl: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
 		let derivedStartTimestamp = args.startTimestamp;
@@ -48,7 +51,7 @@ export const createEvent = authMutation({
 			throw new Error("End date must be after start date");
 		}
 
-		return await ctx.db.insert("events", {
+		const eventId = await ctx.db.insert("events", {
 			...args,
 			startTimestamp: derivedStartTimestamp,
 			endTimestamp: derivedEndTimestamp,
@@ -56,6 +59,24 @@ export const createEvent = authMutation({
 			busy: args.busy ?? "free",
 			visibility: args.visibility ?? "public",
 		});
+
+		if (args.calendarId) {
+			const ext = await ctx.db
+				.query("externalCalendars")
+				.withIndex("by_calendar", (q) =>
+					q.eq("calendarId", args.calendarId),
+				)
+				.unique();
+			if (ext?.provider === "google") {
+				await ctx.scheduler.runAfter(
+					0,
+					internal.googleCalendar.actionsNode.createEventInGoogle,
+					{ eventId },
+				);
+			}
+		}
+
+		return eventId;
 	},
 });
 
@@ -85,6 +106,9 @@ export const updateEvent = authMutation({
 			),
 		),
 		visibility: v.optional(v.union(v.literal("public"), v.literal("private"))),
+		externalTaskProvider: v.optional(v.union(v.literal("linear"))),
+		externalTaskId: v.optional(v.string()),
+		externalTaskUrl: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
 		const { id, recurringEditMode, ...updates } = args;
@@ -168,22 +192,45 @@ export const updateEvent = authMutation({
 			(cleanUpdates as Record<string, unknown>).timeZone = undefined;
 		}
 
-		if (
+		const willSyncToGoogle =
 			event.externalProvider === "google" &&
 			event.isEditable === true &&
 			event.externalEventId &&
-			event.externalCalendarId
-		) {
+			event.externalCalendarId;
+		console.log("[updateEvent] eventId=%s externalProvider=%s isEditable=%s hasExternalIds=%s willSyncToGoogle=%s", id, event.externalProvider, event.isEditable, Boolean(event.externalEventId && event.externalCalendarId), willSyncToGoogle);
+
+		if (willSyncToGoogle) {
 			const originalStartTimestamp =
 				event.recurringEventId && recurringEditMode === "this"
 					? event.startTimestamp
 					: undefined;
+			console.log("[updateEvent] scheduling syncEventToGoogle for eventId=%s", id);
 			await ctx.scheduler.runAfter(0, internal.googleCalendar.actionsNode.syncEventToGoogle, {
 				eventId: id,
 				updates: cleanUpdates,
 				recurringEditMode,
 				originalStartTimestamp,
 			});
+		}
+
+		if (!willSyncToGoogle) {
+			const effectiveCalendarId = updates.calendarId ?? event.calendarId;
+			if (effectiveCalendarId) {
+				const ext = await ctx.db
+					.query("externalCalendars")
+					.withIndex("by_calendar", (q) =>
+						q.eq("calendarId", effectiveCalendarId),
+					)
+					.unique();
+				if (ext?.provider === "google") {
+					console.log("[updateEvent] scheduling createEventInGoogle for eventId=%s", id);
+					await ctx.scheduler.runAfter(
+						0,
+						internal.googleCalendar.actionsNode.createEventInGoogle,
+						{ eventId: id },
+					);
+				}
+			}
 		}
 
 		return await ctx.db.patch(id, cleanUpdates);
@@ -204,6 +251,36 @@ export const deleteEvent = authMutation({
 			throw new Error("Not authorized to delete this event");
 		}
 
-		return await ctx.db.delete(args.id);
+		const externalProvider = event.externalProvider;
+		const externalEventId = event.externalEventId;
+		const externalCalendarId = event.externalCalendarId;
+
+		await ctx.db.delete(args.id);
+
+		if (
+			externalProvider === "google" &&
+			externalEventId &&
+			externalCalendarId
+		) {
+			const externalCalendars = await ctx.db
+				.query("externalCalendars")
+				.collect();
+			const ext = externalCalendars.find(
+				(e) =>
+					e.provider === "google" &&
+					e.externalCalendarId === externalCalendarId,
+			);
+			if (ext) {
+				await ctx.scheduler.runAfter(
+					0,
+					internal.googleCalendar.actionsNode.deleteEventFromGoogle,
+					{
+						connectionId: ext.connectionId,
+						externalCalendarId,
+						externalEventId,
+					},
+				);
+			}
+		}
 	},
 });

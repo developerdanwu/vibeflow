@@ -2,9 +2,9 @@
 
 ## Project Overview
 
-VibeFlow is a personal productivity calendar application built with React 19, TanStack Start (SSR), and Convex for real-time data synchronization. The app integrates with Google Calendar via OAuth, enables time blocking for focused work, and provides productivity analytics. Authentication is handled by WorkOS AuthKit, with deployment to Cloudflare Pages/Workers for edge performance.
+VibeFlow is a personal productivity calendar application built with React 19, TanStack Start (SSR), and Convex for real-time data synchronization. The app integrates with Google Calendar via OAuth, enables time blocking for focused work, and provides productivity analytics. Authentication is handled by WorkOS AuthKit.
 
-**Key Technologies:** React 19 • TypeScript • Vite • TanStack Router • Convex • WorkOS • XState Store • Tailwind CSS v4 • Motion • Cloudflare
+**Key Technologies:** React 19 • TypeScript • Vite • TanStack Router • Convex • WorkOS • XState Store • Tailwind CSS v4 • Motion
 
 **Documentation:** 
 - See [spec.md](./SPEC.md) for product requirements and features
@@ -49,15 +49,15 @@ pnpm typecheck     # Check TypeScript types only
 pnpm lint          # Run Biome linter only
 pnpm format        # Format code with Biome only
 
-# Deploy to Cloudflare
-pnpm deploy        # Builds and deploys to Cloudflare
+# Build for deployment (output in dist/)
+pnpm deploy        # Same as pnpm build; deploy dist/ to your host (e.g. Vercel, Netlify)
 ```
 
 ### Common Pitfalls
 - **Convex Backend:** Must run `npx convex dev` in a separate terminal before starting the app
 - **Environment Variables:** All VITE_ prefixed variables must be set for the app to function
 - **Port Conflicts:** Dev server runs on port 3000 by default
-- **Node Version:** Requires Node.js 18+ for Cloudflare Workers compatibility
+- **Node Version:** Requires Node.js 18+
 
 ---
 
@@ -98,7 +98,6 @@ vibeflow/
     ├── tsconfig.json       # TypeScript configuration
     ├── biome.json          # Biome linter/formatter config
     ├── components.json     # shadcn/ui configuration
-    └── wrangler.jsonc      # Cloudflare Workers config
 ```
 
 ### Where to Add New Code
@@ -233,7 +232,6 @@ import { useUser } from "../../hooks/useUser";
 - **Google Calendar API:** Always use OAuth, never store raw credentials
 - **WorkOS:** Only use provided SDK methods, don't bypass auth
 - **Convex:** Use proper validators, never bypass type safety
-- **Cloudflare:** Don't modify worker configuration without review
 
 ### Data Privacy Rules
 - **PII:** Never log personal information (emails, names, calendar data)
@@ -290,7 +288,7 @@ import { useUser } from "../../hooks/useUser";
 
 ### Performance Considerations
 - **Route-based Code Splitting:** Automatic with TanStack Router
-- **Image Optimization:** Use Cloudflare's image transformation
+- **Image Optimization:** Use your host's image transformation if available
 - **Query Optimization:** Use Convex indexes for frequent queries
 - **Bundle Size:** Check impact before adding new dependencies
 
@@ -311,7 +309,7 @@ import { useUser } from "../../hooks/useUser";
 - **Forms and popover patterns:** See [src/docs/ui.md](src/docs/ui.md) for TanStack Form, form-components, shared Popover handle, submit-dirty-form-on-close/unmount, clearing external store on unmount, Base UI Combobox value handling, and Button/Toggle component icon sizing.
 - **Calendar events:** See [src/docs/calendar-events.md](src/docs/calendar-events.md) for event time display patterns and timezone handling.
 - **Drag and Drop:** See [src/docs/dnd-handling.md](src/docs/dnd-handling.md) for locked event handling, distinguishing clicks from drags, and preventing visual drag movement.
-- **Deployment:** Review `wrangler.jsonc` for Cloudflare settings
+- **Deployment:** Build with `pnpm deploy`; deploy `dist/` to your chosen host. OAuth redirect URIs (e.g. Linear) must use your app's real origin (e.g. `https://<your-domain>/settings/integrations/linear-callback`).
 
 ---
 
