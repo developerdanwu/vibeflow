@@ -1,8 +1,8 @@
+import { CalendarAgendaView } from "@/components/big-calendar/components/agenda-view/calendar-agenda-view";
 import {
 	DayWeekDndProvider,
 	MonthDndProvider,
 } from "@/components/big-calendar/components/dnd/dnd-provider";
-import { CalendarAgendaView } from "@/components/big-calendar/components/agenda-view/calendar-agenda-view";
 import { CalendarHeader } from "@/components/big-calendar/components/header/calendar-header";
 import { CalendarMonthView } from "@/components/big-calendar/components/month-view/calendar-month-view";
 import { TaskSidebar } from "@/components/big-calendar/components/task-sidebar/task-sidebar";
@@ -22,12 +22,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useAuth } from "@workos/authkit-tanstack-react-start/client";
 import { useMemo, useState } from "react";
 import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import { PanelRightClose, PanelRightOpen } from "lucide-react";
+
+const agendaRangeEnum = z.enum(["3", "7", "14", "month"]);
 
 const calendarSearchSchema = z.object({
 	view: z.enum(["month", "week", "day", "year", "agenda"]).default("month"),
 	date: z.coerce.date().default(new Date()),
+	agendaRange: agendaRangeEnum.default("7"),
 });
 
 export const Route = createFileRoute("/_authenticated/calendar/")({
@@ -135,7 +136,7 @@ function CalendarContent() {
 				<div className="flex min-h-0 flex-1 flex-col">
 					<div className="flex items-center gap-1">
 						<CalendarHeader view={view} events={events} />
-						<Button
+						{/* <Button
 							variant="ghost"
 							size="icon-sm"
 							onClick={() => setTaskSidebarOpen((o) => !o)}
@@ -146,42 +147,42 @@ function CalendarContent() {
 							) : (
 								<PanelRightOpen className="size-4" />
 							)}
-						</Button>
+						</Button> */}
 					</div>
 					<div className="flex h-full flex-col">
-					{isLoading ? (
-						<div className="flex h-full items-center justify-center">
-							<div className="flex flex-col items-center gap-4">
-								<div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-								<p className="text-muted-foreground">Loading events...</p>
+						{isLoading ? (
+							<div className="flex h-full items-center justify-center">
+								<div className="flex flex-col items-center gap-4">
+									<div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+									<p className="text-muted-foreground">Loading events...</p>
+								</div>
 							</div>
-						</div>
-					) : (
-						<>
-							{view === "day" ? (
-								<DayWeekDndProvider view="day">
-									<CalendarDayView
+						) : (
+							<>
+								{view === "day" ? (
+									<DayWeekDndProvider view="day">
+										<CalendarDayView
+											singleDayEvents={singleDayEvents}
+											multiDayEvents={multiDayEvents}
+										/>
+									</DayWeekDndProvider>
+								) : null}
+								{view === "month" ? (
+									<MonthDndProvider>
+										<CalendarMonthView
+											singleDayEvents={singleDayEvents}
+											multiDayEvents={multiDayEvents}
+										/>
+									</MonthDndProvider>
+								) : null}
+								{view === "agenda" ? (
+									<CalendarAgendaView
 										singleDayEvents={singleDayEvents}
 										multiDayEvents={multiDayEvents}
 									/>
-								</DayWeekDndProvider>
-							) : null}
-							{view === "month" ? (
-								<MonthDndProvider>
-									<CalendarMonthView
-										singleDayEvents={singleDayEvents}
-										multiDayEvents={multiDayEvents}
-									/>
-								</MonthDndProvider>
-							) : null}
-							{view === "agenda" ? (
-								<CalendarAgendaView
-									singleDayEvents={singleDayEvents}
-									multiDayEvents={multiDayEvents}
-								/>
-							) : null}
-						</>
-					)}
+								) : null}
+							</>
+						)}
 					</div>
 				</div>
 				{taskSidebarOpen && <TaskSidebar />}
