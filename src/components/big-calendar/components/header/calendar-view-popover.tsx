@@ -1,4 +1,6 @@
-import type { TCalendarView } from "@/components/big-calendar/types";
+import { useNavigate } from "@tanstack/react-router";
+import { CalendarDays } from "lucide-react";
+import type { TCalendarView, TDayRange } from "@/components/big-calendar/types";
 import { Button } from "@/components/ui/button";
 import {
 	Popover,
@@ -7,68 +9,33 @@ import {
 } from "@/components/ui/popover";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Route } from "@/routes/_authenticated/calendar";
-import { useNavigate } from "@tanstack/react-router";
-import { CalendarDays } from "lucide-react";
 
-type ViewType = "calendar" | "agenda";
-type CalendarDuration = "day" | "month";
-type AgendaDuration = "3" | "7" | "14" | "month";
-
-function viewTypeFromUrl(view: TCalendarView): ViewType {
-	return view === "agenda" ? "agenda" : "calendar";
-}
-
-function calendarDurationFromUrl(view: TCalendarView): CalendarDuration {
-	return view === "day" ? "day" : "month";
-}
+const RANGE_OPTIONS: { value: TDayRange; label: string }[] = [
+	{ value: "1", label: "1" },
+	{ value: "2", label: "2" },
+	{ value: "3", label: "3" },
+	{ value: "4", label: "4" },
+	{ value: "5", label: "5" },
+	{ value: "6", label: "6" },
+	{ value: "W", label: "W" },
+	{ value: "M", label: "M" },
+];
 
 export function CalendarViewPopover() {
 	const navigate = useNavigate();
-	const { view, agendaRange } = Route.useSearch();
+	const { view, dayRange } = Route.useSearch();
 
-	const viewType = viewTypeFromUrl(view);
-	const calendarDuration = calendarDurationFromUrl(view);
-	const agendaDuration: AgendaDuration =
-		agendaRange === "3" || agendaRange === "7" || agendaRange === "14"
-			? agendaRange
-			: "month";
-
-	const setViewType = (next: ViewType) => {
-		if (next === "agenda") {
-			navigate({
-				to: "/calendar",
-				search: (prev) => ({
-					...prev,
-					view: "agenda",
-					agendaRange: prev.agendaRange ?? "7",
-				}),
-			});
-		} else {
-			navigate({
-				to: "/calendar",
-				search: (prev) => ({
-					...prev,
-					view: "month",
-				}),
-			});
-		}
-	};
-
-	const setCalendarDuration = (next: CalendarDuration) => {
+	const setView = (next: TCalendarView) => {
 		navigate({
 			to: "/calendar",
 			search: (prev) => ({ ...prev, view: next }),
 		});
 	};
 
-	const setAgendaDuration = (next: AgendaDuration) => {
+	const setDayRange = (next: TDayRange) => {
 		navigate({
 			to: "/calendar",
-			search: (prev) => ({
-				...prev,
-				view: "agenda",
-				agendaRange: next,
-			}),
+			search: (prev) => ({ ...prev, dayRange: next }),
 		});
 	};
 
@@ -89,10 +56,10 @@ export function CalendarViewPopover() {
 							variant="outline"
 							size="xs"
 							spacing={0}
-							value={[viewType]}
+							value={[view]}
 							onValueChange={(v) => {
-								const next = v?.[0] as ViewType | undefined;
-								if (next) setViewType(next);
+								const next = v?.[0] as TCalendarView | undefined;
+								if (next) setView(next);
 							}}
 						>
 							<ToggleGroupItem className="w-max text-xs" value="calendar">
@@ -104,50 +71,27 @@ export function CalendarViewPopover() {
 						</ToggleGroup>
 					</div>
 					<div className="flex items-center justify-between gap-4">
-						<span className="font-medium text-xs">Duration</span>
-						{viewType === "calendar" ? (
-							<ToggleGroup
-								variant="outline"
-								size="xs"
-								spacing={0}
-								value={[calendarDuration]}
-								onValueChange={(v) => {
-									const next = v?.[0] as CalendarDuration | undefined;
-									if (next) setCalendarDuration(next);
-								}}
-							>
-								<ToggleGroupItem className="w-max text-xs" value="day">
-									Day
+						<span className="font-medium text-xs">Range</span>
+						<ToggleGroup
+							variant="outline"
+							size="xs"
+							spacing={0}
+							value={[dayRange]}
+							onValueChange={(v) => {
+								const next = v?.[0] as TDayRange | undefined;
+								if (next) setDayRange(next);
+							}}
+						>
+							{RANGE_OPTIONS.map(({ value, label }) => (
+								<ToggleGroupItem
+									key={value}
+									className="w-max px-2 text-xs"
+									value={value}
+								>
+									{label}
 								</ToggleGroupItem>
-								<ToggleGroupItem className="w-max text-xs" value="month">
-									Month
-								</ToggleGroupItem>
-							</ToggleGroup>
-						) : (
-							<ToggleGroup
-								variant="outline"
-								size="xs"
-								spacing={0}
-								value={[agendaDuration]}
-								onValueChange={(v) => {
-									const next = v?.[0] as AgendaDuration | undefined;
-									if (next) setAgendaDuration(next);
-								}}
-							>
-								<ToggleGroupItem value="3" className="px-2 text-xs">
-									3
-								</ToggleGroupItem>
-								<ToggleGroupItem value="7" className="px-2 text-xs">
-									7
-								</ToggleGroupItem>
-								<ToggleGroupItem value="14" className="px-2 text-xs">
-									14
-								</ToggleGroupItem>
-								<ToggleGroupItem value="month" className="px-2 text-xs">
-									M
-								</ToggleGroupItem>
-							</ToggleGroup>
-						)}
+							))}
+						</ToggleGroup>
 					</div>
 				</div>
 			</PopoverContent>

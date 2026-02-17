@@ -110,9 +110,7 @@ export function CalendarAgendaView({
 					eventMatchesSearch(e, searchQuery),
 				),
 			}))
-			.filter(
-				(day) => day.events.length > 0 || day.multiDayEvents.length > 0,
-			);
+			.filter((day) => day.events.length > 0 || day.multiDayEvents.length > 0);
 	}, [eventsByDay, searchQuery]);
 
 	const hasAnyEvents = singleDayEvents.length > 0 || multiDayEvents.length > 0;
@@ -124,7 +122,7 @@ export function CalendarAgendaView({
 			<div className="flex flex-col">
 				<div className="sticky top-0 z-10 border-b bg-background px-4 py-2">
 					<div className="relative">
-						<CalendarSearch className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+						<CalendarSearch className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
 						<Input
 							type="search"
 							placeholder="Search events"

@@ -6,7 +6,8 @@ import {
 import { CalendarHeader } from "@/components/big-calendar/components/header/calendar-header";
 import { CalendarMonthView } from "@/components/big-calendar/components/month-view/calendar-month-view";
 import { TaskSidebar } from "@/components/big-calendar/components/task-sidebar/task-sidebar";
-import { CalendarDayView } from "@/components/big-calendar/components/week-and-day-view/calendar-day-view";
+import { CalendarMultiDayView } from "@/components/big-calendar/components/week-and-day-view/calendar-multi-day-view";
+import { dayRangeToDayCount } from "@/components/big-calendar/helpers";
 import { CalendarProvider } from "@/components/big-calendar/contexts/calendar-context";
 import {
 	type TEvent,
@@ -15,20 +16,20 @@ import {
 } from "@/components/big-calendar/interfaces";
 import type { TEventColor } from "@/components/big-calendar/types";
 import "@/styles/calendar.css";
-import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
+import { convexQuery } from "@convex-dev/react-query";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAuth } from "@workos/authkit-tanstack-react-start/client";
 import { useMemo, useState } from "react";
 import { z } from "zod";
 
-const agendaRangeEnum = z.enum(["3", "7", "14", "month"]);
+const dayRangeEnum = z.enum(["1", "2", "3", "4", "5", "6", "W", "M"]);
 
 const calendarSearchSchema = z.object({
-	view: z.enum(["month", "week", "day", "year", "agenda"]).default("month"),
+	view: z.enum(["calendar", "agenda"]).default("calendar"),
 	date: z.coerce.date().default(new Date()),
-	agendaRange: agendaRangeEnum.default("7"),
+	dayRange: dayRangeEnum.default("M"),
 });
 
 export const Route = createFileRoute("/_authenticated/calendar/")({
@@ -55,7 +56,7 @@ function CalendarRoute() {
 }
 
 function CalendarContent() {
-	const { view } = Route.useSearch();
+	const { view, dayRange } = Route.useSearch();
 	const { user } = useAuth();
 
 	const currentUser: TUser | null = user
@@ -128,14 +129,14 @@ function CalendarContent() {
 	}, [events]);
 
 	const isLoading = convexEvents === undefined;
-	const [taskSidebarOpen, setTaskSidebarOpen] = useState(true);
+	const [taskSidebarOpen, _setTaskSidebarOpen] = useState(true);
 
 	return (
 		<div className="calendar-container flex h-[calc(100vh-52px)] flex-col bg-background">
 			<div className="flex h-full min-w-0">
 				<div className="flex min-h-0 flex-1 flex-col">
 					<div className="flex items-center gap-1">
-						<CalendarHeader view={view} events={events} />
+						<CalendarHeader dayRange={dayRange} events={events} />
 						{/* <Button
 							variant="ghost"
 							size="icon-sm"
@@ -159,21 +160,28 @@ function CalendarContent() {
 							</div>
 						) : (
 							<>
-								{view === "day" ? (
-									<DayWeekDndProvider view="day">
-										<CalendarDayView
-											singleDayEvents={singleDayEvents}
-											multiDayEvents={multiDayEvents}
-										/>
-									</DayWeekDndProvider>
-								) : null}
-								{view === "month" ? (
+								{view === "calendar" && dayRange === "M" ? (
 									<MonthDndProvider>
 										<CalendarMonthView
 											singleDayEvents={singleDayEvents}
 											multiDayEvents={multiDayEvents}
 										/>
 									</MonthDndProvider>
+								) : null}
+								{view === "calendar" && dayRange !== "M" ? (
+									<DayWeekDndProvider
+										view={
+											dayRangeToDayCount(dayRange) === 1 ? "day" : "2day"
+										}
+									>
+										<CalendarMultiDayView
+											dayCount={
+												dayRangeToDayCount(dayRange) as 1 | 2 | 3 | 4 | 5 | 6 | 7
+											}
+											singleDayEvents={singleDayEvents}
+											multiDayEvents={multiDayEvents}
+										/>
+									</DayWeekDndProvider>
 								) : null}
 								{view === "agenda" ? (
 									<CalendarAgendaView

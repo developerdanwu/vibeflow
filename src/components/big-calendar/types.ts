@@ -1,4 +1,5 @@
-export type TCalendarView = "day" | "week" | "month" | "year" | "agenda";
+export type TCalendarView = "calendar" | "agenda";
+export type TDayRange = "1" | "2" | "3" | "4" | "5" | "6" | "W" | "M";
 export type TEventColor =
 	| "blue"
 	| "green"

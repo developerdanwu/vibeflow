@@ -1,5 +1,15 @@
 "use client";
 
+import type { DragEndEvent, DragStartEvent, Modifier } from "@dnd-kit/core";
+import {
+	DndContext,
+	DragOverlay,
+	PointerSensor,
+	useSensor,
+	useSensors,
+} from "@dnd-kit/core";
+import { parseISO } from "date-fns";
+import { toast } from "sonner";
 import { CalendarDragOverlayContent } from "@/components/big-calendar/components/dnd/calendar-drag-overlay";
 import {
 	ZCalendarDragData,
@@ -16,16 +26,6 @@ import {
 } from "@/components/big-calendar/components/dnd/droppable-time-block";
 import { useUpdateEventMutation } from "@/components/big-calendar/hooks/use-update-event-mutation";
 import { dialogStore } from "@/lib/dialog-store";
-import type { DragEndEvent, DragStartEvent, Modifier } from "@dnd-kit/core";
-import {
-	DndContext,
-	DragOverlay,
-	PointerSensor,
-	useSensor,
-	useSensors,
-} from "@dnd-kit/core";
-import { parseISO } from "date-fns";
-import { toast } from "sonner";
 
 const DND_CONTEXT_ID_MONTH = "calendar-dnd-month";
 const DND_CONTEXT_ID_DAY_WEEK = "calendar-dnd-day-week";
@@ -115,7 +115,7 @@ export function MonthDndProvider({ children }: { children: React.ReactNode }) {
 
 interface DayWeekDndProviderProps {
 	children: React.ReactNode;
-	view: "day" | "week";
+	view: "day" | "week" | "2day";
 }
 
 /** Day/week view: time-block drops, resize preview, move-drop-range. No day-cell branch. */
@@ -131,6 +131,7 @@ export function DayWeekDndProvider({
 			activationConstraint: { distance: 5 },
 		}),
 	);
+	// 2day and week: allow horizontal drag (between days). day: vertical only.
 	const modifiers = view === "day" ? [restrictToVerticalAxis] : undefined;
 
 	const onDragStart = (event: DragStartEvent) => {

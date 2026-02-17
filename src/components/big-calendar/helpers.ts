@@ -6,6 +6,7 @@ import {
 	differenceInDays,
 	differenceInMinutes,
 	eachDayOfInterval,
+	endOfDay,
 	endOfMonth,
 	endOfWeek,
 	endOfYear,
@@ -32,9 +33,19 @@ import type {
 } from "@/components/big-calendar/interfaces";
 import type {
 	TCalendarView,
+	TDayRange,
 	TVisibleHours,
 	TWorkingHours,
 } from "@/components/big-calendar/types";
+
+// ================ dayRange helper ================ //
+
+/** Number of days for multi-day view, or null for month. */
+export function dayRangeToDayCount(dayRange: TDayRange): number | null {
+	if (dayRange === "M") return null;
+	if (dayRange === "W") return 7;
+	return Number.parseInt(dayRange, 10);
+}
 
 // ================ Header helper functions ================ //
 
@@ -60,6 +71,10 @@ export function rangeText(view: TCalendarView, date: Date) {
 			start = startOfWeek(date);
 			end = endOfWeek(date);
 			break;
+		case "2day":
+			start = startOfDay(date);
+			end = endOfDay(addDays(date, 1));
+			break;
 		case "day":
 			return format(date, formatString);
 		default:
@@ -79,10 +94,14 @@ export function navigateDate(
 		year: direction === "next" ? addYears : subYears,
 		month: direction === "next" ? addMonths : subMonths,
 		week: direction === "next" ? addWeeks : subWeeks,
+		"2day": (d: Date, n: number) =>
+			direction === "next" ? addDays(d, n) : subDays(d, n),
 		day: direction === "next" ? addDays : subDays,
 	};
 
-	return operations[view](date, 1);
+	return view === "2day"
+		? operations["2day"](date, 2)
+		: operations[view](date, 1);
 }
 
 export function getEventsCount(
@@ -90,12 +109,20 @@ export function getEventsCount(
 	date: Date,
 	view: TCalendarView,
 ): number {
-	const compareFns = {
-		agenda: isSameMonth,
-		year: isSameYear,
-		day: isSameDay,
-		week: isSameWeek,
-		month: isSameMonth,
+	const twoDayRange = {
+		start: startOfDay(date),
+		end: endOfDay(addDays(date, 1)),
+	};
+	const compareFns: Record<
+		TCalendarView,
+		(eventDate: Date, d: Date) => boolean
+	> = {
+		agenda: (eventDate, d) => isSameMonth(eventDate, d),
+		year: (eventDate, d) => isSameYear(eventDate, d),
+		day: (eventDate, d) => isSameDay(eventDate, d),
+		"2day": (eventDate) => isWithinInterval(eventDate, twoDayRange),
+		week: (eventDate, d) => isSameWeek(eventDate, d),
+		month: (eventDate, d) => isSameMonth(eventDate, d),
 	};
 
 	return events.filter((event) =>

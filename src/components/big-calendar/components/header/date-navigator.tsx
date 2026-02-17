@@ -1,40 +1,25 @@
-import {
-	addDays,
-	endOfMonth,
-	format,
-	startOfMonth,
-} from "date-fns";
+import { addDays, endOfMonth, format, startOfMonth } from "date-fns";
 
+import { dayRangeToDayCount } from "@/components/big-calendar/helpers";
 import type { TEvent } from "@/components/big-calendar/interfaces";
-import type { TCalendarView } from "@/components/big-calendar/types";
+import type { TDayRange } from "@/components/big-calendar/types";
 import { Route } from "@/routes/_authenticated/calendar";
 
 interface IProps {
-	view: TCalendarView;
+	dayRange: TDayRange;
 	events: TEvent[];
 }
 
-export function DateNavigator({ view, events: _events }: IProps) {
-	const { date: selectedDate, agendaRange } = Route.useSearch();
+export function DateNavigator({ dayRange, events: _events }: IProps) {
+	const { date: selectedDate } = Route.useSearch();
 
-	const label = (() => {
-		if (view === "day") {
-			return format(selectedDate, "MMM d, yyyy");
-		}
-		if (
-			view === "agenda" &&
-			agendaRange !== "month" &&
-			(agendaRange === "3" || agendaRange === "7" || agendaRange === "14")
-		) {
-			const n = Number.parseInt(agendaRange, 10);
-			const end = addDays(selectedDate, n - 1);
-			return `${format(selectedDate, "MMM d")} – ${format(end, "MMM d, yyyy")}`;
-		}
-		// Month view or agenda with "month" range
-		const start = startOfMonth(selectedDate);
-		const end = endOfMonth(selectedDate);
-		return `${format(start, "MMM d")} – ${format(end, "MMM d, yyyy")}`;
-	})();
+	const dayCount = dayRangeToDayCount(dayRange);
+	const label =
+		dayCount !== null
+			? dayCount === 1
+				? format(selectedDate, "MMM d, yyyy")
+				: `${format(selectedDate, "MMM d")} – ${format(addDays(selectedDate, dayCount - 1), "MMM d, yyyy")}`
+			: `${format(startOfMonth(selectedDate), "MMM d")} – ${format(endOfMonth(selectedDate), "MMM d, yyyy")}`;
 
 	return (
 		<div className="space-y-0.5">
