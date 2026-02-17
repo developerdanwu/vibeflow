@@ -29,8 +29,9 @@ export function CalendarHeader({ view, events }: IProps) {
 		});
 	};
 
-	// Map view to tab value - use "day" for day view, "month" for month view
-	const currentTab = view === "day" ? "day" : "month";
+	// Map view to tab value - day, agenda, or month
+	const currentTab =
+		view === "day" ? "day" : view === "agenda" ? "agenda" : "month";
 
 	return (
 		<div className="flex flex-row flex-col items-center justify-between gap-4 px-3 pt-2 pb-3">
@@ -76,6 +77,7 @@ export function CalendarHeader({ view, events }: IProps) {
 						<TabsList>
 							<TabsTrigger value="day">Day</TabsTrigger>
 							<TabsTrigger value="month">Month</TabsTrigger>
+							<TabsTrigger value="agenda">Agenda</TabsTrigger>
 						</TabsList>
 					</Tabs>
 				</div>

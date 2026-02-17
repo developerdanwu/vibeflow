@@ -32,18 +32,18 @@ export const getLinksByEventId = authQuery({
 	},
 });
 
-export const getScheduledLinkByEventId = authQuery({
+export const getScheduledLinksByEventId = authQuery({
 	args: {
 		eventId: v.optional(v.id("events")),
 	},
 	handler: async (ctx, args) => {
 		if (args.eventId === undefined) {
-			return null;
+			return [];
 		}
 		const eventId = args.eventId;
 		const event = await ctx.db.get(eventId);
 		if (!event) {
-			return null;
+			return [];
 		}
 		if (event.userId !== ctx.user._id) {
 			throwConvexError(ErrorCode.NOT_AUTHORIZED, "Not authorized to view this event");
@@ -54,13 +54,8 @@ export const getScheduledLinkByEventId = authQuery({
 			.withIndex("by_event", (q) => q.eq("eventId", eventId))
 			.collect();
 
-		const scheduled = links.find((l) => l.linkType === "scheduled");
-		if (scheduled) {
-			return {
-				externalTaskId: scheduled.externalTaskId,
-				url: scheduled.url,
-			};
-		}
-		return null;
+		return links
+			.filter((l) => l.linkType === "scheduled")
+			.map((l) => ({ externalTaskId: l.externalTaskId, url: l.url }));
 	},
 });

@@ -5,7 +5,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { FunctionArgs } from "convex/server";
 import { toast } from "sonner";
 
-export type DeleteEventPayload = FunctionArgs<typeof api.events.mutations.deleteEvent>;
+export type DeleteEventPayload = FunctionArgs<
+	typeof api.events.mutations.deleteEvent
+>;
 
 const eventsQueryKey = convexQuery(api.events.queries.getEventsByUser).queryKey;
 

@@ -131,8 +131,9 @@ export function ScheduleTaskDialog({
 				endTimestamp: endDateTime.getTime(),
 				calendarId,
 				eventKind: "task",
-				scheduledTaskExternalId: task.externalTaskId,
-				scheduledTaskUrl: task.url,
+				scheduledTaskLinks: [
+					{ externalTaskId: task.externalTaskId, url: task.url },
+				],
 			});
 			onOpenChange(false);
 			resetForm();

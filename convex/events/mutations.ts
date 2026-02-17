@@ -30,8 +30,22 @@ export const createEvent = authMutation({
 		eventKind: v.optional(
 			v.union(v.literal("event"), v.literal("task")),
 		),
-		scheduledTaskExternalId: v.optional(v.string()),
-		scheduledTaskUrl: v.optional(v.string()),
+		scheduledTaskLinks: v.optional(
+			v.array(
+				v.object({
+					externalTaskId: v.string(),
+					url: v.string(),
+				}),
+			),
+		),
+		relatedTaskLinks: v.optional(
+			v.array(
+				v.object({
+					externalTaskId: v.string(),
+					url: v.string(),
+				}),
+			),
+		),
 	},
 	handler: async (ctx, args) => {
 		let derivedStartTimestamp = args.startTimestamp;
@@ -56,14 +70,11 @@ export const createEvent = authMutation({
 		}
 
 		const eventKind = args.eventKind ?? "event";
-		const hasScheduledTask =
-			args.scheduledTaskExternalId != null &&
-			args.scheduledTaskUrl != null &&
-			eventKind === "task";
+		const scheduledTaskLinks = args.scheduledTaskLinks ?? [];
 
 		const {
-			scheduledTaskExternalId: _scheduledId,
-			scheduledTaskUrl: _scheduledUrl,
+			scheduledTaskLinks: _scheduledTaskLinks,
+			relatedTaskLinks: _relatedTaskLinks,
 			...eventArgs
 		} = args;
 		const eventId = await ctx.db.insert("events", {
@@ -76,14 +87,33 @@ export const createEvent = authMutation({
 			eventKind,
 		});
 
-		if (hasScheduledTask) {
+		const seenScheduled = new Set<string>();
+		for (const link of scheduledTaskLinks) {
+			if (seenScheduled.has(link.externalTaskId)) continue;
+			seenScheduled.add(link.externalTaskId);
 			await ctx.db.insert("eventTaskLinks", {
 				eventId,
-				externalTaskId: args.scheduledTaskExternalId as string,
+				externalTaskId: link.externalTaskId,
 				provider: "linear",
-				url: args.scheduledTaskUrl as string,
+				url: link.url,
 				linkType: "scheduled",
 			});
+		}
+
+		if (eventKind !== "task") {
+			const relatedTaskLinks = args.relatedTaskLinks ?? [];
+			const seenExternalIds = new Set<string>();
+			for (const link of relatedTaskLinks) {
+				if (seenExternalIds.has(link.externalTaskId)) continue;
+				seenExternalIds.add(link.externalTaskId);
+				await ctx.db.insert("eventTaskLinks", {
+					eventId,
+					externalTaskId: link.externalTaskId,
+					provider: "linear",
+					url: link.url,
+					linkType: "related",
+				});
+			}
 		}
 
 		if (args.calendarId) {
@@ -135,9 +165,31 @@ export const updateEvent = authMutation({
 		eventKind: v.optional(
 			v.union(v.literal("event"), v.literal("task")),
 		),
+		scheduledTaskLinks: v.optional(
+			v.array(
+				v.object({
+					externalTaskId: v.string(),
+					url: v.string(),
+				}),
+			),
+		),
+		relatedTaskLinks: v.optional(
+			v.array(
+				v.object({
+					externalTaskId: v.string(),
+					url: v.string(),
+				}),
+			),
+		),
 	},
 	handler: async (ctx, args) => {
-		const { id, recurringEditMode, ...updates } = args;
+		const {
+			id,
+			recurringEditMode,
+			scheduledTaskLinks,
+			relatedTaskLinks,
+			...updates
+		} = args;
 		const event = await ctx.db.get(id);
 
 		if (!event) {
@@ -226,6 +278,55 @@ export const updateEvent = authMutation({
 		const convertingSyncedToTask =
 			hasGoogleIds && (args.eventKind === "task" || cleanUpdates.eventKind === "task");
 
+		const applyTaskLinkUpdates = async () => {
+			if (scheduledTaskLinks !== undefined) {
+				const existing = await ctx.db
+					.query("eventTaskLinks")
+					.withIndex("by_event", (q) => q.eq("eventId", id))
+					.collect();
+				for (const link of existing) {
+					if (link.linkType === "scheduled") {
+						await ctx.db.delete(link._id);
+					}
+				}
+				const seen = new Set<string>();
+				for (const link of scheduledTaskLinks) {
+					if (seen.has(link.externalTaskId)) continue;
+					seen.add(link.externalTaskId);
+					await ctx.db.insert("eventTaskLinks", {
+						eventId: id,
+						externalTaskId: link.externalTaskId,
+						provider: "linear",
+						url: link.url,
+						linkType: "scheduled",
+					});
+				}
+			}
+			if (relatedTaskLinks !== undefined) {
+				const existing = await ctx.db
+					.query("eventTaskLinks")
+					.withIndex("by_event", (q) => q.eq("eventId", id))
+					.collect();
+				for (const link of existing) {
+					if (link.linkType === "related") {
+						await ctx.db.delete(link._id);
+					}
+				}
+				const seen = new Set<string>();
+				for (const link of relatedTaskLinks) {
+					if (seen.has(link.externalTaskId)) continue;
+					seen.add(link.externalTaskId);
+					await ctx.db.insert("eventTaskLinks", {
+						eventId: id,
+						externalTaskId: link.externalTaskId,
+						provider: "linear",
+						url: link.url,
+						linkType: "related",
+					});
+				}
+			}
+		};
+
 		if (convertingSyncedToTask) {
 			const externalCalendars = await ctx.db.query("externalCalendars").collect();
 			const ext = externalCalendars.find(
@@ -251,6 +352,7 @@ export const updateEvent = authMutation({
 				externalCalendarId: undefined,
 				externalEventId: undefined,
 			});
+			await applyTaskLinkUpdates();
 			return await ctx.db.patch(id, cleanUpdates);
 		}
 
@@ -283,7 +385,7 @@ export const updateEvent = authMutation({
 					.withIndex("by_calendar", (q) =>
 						q.eq("calendarId", effectiveCalendarId),
 					)
-					.unique();
+				.unique();
 				if (ext?.provider === "google") {
 					console.log("[updateEvent] scheduling createEventInGoogle for eventId=%s", id);
 					await ctx.scheduler.runAfter(
@@ -295,6 +397,7 @@ export const updateEvent = authMutation({
 			}
 		}
 
+		await applyTaskLinkUpdates();
 		return await ctx.db.patch(id, cleanUpdates);
 	},
 });

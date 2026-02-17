@@ -1,5 +1,12 @@
 "use client";
 
+import { EventFormBodySection } from "@/components/big-calendar/components/event-popover/event-form-body";
+import {
+	eventFormOptions,
+	getCreateDefaultValues,
+	type TEventFormData,
+} from "@/components/big-calendar/components/event-popover/form-options";
+import { RelatedTasksSection } from "@/components/big-calendar/components/event-popover/related-tasks-section";
 import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
 import { useCreateEventMutation } from "@/components/big-calendar/hooks/use-create-event-mutation";
 import { useDeleteEventMutation } from "@/components/big-calendar/hooks/use-delete-event-mutation";
@@ -21,7 +28,7 @@ import {
 	ComboboxTrigger,
 } from "@/components/ui/combobox";
 import { DayPicker } from "@/components/ui/day-picker";
-import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import { Field, FieldError } from "@/components/ui/field";
 import { useAppForm } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
@@ -29,7 +36,6 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
-import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { TimeInput } from "@/components/ui/time-input";
@@ -43,25 +49,22 @@ import { useDisclosure } from "@/hooks/use-disclosure";
 import { getConvexErrorMessage } from "@/lib/convex-error";
 import { dialogStore } from "@/lib/dialog-store";
 import type { PopoverRootProps } from "@base-ui/react";
-import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
+import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { Time } from "@internationalized/date";
-import { formOptions, useStore } from "@tanstack/react-form-start";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useStore } from "@tanstack/react-form-start";
+import { useQuery } from "@tanstack/react-query";
 import { addDays, format, parseISO, set, startOfDay, subDays } from "date-fns";
 import {
 	Briefcase,
 	BriefcaseBusiness,
 	CalendarIcon,
 	ClipboardCheck,
-	ExternalLink,
 	Eye,
 	EyeOff,
 	InfoIcon,
-	Link2,
 	Trash2,
-	Unlink,
 } from "lucide-react";
 import {
 	forwardRef,
@@ -143,108 +146,15 @@ function hexToColorName(hex: string): TEventColor {
 	return closestColor;
 }
 
-export const eventFormSchema = z
-	.object({
-		title: z.string().min(1, "Title is required"),
-		startDate: z.date({ message: "Date is required" }),
-		endDate: z.date({ message: "Date is required" }),
-		description: z.string().optional(),
-		allDay: z.boolean(),
-		startTime: z.custom<Time>().optional(),
-		endTime: z.custom<Time>().optional(),
-		color: z
-			.string()
-			.regex(/^#[0-9A-Fa-f]{6}$/, "Color must be a valid hex color")
-			.optional(),
-		calendarId: z.custom<Id<"calendars">>().optional(),
-		busy: z.enum(["busy", "free", "tentative", "outOfOffice"]).optional(),
-		visibility: z.enum(["public", "private"]).optional(),
-		eventKind: z.enum(["event", "task"]),
-	})
-	.superRefine((data, ctx) => {
-		if (data.allDay) {
-			if (data.startDate > data.endDate) {
-				ctx.addIssue({
-					code: "custom",
-					message: "Start date must be before or equal to end date",
-					path: ["endDate"],
-				});
-			}
-			return;
-		}
-
-		if (!data.startTime || !data.endTime) {
-			return ctx.addIssue({
-				code: "custom",
-				message: "Start time and end time are required when not all day",
-				path: ["startTime"],
-			});
-		}
-
-		const startDateTime = new Date(data.startDate);
-		startDateTime.setHours(data.startTime.hour, data.startTime.minute, 0, 0);
-		const endDateTime = new Date(data.endDate);
-		endDateTime.setHours(data.endTime.hour, data.endTime.minute, 0, 0);
-		if (startDateTime > endDateTime) {
-			ctx.addIssue({
-				code: "custom",
-				message: "Start must be before end",
-				path: ["endTime"],
-			});
-		}
-	});
-
-export type TEventFormData = z.infer<typeof eventFormSchema>;
+export {
+	eventFormOptions,
+	eventFormSchema,
+	getCreateDefaultValues,
+	type GetCreateDefaultValuesInput,
+	type TEventFormData,
+} from "@/components/big-calendar/components/event-popover/form-options";
 
 type EventPopoverMode = "create" | "edit";
-
-type GetCreateDefaultValuesInput = {
-	startDate: Date;
-	endDate?: Date;
-	startTime?: Time;
-	endTime?: Time;
-	title?: string;
-	description?: string;
-	allDay?: boolean;
-	color?: string;
-	calendarId?: Id<"calendars">;
-	busy?: "busy" | "free" | "tentative" | "outOfOffice";
-	visibility?: "public" | "private";
-	eventKind?: "event" | "task";
-};
-
-function getCreateDefaultValues(
-	input: GetCreateDefaultValuesInput,
-): TEventFormData {
-	const {
-		startDate,
-		endDate = startDate,
-		startTime = new Time(9, 0),
-		endTime = new Time(10, 0),
-		title = "",
-		description = "",
-		allDay = true,
-		color = "#3B82F6",
-		calendarId,
-		busy = "free",
-		visibility = "public",
-		eventKind = "event",
-	} = input;
-	return {
-		title,
-		description,
-		startDate,
-		endDate,
-		allDay,
-		startTime,
-		endTime,
-		color,
-		calendarId,
-		busy,
-		visibility,
-		eventKind,
-	};
-}
 
 function getTimes(
 	event: TEvent,
@@ -260,15 +170,6 @@ function getTimes(
 	}
 	return { startTime: undefined, endTime: undefined };
 }
-
-const eventFormOptions = formOptions({
-	defaultValues: getCreateDefaultValues({
-		startDate: new Date(),
-	}),
-	validators: {
-		onSubmit: eventFormSchema,
-	},
-});
 
 export type EventPopoverContentHandle = {
 	runAfterClose: () => void;
@@ -310,54 +211,6 @@ const EventPopoverContent = forwardRef<
 		mode === "edit" && event?.convexId
 			? (event.convexId as Id<"events">)
 			: undefined;
-	const { data: linkedTasks, isLoading: isLinkedTasksLoading } = useQuery({
-		// eventIdForLinks is defined whenever enabled is true
-		...convexQuery(api.eventTaskLinks.queries.getLinksByEventId, {
-			eventId: eventIdForLinks as Id<"events">,
-		}),
-		enabled: !!eventIdForLinks,
-	});
-	const { data: scheduledLink } = useQuery({
-		...convexQuery(api.eventTaskLinks.queries.getScheduledLinkByEventId, {
-			eventId: eventIdForLinks as Id<"events">,
-		}),
-		enabled: !!eventIdForLinks,
-	});
-	type LinearTaskItem = {
-		_id: string;
-		externalTaskId: string;
-		title: string;
-		identifier?: string;
-		url: string;
-	};
-	const { data: taskItems = [], isLoading: isTaskItemsLoading } = useQuery({
-		...convexQuery(api.taskProviders.linear.queries.getMyTaskItems),
-		enabled: !!eventIdForLinks,
-	});
-	const linkTaskFn = useConvexMutation(
-		api.eventTaskLinks.mutations.linkTaskToEvent,
-	);
-	const unlinkTaskFn = useConvexMutation(
-		api.eventTaskLinks.mutations.unlinkTaskFromEvent,
-	);
-	const { mutateAsync: linkTaskToEvent } = useMutation({
-		mutationFn: linkTaskFn,
-		onSuccess: () => {
-			toast.success("Task linked to event");
-		},
-		onError: () => {
-			toast.error("Failed to link task");
-		},
-	});
-	const { mutateAsync: unlinkTaskFromEvent } = useMutation({
-		mutationFn: unlinkTaskFn,
-		onSuccess: () => {
-			toast.success("Task unlinked");
-		},
-		onError: () => {
-			toast.error("Failed to unlink task");
-		},
-	});
 	const handleDelete = () => {
 		if (!event?.convexId) return;
 		// Check if recurring event needs dialog
@@ -388,9 +241,15 @@ const EventPopoverContent = forwardRef<
 			const colorName = values.color ? hexToColorName(values.color) : "blue";
 
 			if (mode === "edit" && event?.convexId) {
+				const eventId = event.convexId as Id<"events">;
+				const taskLinks = values.relatedTaskLinks ?? [];
+				const taskLinkUpdates =
+					values.eventKind === "task"
+						? { scheduledTaskLinks: taskLinks, relatedTaskLinks: [] }
+						: { scheduledTaskLinks: [], relatedTaskLinks: taskLinks };
 				if (values.allDay) {
 					await updateEvent({
-						id: event.convexId as Id<"events">,
+						id: eventId,
 						title: values.title,
 						description: values.description || "",
 						allDay: true,
@@ -402,6 +261,7 @@ const EventPopoverContent = forwardRef<
 						visibility: values.visibility,
 						eventKind: values.eventKind,
 						recurringEditMode,
+						...taskLinkUpdates,
 					});
 				} else {
 					const startTimeVal = values.startTime ?? new Time(9, 0);
@@ -421,7 +281,7 @@ const EventPopoverContent = forwardRef<
 					});
 
 					await updateEvent({
-						id: event.convexId as Id<"events">,
+						id: eventId,
 						title: values.title,
 						description: values.description || "",
 						allDay: false,
@@ -433,21 +293,29 @@ const EventPopoverContent = forwardRef<
 						visibility: values.visibility,
 						eventKind: values.eventKind,
 						recurringEditMode,
+						...taskLinkUpdates,
 					});
 				}
 			} else {
+				const taskLinks = values.relatedTaskLinks ?? [];
+				const createPayload = {
+					title: values.title,
+					description: values.description || "",
+					color: colorName,
+					calendarId: values.calendarId,
+					busy: values.busy,
+					visibility: values.visibility,
+					eventKind: values.eventKind,
+					...(values.eventKind === "task"
+						? { scheduledTaskLinks: taskLinks, relatedTaskLinks: [] }
+						: { relatedTaskLinks: taskLinks }),
+				};
 				if (values.allDay) {
 					await createEvent({
-						title: values.title,
-						description: values.description || "",
+						...createPayload,
 						allDay: true,
 						startDateStr: format(values.startDate, "yyyy-MM-dd"),
 						endDateStr: format(addDays(values.endDate, 1), "yyyy-MM-dd"),
-						color: colorName,
-						calendarId: values.calendarId,
-						busy: values.busy,
-						visibility: values.visibility,
-						eventKind: values.eventKind,
 					});
 				} else {
 					const startTimeVal = values.startTime ?? new Time(9, 0);
@@ -467,16 +335,10 @@ const EventPopoverContent = forwardRef<
 					});
 
 					await createEvent({
-						title: values.title,
-						description: values.description || "",
+						...createPayload,
 						allDay: false,
 						startTimestamp: startDateTime.getTime(),
 						endTimestamp: endDateTime.getTime(),
-						color: colorName,
-						calendarId: values.calendarId,
-						busy: values.busy,
-						visibility: values.visibility,
-						eventKind: values.eventKind,
 					});
 				}
 			}
@@ -588,7 +450,6 @@ const EventPopoverContent = forwardRef<
 				ref={formRef}
 				id={formId}
 				onSubmit={(e) => {
-					console.log("onSubmit");
 					e.preventDefault();
 					form.handleSubmit();
 				}}
@@ -882,247 +743,29 @@ const EventPopoverContent = forwardRef<
 						}}
 					</form.AppField>
 				</div>
-				<Separator />
-				<form.AppField
-					name="description"
-					listeners={{
-						onMount: ({ value }) => {
-							calendarStore.trigger.setNewEventDescription({
-								description: value ?? "",
-							});
-						},
-						onChange: ({ value }) => {
-							calendarStore.trigger.setNewEventDescription({
-								description: value ?? "",
-							});
-						},
-					}}
-				>
-					{(field) => {
-						const isInvalid =
-							field.state.meta.isTouched && !field.state.meta.isValid;
-						return (
-							<Field data-invalid={isInvalid}>
-								<FieldLabel
-									className="sr-only"
-									htmlFor={`${field.name}-rich-text-editor`}
-								>
-									Description
-								</FieldLabel>
-								<RichTextEditor
-									id={`${field.name}-rich-text-editor`}
-									name={field.name}
-									className="min-h-24 resize-none rounded-none hover:bg-transparent focus:bg-transparent focus-visible:bg-transparent"
-									variant="ghost"
-									value={field.state.value ?? ""}
-									onBlur={field.handleBlur}
-									onChange={(value) => field.handleChange(value)}
-									aria-invalid={isInvalid}
-									placeholder="Add a description..."
+				<form.Subscribe selector={(state) => state.values.eventKind}>
+					{(eventKind) => (
+						<>
+							{eventKind === "event" && (
+								<EventFormBodySection
+									form={form}
+									eventIdForLinks={eventIdForLinks}
 								/>
-								{isInvalid && <FieldError errors={field.state.meta.errors} />}
-							</Field>
-						);
-					}}
-				</form.AppField>
-				{mode === "edit" && eventIdForLinks && (
-					<>
-						<Separator />
-						<div className="space-y-2 bg-muted/30 px-2 py-2">
-							<div className="flex items-center gap-1">
-								<ClipboardCheck className="size-4 text-muted-foreground" />
-								<span className="font-medium text-sm">Related tasks</span>
-							</div>
-							{scheduledLink && (
-								<div className="flex items-center gap-2 rounded-md border bg-background px-2 py-1.5">
-									<span className="min-w-0 flex-1 truncate font-medium text-sm">
-										Scheduled task
-									</span>
-									<Tooltip>
-										<TooltipTrigger
-											render={
-												<Button
-													variant="ghost"
-													size="icon-sm"
-													aria-label="Open in Linear"
-													className="shrink-0"
-													render={
-														// biome-ignore lint/a11y/useAnchorContent: content provided by Button children
-														<a
-															href={scheduledLink.url}
-															target="_blank"
-															rel="noopener noreferrer"
-														/>
-													}
-												>
-													<ExternalLink className="size-3.5" />
-												</Button>
-											}
-										/>
-										<TooltipContent>Open in Linear</TooltipContent>
-									</Tooltip>
-								</div>
 							)}
-							{isLinkedTasksLoading ? (
-								<p className="text-muted-foreground text-sm">Loading...</p>
-							) : linkedTasks && linkedTasks.length > 0 ? (
-								<ul className="space-y-1.5">
-									{linkedTasks.map((link) => {
-										const task = taskItems.find(
-											(t) => t.externalTaskId === link.externalTaskId,
-										);
-										const label =
-											task?.identifier ?? task?.title ?? link.externalTaskId;
-										return (
-											<li
-												key={link.externalTaskId}
-												className="flex items-center gap-2 rounded-md border bg-background px-2 py-1.5"
-											>
-												<span className="min-w-0 flex-1 truncate text-sm">
-													{label}
-													{link.linkType === "scheduled" && (
-														<span className="ml-1.5 rounded bg-muted px-1.5 py-0.5 font-medium text-2xs text-muted-foreground">
-															Scheduled
-														</span>
-													)}
-												</span>
-												<Tooltip>
-													<TooltipTrigger
-														render={
-															<Button
-																variant="ghost"
-																size="icon-sm"
-																aria-label="Open in Linear"
-																className="shrink-0"
-																render={
-																	// biome-ignore lint/a11y/useAnchorContent: content provided by Button children
-																	<a
-																		href={link.url}
-																		target="_blank"
-																		rel="noopener noreferrer"
-																	/>
-																}
-															>
-																<ExternalLink className="size-3.5" />
-															</Button>
-														}
-													/>
-													<TooltipContent>Open in Linear</TooltipContent>
-												</Tooltip>
-												<Tooltip>
-													<TooltipTrigger
-														render={
-															<Button
-																type="button"
-																variant="ghost"
-																size="icon-sm"
-																aria-label="Unlink task"
-																className="shrink-0"
-																onClick={() =>
-																	unlinkTaskFromEvent({
-																		eventId: eventIdForLinks,
-																		externalTaskId: link.externalTaskId,
-																	})
-																}
-															>
-																<Unlink className="size-3.5" />
-															</Button>
-														}
-													/>
-													<TooltipContent>Unlink task</TooltipContent>
-												</Tooltip>
-											</li>
-										);
-									})}
-								</ul>
-							) : (
-								<p className="text-muted-foreground text-sm">
-									No tasks linked yet
-								</p>
-							)}
-							{!isTaskItemsLoading &&
-								taskItems.length === 0 &&
-								eventIdForLinks && (
-									<p className="text-muted-foreground text-xs">
-										Connect Linear in Settings and refresh to see tasks.
-									</p>
-								)}
-							<div>
-								<Combobox<LinearTaskItem | null>
-									items={taskItems.filter(
-										(t) =>
-											!linkedTasks?.some(
-												(l) => l.externalTaskId === t.externalTaskId,
-											),
-									)}
-									value={null}
-									onValueChange={(task) => {
-										if (!task || !eventIdForLinks) return;
-										linkTaskToEvent({
-											eventId: eventIdForLinks,
-											externalTaskId: task.externalTaskId,
-											url: task.url,
-											linkType: "related",
-										});
-									}}
-									itemToStringValue={(item) =>
-										item ? item.externalTaskId : ""
-									}
-									itemToStringLabel={(item) =>
-										item
-											? item.identifier
-												? `${item.identifier}: ${item.title}`
-												: item.title
-											: ""
-									}
-									isItemEqualToValue={(item, value) =>
-										item != null && typeof value === "string"
-											? item.externalTaskId === value
-											: item != null &&
-													value != null &&
-													typeof value === "object" &&
-													"externalTaskId" in value
-												? item.externalTaskId === value.externalTaskId
-												: false
-									}
-								>
-									<ComboboxTrigger
-										render={
-											<Button
-												type="button"
-												variant="outline"
-												size="xs"
-												startIcon={<Link2 className="size-4" />}
-											>
-												Link task
-											</Button>
-										}
+							{eventKind === "task" && (
+								<>
+									<Separator />
+									<RelatedTasksSection
+										form={form}
+										eventIdForLinks={eventIdForLinks}
+										variant="task"
 									/>
-									<ComboboxContent width="min">
-										<ComboboxInput
-											showFocusRing={false}
-											placeholder="Search tasks..."
-											showTrigger={false}
-										/>
-										<ComboboxEmpty>No tasks to link</ComboboxEmpty>
-										<ComboboxList>
-											{(task) =>
-												task ? (
-													<ComboboxItem key={task.externalTaskId} value={task}>
-														{task.identifier
-															? `${task.identifier}: ${task.title}`
-															: task.title}
-													</ComboboxItem>
-												) : null
-											}
-										</ComboboxList>
-									</ComboboxContent>
-								</Combobox>
-							</div>
-						</div>
-					</>
-				)}
-				<Separator />
+								</>
+							)}
+							<Separator />
+						</>
+					)}
+				</form.Subscribe>
 				<div className="flex items-center gap-2 px-2 py-2">
 					<form.AppField name="calendarId">
 						{(field) => {
@@ -1263,6 +906,72 @@ const EventPopoverContent = forwardRef<
 	);
 });
 
+/**
+ * Edit mode wrapper: fetches related task links then renders the form with
+ * async initial values (TanStack Form async initial values pattern).
+ */
+function EditEventPopoverContent({
+	event,
+	onClose,
+	contentRef,
+	openId,
+}: {
+	event: TEvent;
+	onClose: () => void;
+	contentRef: React.RefObject<EventPopoverContentHandle | null>;
+	openId: number;
+}) {
+	const { data: linkedTasks, isLoading } = useQuery({
+		...convexQuery(api.eventTaskLinks.queries.getLinksByEventId, {
+			eventId: event.id as Id<"events">,
+		}),
+		enabled: true,
+	});
+	const startDate = parseISO(event.startDate);
+	const rawEndDate = parseISO(event.endDate);
+	const endDate = event.allDay ? subDays(rawEndDate, 1) : rawEndDate;
+	const { startTime, endTime } = getTimes(event, startDate, rawEndDate);
+
+	if (isLoading) {
+		return (
+			<div className="flex min-h-[200px] items-center justify-center text-muted-foreground text-sm">
+				Loading…
+			</div>
+		);
+	}
+	const relatedTaskLinks = (linkedTasks ?? [])
+		.filter(
+			(l) =>
+				l.linkType === (event.eventKind === "task" ? "scheduled" : "related"),
+		)
+		.map((l) => ({ externalTaskId: l.externalTaskId, url: l.url }));
+	const initialValues = getCreateDefaultValues({
+		startDate,
+		endDate,
+		startTime,
+		endTime,
+		title: event.title,
+		description: event.description ?? "",
+		allDay: event.allDay,
+		color: colorNameToHex[event.color] ?? "#3B82F6",
+		calendarId: event.calendarId as Id<"calendars"> | undefined,
+		busy: event.busy,
+		visibility: event.visibility,
+		eventKind: event.eventKind ?? "event",
+		relatedTaskLinks,
+	});
+	return (
+		<EventPopoverContent
+			ref={contentRef}
+			key={`edit-${event.id}-${openId}`}
+			initialValues={initialValues}
+			mode="edit"
+			event={event}
+			onClose={onClose}
+		/>
+	);
+}
+
 export function EventPopover({
 	handle,
 }: {
@@ -1311,33 +1020,12 @@ export function EventPopover({
 					return null;
 				}
 				if (payload.mode === "edit") {
-					const event = payload.event;
-					const startDate = parseISO(event.startDate);
-					const rawEndDate = parseISO(event.endDate);
-					const endDate = event.allDay ? subDays(rawEndDate, 1) : rawEndDate;
-					const { startTime, endTime } = getTimes(event, startDate, rawEndDate);
-					const initialValues = getCreateDefaultValues({
-						startDate,
-						endDate,
-						startTime,
-						endTime,
-						title: event.title,
-						description: event.description ?? "",
-						allDay: event.allDay,
-						color: colorNameToHex[event.color] ?? "#3B82F6",
-						calendarId: event.calendarId as Id<"calendars"> | undefined,
-						busy: event.busy,
-						visibility: event.visibility,
-						eventKind: event.eventKind ?? "event",
-					});
 					return (
-						<EventPopoverContent
-							ref={contentRef}
-							key={`edit-${event.id}-${openId}`}
-							initialValues={initialValues}
-							mode="edit"
-							event={event}
+						<EditEventPopoverContent
+							event={payload.event}
 							onClose={handleClose}
+							contentRef={contentRef}
+							openId={openId}
 						/>
 					);
 				}

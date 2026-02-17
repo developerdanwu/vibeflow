@@ -196,6 +196,59 @@ Same pattern as Popover - NO `asChild`:
 - **Form components:** e.g. `form.SubmitButton` used inside `form.AppForm`; they use `useFormContext()` from `@/components/ui/form`.
 - **Reference:** [TanStack Form Composition](https://tanstack.com/form/latest/docs/framework/react/guides/form-composition), [shadcn TanStack Form](https://ui.shadcn.com/docs/forms/tanstack-form).
 
+### Breaking big forms into smaller pieces (withForm)
+
+Use `withForm` from `@/components/ui/form` so **child component files** define and export the form section; the parent passes `form={form}` and any extra props. See [TanStack Form – Breaking big forms into smaller pieces](https://tanstack.com/form/latest/docs/framework/react/guides/form-composition#breaking-big-forms-into-smaller-pieces).
+
+**Where to put withForm:** In the **child file** (e.g. `event-form-body.tsx`), not the parent. Export the withForm-wrapped component; the parent imports it and renders `<EventFormBodySection form={form} ... />`.
+
+**Shared form options:** Put schema, `getCreateDefaultValues`, and `formOptions(...)` (e.g. `eventFormOptions`) in a **shared module** (e.g. `form-options.ts`) that both the parent and the child import. The parent uses `useAppForm({ ...eventFormOptions, defaultValues: initialValues, onSubmit })`. The child must **spread the same options** in `withForm`: use `...eventFormOptions` (not only `defaultValues: getCreateDefaultValues(...)`). That keeps the form options shape identical so the form type from the parent is assignable to the form prop expected by the child; otherwise TypeScript infers incompatible generics (e.g. `FormApi<..., never>` vs `FormApi<..., any>`) and you get type errors when passing `form={form}`. Avoid casting; fix by aligning options.
+
+### ❌ Wrong – different options in withForm (form type mismatch)
+```tsx
+// Child: only defaultValues → different options shape → form prop type error
+withForm({
+  defaultValues: getCreateDefaultValues({ startDate: new Date() }),
+  props: { ... },
+  render: ...
+})
+```
+
+### ✅ Correct – spread same form options
+```tsx
+// Child: same options as parent → form types align
+withForm({
+  ...eventFormOptions,
+  props: { ... },
+  render: ...
+})
+```
+
+**Props typing:** `withForm`’s `props` defaults are used for type-checking. If a prop can be one of several values at runtime (e.g. `mode: "create" | "edit"`), do **not** use `as const` on the default or the inferred type will be a single literal and the parent will get type errors.
+
+### ❌ Wrong – literal narrowing
+```tsx
+props: {
+  mode: "create" as const,  // type becomes only "create"
+  ...
+},
+render: function Render({ mode, ... }) {
+  if (mode === "edit") { ... }  // TS: types '"create"' and '"edit"' have no overlap
+}
+```
+
+### ✅ Correct – union type
+```tsx
+props: {
+  mode: "create" as "create" | "edit",
+  ...
+},
+```
+
+**Render function:** Use a **named function** for `render` (e.g. `render: function EventFormBodyRender({ form, ... }) { ... }`) so ESLint recognizes it as a component and doesn’t report hooks-in-render when the render body uses hooks.
+
+**Reducing props:** Prefer using hooks inside the form-body render instead of passing store/context actions from the parent (e.g. `useCalendar()` for `setNewEventDescription`). For data used only by one child (e.g. related-tasks queries/mutations), inline the `useQuery`/`useMutation` calls in that child component rather than creating a dedicated hook or passing data from the parent. Only extract a hook when the same logic is needed in multiple places.
+
 ### Zod validation (superRefine)
 
 This follows the general preference (see AGENTS.md) for **linear conditional logic** via early returns. In Zod `superRefine`, handle each case and return (or return after adding an issue); then run the next check. Example:

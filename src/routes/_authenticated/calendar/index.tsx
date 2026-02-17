@@ -2,6 +2,7 @@ import {
 	DayWeekDndProvider,
 	MonthDndProvider,
 } from "@/components/big-calendar/components/dnd/dnd-provider";
+import { CalendarAgendaView } from "@/components/big-calendar/components/agenda-view/calendar-agenda-view";
 import { CalendarHeader } from "@/components/big-calendar/components/header/calendar-header";
 import { CalendarMonthView } from "@/components/big-calendar/components/month-view/calendar-month-view";
 import { TaskSidebar } from "@/components/big-calendar/components/task-sidebar/task-sidebar";
@@ -172,6 +173,12 @@ function CalendarContent() {
 										multiDayEvents={multiDayEvents}
 									/>
 								</MonthDndProvider>
+							) : null}
+							{view === "agenda" ? (
+								<CalendarAgendaView
+									singleDayEvents={singleDayEvents}
+									multiDayEvents={multiDayEvents}
+								/>
 							) : null}
 						</>
 					)}

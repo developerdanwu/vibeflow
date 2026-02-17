@@ -127,8 +127,8 @@ describe("getLinksByEventId", () => {
 	});
 });
 
-describe("getScheduledLinkByEventId", () => {
-	test("returns scheduled link when one exists", async ({ auth, expect }) => {
+describe("getScheduledLinksByEventId", () => {
+	test("returns scheduled links when they exist", async ({ auth, expect }) => {
 		const { asUser } = auth;
 		const eventId = await asUser.mutation(
 			api.events.mutations.createEvent,
@@ -144,29 +144,77 @@ describe("getScheduledLinkByEventId", () => {
 			},
 		);
 		const scheduled = await asUser.query(
-			api.eventTaskLinks.queries.getScheduledLinkByEventId,
+			api.eventTaskLinks.queries.getScheduledLinksByEventId,
 			{ eventId },
 		);
-		expect(scheduled).toEqual({
-			externalTaskId: "linear-scheduled-1",
-			url: "https://linear.app/org/issue/scheduled",
-		});
+		expect(scheduled).toEqual([
+			{
+				externalTaskId: "linear-scheduled-1",
+				url: "https://linear.app/org/issue/scheduled",
+			},
+		]);
 	});
 
-	test("returns null when event has no links", async ({ auth, expect }) => {
+	test("returns multiple scheduled links", async ({ auth, expect }) => {
+		const { asUser } = auth;
+		const eventId = await asUser.mutation(
+			api.events.mutations.createEvent,
+			factories.event(),
+		);
+		await asUser.mutation(
+			api.eventTaskLinks.mutations.linkTaskToEvent,
+			{
+				eventId,
+				externalTaskId: "linear-scheduled-1",
+				url: "https://linear.app/org/issue/scheduled1",
+				linkType: "scheduled",
+			},
+		);
+		await asUser.mutation(
+			api.eventTaskLinks.mutations.linkTaskToEvent,
+			{
+				eventId,
+				externalTaskId: "linear-scheduled-2",
+				url: "https://linear.app/org/issue/scheduled2",
+				linkType: "scheduled",
+			},
+		);
+		const scheduled = await asUser.query(
+			api.eventTaskLinks.queries.getScheduledLinksByEventId,
+			{ eventId },
+		);
+		expect(scheduled).toHaveLength(2);
+		expect(scheduled).toEqual(
+			expect.arrayContaining([
+				{
+					externalTaskId: "linear-scheduled-1",
+					url: "https://linear.app/org/issue/scheduled1",
+				},
+				{
+					externalTaskId: "linear-scheduled-2",
+					url: "https://linear.app/org/issue/scheduled2",
+				},
+			]),
+		);
+	});
+
+	test("returns empty array when event has no links", async ({
+		auth,
+		expect,
+	}) => {
 		const { asUser } = auth;
 		const eventId = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
 		const scheduled = await asUser.query(
-			api.eventTaskLinks.queries.getScheduledLinkByEventId,
+			api.eventTaskLinks.queries.getScheduledLinksByEventId,
 			{ eventId },
 		);
-		expect(scheduled).toBeNull();
+		expect(scheduled).toEqual([]);
 	});
 
-	test("returns null when only related links exist", async ({
+	test("returns empty array when only related links exist", async ({
 		auth,
 		expect,
 	}) => {
@@ -184,18 +232,21 @@ describe("getScheduledLinkByEventId", () => {
 			},
 		);
 		const scheduled = await asUser.query(
-			api.eventTaskLinks.queries.getScheduledLinkByEventId,
+			api.eventTaskLinks.queries.getScheduledLinksByEventId,
 			{ eventId },
 		);
-		expect(scheduled).toBeNull();
+		expect(scheduled).toEqual([]);
 	});
 
-	test("returns null when eventId is omitted", async ({ auth, expect }) => {
+	test("returns empty array when eventId is omitted", async ({
+		auth,
+		expect,
+	}) => {
 		const { asUser } = auth;
 		const scheduled = await asUser.query(
-			api.eventTaskLinks.queries.getScheduledLinkByEventId,
+			api.eventTaskLinks.queries.getScheduledLinksByEventId,
 			{},
 		);
-		expect(scheduled).toBeNull();
+		expect(scheduled).toEqual([]);
 	});
 });

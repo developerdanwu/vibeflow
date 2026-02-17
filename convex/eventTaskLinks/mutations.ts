@@ -22,18 +22,6 @@ export const linkTaskToEvent = authMutation({
 
 		const effectiveLinkType = args.linkType ?? "related";
 
-		if (effectiveLinkType === "scheduled") {
-			const existingScheduled = await ctx.db
-				.query("eventTaskLinks")
-				.withIndex("by_event", (q) => q.eq("eventId", args.eventId))
-				.collect();
-			for (const link of existingScheduled) {
-				if (link.linkType === "scheduled") {
-					await ctx.db.delete(link._id);
-				}
-			}
-		}
-
 		const existing = await ctx.db
 			.query("eventTaskLinks")
 			.withIndex("by_event_and_external_task", (q) =>

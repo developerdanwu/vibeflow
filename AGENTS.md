@@ -304,7 +304,7 @@ import { useUser } from "../../hooks/useUser";
 - **Product Requirements:** Refer to `SPEC.md` for feature details
 - **UI/UX Design:** Refer to `UI_SPEC.md` for visual design and component specifications
 - **UI Components:** Check `components.json` for shadcn configuration
-- **Forms and popover patterns:** See [src/docs/ui.md](src/docs/ui.md) for TanStack Form, form-components, shared Popover handle, submit-dirty-form-on-close/unmount, clearing external store on unmount, Base UI Combobox value handling, and Button/Toggle component icon sizing.
+- **Forms and popover patterns:** See [src/docs/ui.md](src/docs/ui.md) for TanStack Form, withForm for breaking big forms into smaller pieces, form-components, shared Popover handle, submit-dirty-form-on-close/unmount, clearing external store on unmount, Base UI Combobox value handling, and Button/Toggle component icon sizing.
 - **Calendar events:** See [src/docs/calendar-events.md](src/docs/calendar-events.md) for event time display patterns and timezone handling.
 - **Drag and Drop:** See [src/docs/dnd-handling.md](src/docs/dnd-handling.md) for locked event handling, distinguishing clicks from drags, and preventing visual drag movement.
 - **Deployment:** Build with `pnpm deploy`; deploy `dist/` to your chosen host. OAuth redirect URIs (e.g. Linear) must use your app's real origin (e.g. `https://<your-domain>/settings/integrations/linear-callback`).

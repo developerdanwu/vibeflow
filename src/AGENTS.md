@@ -80,3 +80,4 @@ The `big-calendar/` module is the main feature. Key files:
 
 ### Related Documentation
 - **Drag and Drop:** See [src/docs/dnd-handling.md](src/docs/dnd-handling.md) for locked event handling and drag prevention patterns
+- **Form composition:** See [src/docs/ui.md](src/docs/ui.md) (TanStack Form → Breaking big forms into smaller pieces) for withForm in child files, shared form-options, and props typing
