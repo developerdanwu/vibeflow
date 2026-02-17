@@ -41,21 +41,25 @@ import {
 import { useDisclosure } from "@/hooks/use-disclosure";
 import { dialogStore } from "@/lib/dialog-store";
 import type { PopoverRootProps } from "@base-ui/react";
-import { convexQuery } from "@convex-dev/react-query";
+import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { Time } from "@internationalized/date";
 import { formOptions, useStore } from "@tanstack/react-form-start";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { addDays, format, parseISO, set, startOfDay, subDays } from "date-fns";
 import {
 	Briefcase,
 	BriefcaseBusiness,
 	CalendarIcon,
+	ClipboardCheck,
+	ExternalLink,
 	Eye,
 	EyeOff,
 	InfoIcon,
+	Link2,
 	Trash2,
+	Unlink,
 } from "lucide-react";
 import {
 	forwardRef,
@@ -64,6 +68,7 @@ import {
 	useImperativeHandle,
 	useRef,
 } from "react";
+import { toast } from "sonner";
 import { z } from "zod";
 
 const colorNameToHex: Record<TEventColor, string> = {
@@ -294,6 +299,53 @@ const EventPopoverContent = forwardRef<
 	const { data: calendars } = useQuery(
 		convexQuery(api.calendars.queries.getAllUserCalendars),
 	);
+
+	const eventIdForLinks =
+		mode === "edit" && event?.convexId
+			? (event.convexId as Id<"events">)
+			: undefined;
+	const { data: linkedTasks, isLoading: isLinkedTasksLoading } = useQuery({
+		// eventIdForLinks is defined whenever enabled is true
+		...convexQuery(api.eventTaskLinks.queries.getLinksByEventId, {
+			eventId: eventIdForLinks as Id<"events">,
+		}),
+		enabled: !!eventIdForLinks,
+	});
+	type LinearTaskItem = {
+		_id: string;
+		externalTaskId: string;
+		title: string;
+		identifier?: string;
+		url: string;
+	};
+	const { data: taskItems = [], isLoading: isTaskItemsLoading } = useQuery({
+		...convexQuery(api.taskProviders.linear.queries.getMyTaskItems),
+		enabled: !!eventIdForLinks,
+	});
+	const linkTaskFn = useConvexMutation(
+		api.eventTaskLinks.mutations.linkTaskToEvent,
+	);
+	const unlinkTaskFn = useConvexMutation(
+		api.eventTaskLinks.mutations.unlinkTaskFromEvent,
+	);
+	const { mutateAsync: linkTaskToEvent } = useMutation({
+		mutationFn: linkTaskFn,
+		onSuccess: () => {
+			toast.success("Task linked to event");
+		},
+		onError: () => {
+			toast.error("Failed to link task");
+		},
+	});
+	const { mutateAsync: unlinkTaskFromEvent } = useMutation({
+		mutationFn: unlinkTaskFn,
+		onSuccess: () => {
+			toast.success("Task unlinked");
+		},
+		onError: () => {
+			toast.error("Failed to unlink task");
+		},
+	});
 
 	const handleDelete = () => {
 		if (!event?.convexId) return;
@@ -819,26 +871,167 @@ const EventPopoverContent = forwardRef<
 						);
 					}}
 				</form.AppField>
-				{mode === "edit" &&
-					event?.externalTaskProvider === "linear" &&
-					event?.externalTaskUrl && (
-						<>
-							<Separator />
-							<div className="px-2 py-2">
-								<a
-									href={event.externalTaskUrl}
-									target="_blank"
-									rel="noopener noreferrer"
-									className="text-primary text-sm underline"
-								>
-									Linked to Linear
-									{event.externalTaskId
-										? ` (${event.externalTaskId})`
-										: ""}
-								</a>
+				{mode === "edit" && eventIdForLinks && (
+					<>
+						<Separator />
+						<div className="space-y-2 bg-muted/30 px-2 py-2">
+							<div className="flex items-center gap-1">
+								<ClipboardCheck className="size-4 text-muted-foreground" />
+								<span className="font-medium text-sm">Tasks</span>
 							</div>
-						</>
-					)}
+							{isLinkedTasksLoading ? (
+								<p className="text-muted-foreground text-sm">Loading...</p>
+							) : linkedTasks && linkedTasks.length > 0 ? (
+								<ul className="space-y-1.5">
+									{linkedTasks.map((link) => {
+										const task = taskItems.find(
+											(t) => t.externalTaskId === link.externalTaskId,
+										);
+										const label =
+											task?.identifier ?? task?.title ?? link.externalTaskId;
+										return (
+											<li
+												key={link.externalTaskId}
+												className="flex items-center gap-2 rounded-md border bg-background px-2 py-1.5"
+											>
+												<span className="min-w-0 flex-1 truncate text-sm">
+													{label}
+												</span>
+												<Tooltip>
+													<TooltipTrigger
+														render={
+															<Button
+																variant="ghost"
+																size="icon-sm"
+																aria-label="Open in Linear"
+																className="shrink-0"
+																render={
+																	// biome-ignore lint/a11y/useAnchorContent: content provided by Button children
+																	<a
+																		href={link.url}
+																		target="_blank"
+																		rel="noopener noreferrer"
+																	/>
+																}
+															>
+																<ExternalLink className="size-3.5" />
+															</Button>
+														}
+													/>
+													<TooltipContent>Open in Linear</TooltipContent>
+												</Tooltip>
+												<Tooltip>
+													<TooltipTrigger
+														render={
+															<Button
+																type="button"
+																variant="ghost"
+																size="icon-sm"
+																aria-label="Unlink task"
+																className="shrink-0"
+																onClick={() =>
+																	unlinkTaskFromEvent({
+																		eventId: eventIdForLinks,
+																		externalTaskId: link.externalTaskId,
+																	})
+																}
+															>
+																<Unlink className="size-3.5" />
+															</Button>
+														}
+													/>
+													<TooltipContent>Unlink task</TooltipContent>
+												</Tooltip>
+											</li>
+										);
+									})}
+								</ul>
+							) : (
+								<p className="text-muted-foreground text-sm">
+									No tasks linked yet
+								</p>
+							)}
+							{!isTaskItemsLoading &&
+								taskItems.length === 0 &&
+								eventIdForLinks && (
+									<p className="text-muted-foreground text-xs">
+										Connect Linear in Settings and refresh to see tasks.
+									</p>
+								)}
+							<div>
+								<Combobox<LinearTaskItem | null>
+									items={taskItems.filter(
+										(t) =>
+											!linkedTasks?.some(
+												(l) => l.externalTaskId === t.externalTaskId,
+											),
+									)}
+									value={null}
+									onValueChange={(task) => {
+										if (!task || !eventIdForLinks) return;
+										linkTaskToEvent({
+											eventId: eventIdForLinks,
+											externalTaskId: task.externalTaskId,
+											url: task.url,
+										});
+									}}
+									itemToStringValue={(item) =>
+										item ? item.externalTaskId : ""
+									}
+									itemToStringLabel={(item) =>
+										item
+											? item.identifier
+												? `${item.identifier}: ${item.title}`
+												: item.title
+											: ""
+									}
+									isItemEqualToValue={(item, value) =>
+										item != null && typeof value === "string"
+											? item.externalTaskId === value
+											: item != null &&
+													value != null &&
+													typeof value === "object" &&
+													"externalTaskId" in value
+												? item.externalTaskId === value.externalTaskId
+												: false
+									}
+								>
+									<ComboboxTrigger
+										render={
+											<Button
+												type="button"
+												variant="outline"
+												size="xs"
+												startIcon={<Link2 className="size-4" />}
+											>
+												Link task
+											</Button>
+										}
+									/>
+									<ComboboxContent width="min">
+										<ComboboxInput
+											showFocusRing={false}
+											placeholder="Search tasks..."
+											showTrigger={false}
+										/>
+										<ComboboxEmpty>No tasks to link</ComboboxEmpty>
+										<ComboboxList>
+											{(task) =>
+												task ? (
+													<ComboboxItem key={task.externalTaskId} value={task}>
+														{task.identifier
+															? `${task.identifier}: ${task.title}`
+															: task.title}
+													</ComboboxItem>
+												) : null
+											}
+										</ComboboxList>
+									</ComboboxContent>
+								</Combobox>
+							</div>
+						</div>
+					</>
+				)}
 				<Separator />
 				<div className="flex items-center gap-2 px-2 py-2">
 					<form.AppField name="calendarId">

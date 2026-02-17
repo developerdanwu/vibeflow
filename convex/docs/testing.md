@@ -98,6 +98,31 @@ For two users in the same test (e.g. “Alice” and “Bob” in one DB), use o
 - **Event factory:** Uses `Doc<"events">` via `EventFields = Omit<Doc<"events">, "_id" | "_creationTime">` in `test.setup.ts`. Overrides are `Partial<EventFields>`; return value uses `satisfies` so the shape is checked without widening.
 - **Cleanup:** `clearAllTables(t)` deletes all documents from all schema tables. Type its `t.run` callback with `MutationCtx`.
 
+### Derive table names from schema
+
+`clearAllTables` needs the list of all table names. Derive them from the schema object instead of hardcoding a list, so new tables are included automatically.
+
+#### ❌ Wrong
+
+```ts
+const CONVEX_TABLE_NAMES: TableNames[] = [
+  "users",
+  "events",
+  "calendars",
+  // easy to forget new tables
+];
+```
+
+#### ✅ Correct
+
+```ts
+import schema from "./schema";
+
+const CONVEX_TABLE_NAMES: TableNames[] = Object.keys(schema) as TableNames[];
+```
+
+**Why:** Hardcoded lists go stale when tables are added; deriving from the schema keeps cleanup in sync automatically.
+
 ### Fixture must not be bundled by Convex
 
 `testFixture.nobundle.ts` imports `vitest`. Convex bundles `.ts` files in `convex/` on push; if it bundles a file that imports Vitest, Vitest runs outside the test runner and throws ("Vitest failed to access its internal state"). We use the **multiple-dots heuristic**: Convex excludes files whose path has multiple dots (e.g. `testFixture.nobundle.ts`), so the fixture lives in `convex/` but is not bundled. See [Discord: exclude files from bundle](https://discord-questions.convex.dev/m/1301980959318741052). No official `exclude` config in `convex.json` exists yet. Alternative: keep test utilities outside `convex/` (e.g. `convex-tests/`) so they are never part of the bundle.

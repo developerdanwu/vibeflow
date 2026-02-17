@@ -142,4 +142,14 @@ export default defineSchema({
 	})
 		.index("by_user_and_provider", ["userId", "provider"])
 		.index("by_external_task", ["provider", "externalTaskId"]),
+
+	eventTaskLinks: defineTable({
+		eventId: v.id("events"),
+		externalTaskId: v.string(),
+		provider: v.union(v.literal("linear")),
+		url: v.string(),
+	})
+		.index("by_event", ["eventId"])
+		.index("by_external_task", ["provider", "externalTaskId"])
+		.index("by_event_and_external_task", ["eventId", "externalTaskId"]),
 });

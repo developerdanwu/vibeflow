@@ -60,6 +60,15 @@ export const createEvent = authMutation({
 			visibility: args.visibility ?? "public",
 		});
 
+		if (args.externalTaskId && args.externalTaskUrl) {
+			await ctx.db.insert("eventTaskLinks", {
+				eventId,
+				externalTaskId: args.externalTaskId,
+				provider: "linear",
+				url: args.externalTaskUrl,
+			});
+		}
+
 		if (args.calendarId) {
 			const ext = await ctx.db
 				.query("externalCalendars")
@@ -254,6 +263,14 @@ export const deleteEvent = authMutation({
 		const externalProvider = event.externalProvider;
 		const externalEventId = event.externalEventId;
 		const externalCalendarId = event.externalCalendarId;
+
+		const links = await ctx.db
+			.query("eventTaskLinks")
+			.withIndex("by_event", (q) => q.eq("eventId", args.id))
+			.collect();
+		for (const link of links) {
+			await ctx.db.delete(link._id);
+		}
 
 		await ctx.db.delete(args.id);
 

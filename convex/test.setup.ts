@@ -6,17 +6,10 @@ import schema from "./schema";
 
 export const modules = import.meta.glob("./**/*.ts");
 
-/** Table names from schema; used for test data cleanup */
-const CONVEX_TABLE_NAMES: TableNames[] = [
-	"users",
-	"events",
-	"calendars",
-	"calendarConnections",
-	"externalCalendars",
-	"userPreferences",
-	"taskConnections",
-	"taskItems",
-];
+/** Table names derived from schema; used for test data cleanup */
+const CONVEX_TABLE_NAMES: TableNames[] = Object.keys(
+	schema,
+) as TableNames[];
 
 /** Clear all documents from all tables in the given test instance. Call in fixture teardown. */
 export async function clearAllTables(
@@ -146,6 +139,15 @@ export const factories = {
 		name: "Test Calendar",
 		color: "blue",
 		isDefault: false,
+		...overrides,
+	}),
+	/** EventTaskLink fields for db.insert. Pass eventId in overrides when inserting. */
+	eventTaskLink: (
+		overrides?: Partial<Omit<Doc<"eventTaskLinks">, "_id" | "_creationTime">>,
+	) => ({
+		externalTaskId: "test-task-1",
+		provider: "linear",
+		url: "https://linear.app/test/issue/1",
 		...overrides,
 	}),
 };

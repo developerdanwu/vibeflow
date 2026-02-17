@@ -424,6 +424,69 @@ const selectedCalendar = calendars?.find(
 
 **Why:** Base UI Combobox works with object references for value matching. `itemToStringValue` extracts the ID for form submission, `itemToStringLabel` is used for filtering/searching (defaults to `itemToStringValue` if not provided), and `isItemEqualToValue` compares objects by ID. Use the render prop pattern `{(item) => ...}` in `ComboboxList` instead of `.map()` so Base UI can automatically filter items based on the input value.
 
+### Combobox with custom item types (generic)
+
+When the Combobox `value` is `null` (e.g. a "pick one" selector that resets after selection), TypeScript infers the item type as `never`. Pass a generic type parameter to `Combobox` and add null guards in callbacks.
+
+#### ❌ Wrong
+
+```tsx
+<Combobox
+  items={taskItems}
+  value={null}
+  onValueChange={(task) => { /* task is 'never' */ }}
+/>
+```
+
+#### ✅ Correct
+
+```tsx
+type TaskItem = { externalTaskId: string; title: string; url: string };
+
+<Combobox<TaskItem | null>
+  items={taskItems}
+  value={null}
+  onValueChange={(task) => {
+    if (!task) return;
+    doSomething(task.externalTaskId);
+  }}
+  itemToStringValue={(item) => item ? item.externalTaskId : ""}
+  itemToStringLabel={(item) => item ? item.title : ""}
+/>
+```
+
+**Why:** When `value` is `null`, TypeScript cannot infer the item type. The generic parameter `<TaskItem | null>` tells Combobox the item shape so callbacks are properly typed.
+
+## Button as link (render prop)
+
+Use Button's `render` prop to render as an `<a>` tag for icon buttons that navigate (e.g. "Open in Linear"). This keeps consistent button styling while rendering a proper link element.
+
+### ❌ Wrong
+
+```tsx
+<a href={url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-muted-foreground hover:text-primary">
+  <ExternalLink className="size-3.5" />
+</a>
+```
+
+### ✅ Correct
+
+```tsx
+<Button
+  variant="ghost"
+  size="icon-sm"
+  aria-label="Open in Linear"
+  render={
+    // biome-ignore lint/a11y/useAnchorContent: content provided by Button children
+    <a href={url} target="_blank" rel="noopener noreferrer" />
+  }
+>
+  <ExternalLink className="size-3.5" />
+</Button>
+```
+
+**Why:** Using `render` on Button swaps the underlying DOM element to `<a>` while keeping Button's variant/size styling and icon sizing. Add the biome-ignore comment because the `<a>` inside `render` has no inline content (Button children provide it).
+
 ## Icon Button Toggles
 
 Use `Button` components with conditional icon rendering for toggle states. Different icons represent different states.
