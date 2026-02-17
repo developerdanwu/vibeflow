@@ -615,14 +615,14 @@ const EventPopoverContent = forwardRef<
 									className="flex w-max gap-1.5 bg-background"
 								>
 									<ClipboardCheck className="size-4 shrink-0" />
-									<span>Task</span>
+									<span className="text-xs">Task</span>
 								</ToggleGroupItem>
 								<ToggleGroupItem
 									value="event"
 									className="flex w-max gap-1.5 bg-background"
 								>
 									<CalendarIcon className="size-4 shrink-0" />
-									<span>Event</span>
+									<span className="text-xs">Event</span>
 								</ToggleGroupItem>
 							</ToggleGroup>
 						);
