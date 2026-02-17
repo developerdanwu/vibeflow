@@ -6,6 +6,7 @@ import { format, parseISO } from "date-fns";
 import { Clock, Text, User } from "lucide-react";
 
 import { EventDetailsDialog } from "@/components/big-calendar/components/dialogs/event-details-dialog";
+import { cn } from "@/lib/utils";
 import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
 import type { TEvent } from "@/components/big-calendar/interfaces";
 
@@ -70,7 +71,11 @@ export function AgendaEventCard({
 		badgeVariant === "dot" ? `${event.color}-dot` : event.color
 	) as VariantProps<typeof agendaEventCardVariants>["color"];
 
-	const agendaEventCardClasses = agendaEventCardVariants({ color });
+	const isTask = event.eventKind === "task";
+	const agendaEventCardClasses = cn(
+		agendaEventCardVariants({ color }),
+		isTask && "border-dashed",
+	);
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter" || e.key === " ") {

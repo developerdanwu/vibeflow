@@ -8,30 +8,7 @@ Here are some specifics that are often mishandled:
 
 ## v (https://docs.convex.dev/api/modules/values#v)
 
-The validator builder.
-
-This builder allows you to build validators for Convex values.
-
-Validators can be used in schema definitions and as input validators for Convex functions.
-
-Type declaration
-Name	Type
-id	<TableName>(tableName: TableName) => VId<GenericId<TableName>, "required">
-null	() => VNull<null, "required">
-number	() => VFloat64<number, "required">
-float64	() => VFloat64<number, "required">
-bigint	() => VInt64<bigint, "required">
-int64	() => VInt64<bigint, "required">
-boolean	() => VBoolean<boolean, "required">
-string	() => VString<string, "required">
-bytes	() => VBytes<ArrayBuffer, "required">
-literal	<T>(literal: T) => VLiteral<T, "required">
-array	<T>(element: T) => VArray<T["type"][], T, "required">
-object	<T>(fields: T) => VObject<Expand<{ [Property in string | number | symbol]?: Exclude<Infer<T[Property]>, undefined> } & { [Property in string | number | symbol]: Infer<T[Property]> }>, T, "required", { [Property in string | number | symbol]: Property | `${Property & string}.${T[Property]["fieldPaths"]}` }[keyof T] & string>
-record	<Key, Value>(keys: Key, values: Value) => VRecord<Record<Infer<Key>, Value["type"]>, Key, Value, "required", string>
-union	<T>(...members: T) => VUnion<T[number]["type"], T, "required", T[number]["fieldPaths"]>
-any	() => VAny<any, "required", string>
-optional	<T>(value: T) => VOptional<T>
+The validator builder. Use it to build validators for schema definitions and Convex function args. Full type reference: [Convex values API](https://docs.convex.dev/api/modules/values#v).
 
 ## System fields (https://docs.convex.dev/database/types#system-fields)
 
@@ -44,7 +21,7 @@ You do not need to add indices as these are added automatically.
 
 ## Example Schema
 
-This is an example of a well crafted schema.
+Generic example below; this project’s schema is in `convex/schema.ts`.
 
 ```ts
 import { defineSchema, defineTable } from "convex/server";
@@ -91,10 +68,3 @@ export default defineSchema(
 ```
 
 Sourced from: https://github.com/PatrickJS/awesome-cursorrules/blob/main/rules/convex-cursorrules-prompt-file/.cursorrules
-# shadcn instructions
-
-Use the latest version of Shadcn to install new components, like this command to add a button component:
-
-```bash
-pnpm dlx shadcn@latest add button
-```

@@ -25,6 +25,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { getConvexErrorMessage } from "@/lib/convex-error";
 import { cn } from "@/lib/utils";
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
@@ -112,7 +113,7 @@ function CalendarsSettings() {
 			await syncMyCalendars();
 			toast.success("Google calendars synced");
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : "Sync failed");
+			toast.error(getConvexErrorMessage(err, "Sync failed"));
 		} finally {
 			setSyncLoading(false);
 		}
@@ -129,7 +130,7 @@ function CalendarsSettings() {
 			setAddDefault(false);
 		},
 		onError: (err) => {
-			toast.error(err.message);
+			toast.error(getConvexErrorMessage(err, "Failed to create calendar"));
 		},
 	});
 
@@ -142,7 +143,7 @@ function CalendarsSettings() {
 			setEditingId(null);
 		},
 		onError: (err) => {
-			toast.error(err.message);
+			toast.error(getConvexErrorMessage(err, "Failed to update calendar"));
 		},
 	});
 
@@ -155,7 +156,7 @@ function CalendarsSettings() {
 			setDeletingId(null);
 		},
 		onError: (err) => {
-			toast.error(err.message);
+			toast.error(getConvexErrorMessage(err, "Failed to delete calendar"));
 		},
 	});
 

@@ -18,7 +18,7 @@ export const getItems = query({
 
 ## Mutation Pattern
 
-For authenticated mutations, use [authMutation](custom-functions.md) so `ctx.user` is available. For unauthenticated or one-off logic:
+For authenticated mutations, use [authMutation](custom-functions.md) so `ctx.user` is available. For application errors (not found, not authorized, validation), use [ConvexError and throwConvexError](error-handling.md) from `convex/errors.ts`. For unauthenticated or one-off logic:
 
 ```typescript
 import { mutation } from "./_generated/server";

@@ -7,7 +7,7 @@ VibeFlow is a personal productivity calendar application built with React 19, Ta
 **Key Technologies:** React 19 • TypeScript • Vite • TanStack Router • Convex • WorkOS • XState Store • Tailwind CSS v4 • Motion
 
 **Documentation:** 
-- See [spec.md](./SPEC.md) for product requirements and features
+- See [SPEC.md](./SPEC.md) for product requirements and features
 - See [UI_SPEC.md](./UI_SPEC.md) for comprehensive UI/UX design, routes, and components
 
 ---
@@ -32,7 +32,7 @@ pnpm install
 pnpm dev
 
 # Start Convex backend (run in separate terminal)
-npx convex dev
+pnpm convex:dev
 
 # Production build
 pnpm build
@@ -54,7 +54,7 @@ pnpm deploy        # Same as pnpm build; deploy dist/ to your host (e.g. Vercel,
 ```
 
 ### Common Pitfalls
-- **Convex Backend:** Must run `npx convex dev` in a separate terminal before starting the app
+- **Convex Backend:** Must run `pnpm convex:dev` in a separate terminal before starting the app
 - **Environment Variables:** All VITE_ prefixed variables must be set for the app to function
 - **Port Conflicts:** Dev server runs on port 3000 by default
 - **Node Version:** Requires Node.js 18+
@@ -83,10 +83,6 @@ vibeflow/
 │   ├── schema.ts           # Database schema definitions
 │   └── *.ts                # Convex functions (queries, mutations, actions)
 │
-├── content/                 # Content Collections markdown files
-│   ├── speakers/           # Speaker profiles
-│   └── talks/              # Conference talks
-│
 ├── public/                  # Static assets
 │
 ├── .content-collections/    # DO NOT EDIT - generated cache
@@ -106,7 +102,6 @@ vibeflow/
 - **Database Logic:** Create functions in `convex/`
 - **UI Components:** Use `pnpm dlx shadcn@latest add [component]`
   - **Overwrite prompts:** If shadcn prompts to overwrite existing files, ask the user whether to overwrite or not. Do not use `--overwrite` flag automatically. The `--yes` flag only skips initial confirmation, not overwrite prompts.
-- **Static Content:** Add markdown files to `content/`
 
 ### Agent Skills
 - **Master copy:** Skills live in `.agents/skills/`. This is the single source of truth.
@@ -172,7 +167,7 @@ import { useUser } from "../../hooks/useUser";
 ```
 
 ### Convex Patterns
-- Follow schema patterns in `.cursorrules`
+- Follow schema patterns in [convex/docs/schema.md](convex/docs/schema.md) and [convex/AGENTS.md](convex/AGENTS.md)
 - Use `v` validators for all schema fields
 - Include proper indexes for query performance
 - System fields (`_id`, `_creationTime`) are automatic
@@ -258,7 +253,7 @@ import { useUser } from "../../hooks/useUser";
 6. **Learn and Document:** Use coding sessions as learning opportunities; when mistakes or corrections are made during coding, update relevant docs (e.g. AGENTS.md, src/docs/*.md) so future sessions benefit
 
 ### When Working on Features
-1. **Check spec.md** for requirements and acceptance criteria
+1. **Check SPEC.md** for requirements and acceptance criteria
 2. **Check UI_SPEC.md** for visual design, routes, and component specifications
 3. **Review existing similar features** for patterns to follow
 4. **For multi-step or multi-file plans,** structure tasks with agent and sub-agent assignment in mind (owners, dependencies, handoffs). See [docs/planning.md](docs/planning.md).
@@ -294,7 +289,7 @@ import { useUser } from "../../hooks/useUser";
 - **Bundle Size:** Check impact before adding new dependencies
 
 ### Questions to Ask Before Starting
-1. Is this feature in the spec.md requirements?
+1. Is this feature in the SPEC.md requirements?
 2. Are there existing patterns I should follow?
 3. Will this require database schema changes?
 4. What are the testing requirements?
@@ -303,9 +298,10 @@ import { useUser } from "../../hooks/useUser";
 ### Related Documentation
 - **Planning:** See [docs/planning.md](docs/planning.md) for creating plans with agent and sub-agent usage in mind (owners, dependencies, handoffs). Do not create or save plan artifacts in `docs/`; use the plan tool output or `.cursor/plans/`.
 - **Convex data patterns (frontend):** See [src/docs/convex.md](src/docs/convex.md) for mutations (TanStack Query + `useConvexMutation`), no wrapper hooks, and when to use `mutateAsync` vs `mutate`.
+- **Convex error handling:** See [convex/docs/error-handling.md](convex/docs/error-handling.md) for ConvexError, shared `errors.ts`, and using one helper.
 - **Convex backend testing:** See [convex/docs/testing.md](convex/docs/testing.md) for when to add tests, running tests after Convex changes, convex-test, fixtures, cleanup, API typing (`api.events.mutations`), multi-user tests (`addUserToTest`), factory types (`Doc`, `MutationCtx`), fixture bundling (`.nobundle.ts`), path naming (no dashes in convex paths), and `import.meta.glob` typing (`/// <reference types="vite/client" />`).
-- **Convex Best Practices:** See `.cursorrules` for schema examples
-- **Product Requirements:** Refer to `spec.md` for feature details
+- **Convex best practices:** See [convex/AGENTS.md](convex/AGENTS.md) and [convex/docs/](convex/docs/) (schema, patterns, error-handling, testing).
+- **Product Requirements:** Refer to `SPEC.md` for feature details
 - **UI/UX Design:** Refer to `UI_SPEC.md` for visual design and component specifications
 - **UI Components:** Check `components.json` for shadcn configuration
 - **Forms and popover patterns:** See [src/docs/ui.md](src/docs/ui.md) for TanStack Form, form-components, shared Popover handle, submit-dirty-form-on-close/unmount, clearing external store on unmount, Base UI Combobox value handling, and Button/Toggle component icon sizing.
@@ -324,7 +320,7 @@ import { useUser } from "../../hooks/useUser";
 - `.json` / `.jsonc` - Configuration files
 
 ### Import Aliases
-- `@/*` - Maps to `src/*` directory
+- `@/*` maps to `src/*` (see Imports above).
 
 ### Environment Variable Prefixes
 - `VITE_*` - Client-side accessible
@@ -357,4 +353,4 @@ pnpm dlx shadcn@latest add --help # shadcn component help
 
 **Last Updated:** February 2026
 **Maintained By:** Development Team
-**Questions:** Check README.md, spec.md, or UI_SPEC.md for additional context
+**Questions:** Check README.md, SPEC.md, or UI_SPEC.md for additional context

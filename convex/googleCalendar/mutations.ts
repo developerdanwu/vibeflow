@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation } from "../_generated/server";
+import { ErrorCode, throwConvexError } from "../errors";
 
 /** Provider literal union for reuse in this module. */
 export const providerValidator = v.union(
@@ -24,7 +25,7 @@ export const saveConnection = internalMutation({
 	handler: async (ctx, args) => {
 		const user = await ctx.db.get(args.userId);
 		if (!user) {
-			throw new Error("User not found");
+			throwConvexError(ErrorCode.USER_NOT_FOUND, "User not found");
 		}
 		const now = Date.now();
 		return await ctx.db.insert("calendarConnections", {
@@ -67,7 +68,7 @@ export const addExternalCalendar = internalMutation({
 	handler: async (ctx, args) => {
 		const connection = await ctx.db.get(args.connectionId);
 		if (!connection || connection.userId === undefined) {
-			throw new Error("Connection not found");
+			throwConvexError(ErrorCode.CONNECTION_NOT_FOUND, "Connection not found");
 		}
 		const userId = connection.userId;
 		const existing = await ctx.db

@@ -17,7 +17,7 @@ import { cva } from "class-variance-authority";
 import { differenceInMinutes, format, parseISO } from "date-fns";
 import { animate, motion, useMotionValue, useTransform } from "motion/react";
 import { type HTMLAttributes, useEffect } from "react";
-import { ExternalLink } from "lucide-react";
+import { ListChecks } from "lucide-react";
 
 export const calendarWeekEventCardVariants = cva(
 	"flex cursor-pointer select-none flex-col gap-0.5 truncate whitespace-nowrap rounded-md border px-2 text-xs transition-[filter] duration-150 hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
@@ -103,9 +103,11 @@ export function EventBlock({
 		badgeVariant === "dot" ? `${event.color}-dot` : event.color
 	) as VariantProps<typeof calendarWeekEventCardVariants>["color"];
 
+	const isTask = event.eventKind === "task";
 	const calendarWeekEventCardClasses = cn(
 		calendarWeekEventCardVariants({ color, className }),
 		"justify-start",
+		isTask && "border-dashed",
 	);
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -195,10 +197,10 @@ export function EventBlock({
 									<p className="truncate font-semibold">
 										{event.title || "Untitled"}
 									</p>
-									{event.externalTaskProvider === "linear" && (
-										<ExternalLink
+									{isTask && (
+										<ListChecks
 											className="size-3 shrink-0 opacity-70"
-											aria-label="Linked to Linear"
+											aria-label="Scheduled task"
 										/>
 									)}
 								</div>
@@ -224,10 +226,10 @@ export function EventBlock({
 									<p className="truncate text-left font-semibold">
 										{event.title || "Untitled"}
 									</p>
-									{event.externalTaskProvider === "linear" && (
-										<ExternalLink
+									{isTask && (
+										<ListChecks
 											className="size-3 shrink-0 opacity-70"
-											aria-label="Linked to Linear"
+											aria-label="Scheduled task"
 										/>
 									)}
 								</div>

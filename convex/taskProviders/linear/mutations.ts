@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation } from "../../_generated/server";
+import { ErrorCode, throwConvexError } from "../../errors";
 import { authMutation } from "../../helpers";
 
 const connectionTokensValidator = {
@@ -18,7 +19,7 @@ export const saveConnection = internalMutation({
 	handler: async (ctx, args) => {
 		const user = await ctx.db.get(args.userId);
 		if (!user) {
-			throw new Error("User not found");
+			throwConvexError(ErrorCode.USER_NOT_FOUND, "User not found");
 		}
 		const now = Date.now();
 		const existing = await ctx.db

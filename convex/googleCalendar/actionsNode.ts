@@ -6,13 +6,14 @@ import { OAuth2Client } from "google-auth-library";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { action, internalAction } from "../_generated/server";
+import { ErrorCode, throwConvexError } from "../errors";
 import { authAction } from "../helpers";
 
 function getOAuth2Client(redirectUri?: string): OAuth2Client {
 	const clientId = process.env.GOOGLE_CALENDAR_CLIENT_ID;
 	const clientSecret = process.env.GOOGLE_CALENDAR_CLIENT_SECRET;
 	if (!clientId || !clientSecret) {
-		throw new Error("Google Calendar OAuth not configured");
+		throwConvexError(ErrorCode.OAUTH_NOT_CONFIGURED, "Google Calendar OAuth not configured");
 	}
 	return new OAuth2Client(clientId, clientSecret, redirectUri ?? "http://localhost");
 }
@@ -35,7 +36,7 @@ async function refreshAccessTokenWithOAuth2(refreshToken: string): Promise<{
 	const creds = oauth2.credentials;
 	const expiryDate = creds.expiry_date;
 	if (!creds.access_token || expiryDate == null) {
-		throw new Error("Token refresh failed: no access token or expiry");
+		throwConvexError(ErrorCode.TOKEN_REFRESH_FAILED, "Token refresh failed: no access token or expiry");
 	}
 	return {
 		access_token: creds.access_token,
@@ -50,7 +51,7 @@ function decodeState(state: string): StatePayload {
 		const decoded = atob(state.replace(/-/g, "+").replace(/_/g, "/"));
 		return JSON.parse(decoded) as StatePayload;
 	} catch {
-		throw new Error("Invalid state parameter");
+		throwConvexError(ErrorCode.INVALID_STATE, "Invalid state parameter");
 	}
 }
 
@@ -185,7 +186,7 @@ export const exchangeCode = action({
 		const oauth2 = getOAuth2Client(args.redirectUri);
 		const { tokens } = await oauth2.getToken(args.code);
 		if (!tokens.refresh_token) {
-			throw new Error("No refresh token returned");
+			throwConvexError(ErrorCode.NO_REFRESH_TOKEN, "No refresh token returned");
 		}
 		const accessTokenExpiresAt = tokens.expiry_date ?? undefined;
 
@@ -269,7 +270,7 @@ export const syncCalendar = internalAction({
 			}
 		);
 		if (!data) {
-			throw new Error("Connection or calendar not found");
+			throwConvexError(ErrorCode.CONNECTION_NOT_FOUND, "Connection or calendar not found");
 		}
 		const { connection, externalCalendar } = data;
 		let accessToken = connection.accessToken;
@@ -483,7 +484,7 @@ export const registerWatch = internalAction({
 	handler: async (ctx, args) => {
 		const webhookUrl = process.env.GOOGLE_CALENDAR_WEBHOOK_URL;
 		if (!webhookUrl) {
-			throw new Error("GOOGLE_CALENDAR_WEBHOOK_URL not set");
+			throwConvexError(ErrorCode.WEBHOOK_URL_NOT_SET, "GOOGLE_CALENDAR_WEBHOOK_URL not set");
 		}
 		const data = await ctx.runQuery(
 			internal.googleCalendar.queries.getConnectionAndExternalCalendar,
@@ -493,7 +494,7 @@ export const registerWatch = internalAction({
 			}
 		);
 		if (!data) {
-			throw new Error("Connection or calendar not found");
+			throwConvexError(ErrorCode.CONNECTION_NOT_FOUND, "Connection or calendar not found");
 		}
 		let accessToken = data.connection.accessToken;
 		let accessTokenExpiresAt = data.connection.accessTokenExpiresAt;
@@ -638,7 +639,7 @@ export const syncEventToGoogle = internalAction({
 			},
 		);
 		if (!externalCalendar) {
-			throw new Error("External calendar not found");
+			throwConvexError(ErrorCode.EXTERNAL_CALENDAR_NOT_FOUND, "External calendar not found");
 		}
 
 		const connectionData = await ctx.runQuery(
@@ -649,7 +650,7 @@ export const syncEventToGoogle = internalAction({
 			},
 		);
 		if (!connectionData) {
-			throw new Error("Connection not found");
+			throwConvexError(ErrorCode.CONNECTION_NOT_FOUND, "Connection not found");
 		}
 
 		const { connection } = connectionData;
@@ -754,7 +755,7 @@ export const createEventInGoogle = internalAction({
 			},
 		);
 		if (!connectionData) {
-			throw new Error("Connection not found");
+			throwConvexError(ErrorCode.CONNECTION_NOT_FOUND, "Connection not found");
 		}
 		const { connection } = connectionData;
 		let accessToken = connection.accessToken;
@@ -804,7 +805,7 @@ export const createEventInGoogle = internalAction({
 		});
 		const externalEventId = insertRes.data.id;
 		if (!externalEventId) {
-			throw new Error("Google Calendar insert did not return event id");
+			throwConvexError(ErrorCode.GOOGLE_INSERT_NO_EVENT_ID, "Google Calendar insert did not return event id");
 		}
 		await ctx.runMutation(internal.googleCalendar.mutations.patchEventExternalFields, {
 			eventId: args.eventId,

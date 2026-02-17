@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useAction } from "convex/react";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
+import { getConvexErrorMessage } from "@/lib/convex-error";
 import { z } from "zod";
 
 const callbackSearchSchema = z.object({
@@ -47,8 +48,8 @@ function GoogleCalendarCallback() {
 				toast.success("Google Calendar connected");
 				redirectToCalendars();
 			})
-			.catch((err: Error) => {
-				toast.error(err?.message ?? "Failed to connect Google Calendar");
+			.catch((err: unknown) => {
+				toast.error(getConvexErrorMessage(err, "Failed to connect Google Calendar"));
 				redirectToCalendars();
 			});
 	}, [code, state, exchangeCode, navigate]);

@@ -7,6 +7,7 @@ import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import type { ActionCtx } from "../../_generated/server";
 import { action } from "../../_generated/server";
+import { ErrorCode, throwConvexError } from "../../errors";
 import { authAction } from "../../helpers";
 
 type UpsertTaskItemsArgs = FunctionArgs<
@@ -34,7 +35,7 @@ function decodeState(state: string): StatePayload {
 		const decoded = atob(state.replace(/-/g, "+").replace(/_/g, "/"));
 		return JSON.parse(decoded) as StatePayload;
 	} catch {
-		throw new Error("Invalid state parameter");
+		throwConvexError(ErrorCode.INVALID_STATE, "Invalid state parameter");
 	}
 }
 
@@ -49,7 +50,7 @@ async function exchangeCodeForTokens(
 	const clientId = process.env.LINEAR_CLIENT_ID;
 	const clientSecret = process.env.LINEAR_CLIENT_SECRET;
 	if (!clientId || !clientSecret) {
-		throw new Error("Linear OAuth not configured");
+		throwConvexError(ErrorCode.OAUTH_NOT_CONFIGURED, "Linear OAuth not configured");
 	}
 	const body = new URLSearchParams({
 		grant_type: "authorization_code",
@@ -65,7 +66,10 @@ async function exchangeCodeForTokens(
 	});
 	if (!res.ok) {
 		const text = await res.text();
-		throw new Error(`Linear token exchange failed: ${res.status} ${text}`);
+		throwConvexError(
+			ErrorCode.LINEAR_TOKEN_EXCHANGE_FAILED,
+			`Linear token exchange failed: ${res.status} ${text}`,
+		);
 	}
 	const data = (await res.json()) as {
 		access_token: string;
@@ -87,7 +91,7 @@ async function refreshAccessToken(refreshToken: string): Promise<{
 	const clientId = process.env.LINEAR_CLIENT_ID;
 	const clientSecret = process.env.LINEAR_CLIENT_SECRET;
 	if (!clientId || !clientSecret) {
-		throw new Error("Linear OAuth not configured");
+		throwConvexError(ErrorCode.OAUTH_NOT_CONFIGURED, "Linear OAuth not configured");
 	}
 	const body = new URLSearchParams({
 		grant_type: "refresh_token",
@@ -102,7 +106,10 @@ async function refreshAccessToken(refreshToken: string): Promise<{
 	});
 	if (!res.ok) {
 		const text = await res.text();
-		throw new Error(`Linear token refresh failed: ${res.status} ${text}`);
+		throwConvexError(
+			ErrorCode.LINEAR_TOKEN_REFRESH_FAILED,
+			`Linear token refresh failed: ${res.status} ${text}`,
+		);
 	}
 	const data = (await res.json()) as {
 		access_token: string;
@@ -175,7 +182,7 @@ export async function getLinearClient(
 		{ connectionId },
 	);
 	if (!connection || typeof connection !== "object" || !("accessToken" in connection)) {
-		throw new Error("Linear connection not found");
+		throwConvexError(ErrorCode.LINEAR_CONNECTION_NOT_FOUND, "Linear connection not found");
 	}
 	const conn = connection as {
 		accessToken: string;
@@ -220,12 +227,12 @@ export const fetchMyIssues = authAction({
 			{ userId: ctx.user._id },
 		);
 		if (!connection) {
-			throw new Error("Linear not connected");
+			throwConvexError(ErrorCode.LINEAR_NOT_CONNECTED, "Linear not connected");
 		}
 		const { client } = await getLinearClient(ctx, connection._id);
 		const viewer = await client.viewer;
 		if (!viewer) {
-			throw new Error("Could not load Linear viewer");
+			throwConvexError(ErrorCode.LINEAR_VIEWER_LOAD_FAILED, "Could not load Linear viewer");
 		}
 		const issuesConnection = await viewer.assignedIssues({
 			first: 50,

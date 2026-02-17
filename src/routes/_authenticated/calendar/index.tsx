@@ -96,9 +96,7 @@ function CalendarContent() {
 				calendarId: event.calendarId,
 				busy: event.busy,
 				visibility: event.visibility,
-				externalTaskProvider: event.externalTaskProvider,
-				externalTaskId: event.externalTaskId,
-				externalTaskUrl: event.externalTaskUrl,
+				eventKind: event.eventKind ?? "event",
 			};
 
 			return ZEventSchema.parse(mappedEvent);

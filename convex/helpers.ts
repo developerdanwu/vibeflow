@@ -3,12 +3,13 @@ import type { Doc } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { action, mutation, query } from "./_generated/server";
 import { api } from "./_generated/api";
+import { ErrorCode, throwConvexError } from "./errors";
 
 /** Helper for mutations: get current user id from auth (internal use). */
 export async function getUserIdFromAuth(ctx: MutationCtx) {
 	const identity = await ctx.auth.getUserIdentity();
 	if (!identity) {
-		throw new Error("Not authenticated");
+		throwConvexError(ErrorCode.NOT_AUTHENTICATED, "Not authenticated");
 	}
 
 	const user = await ctx.db
@@ -17,7 +18,7 @@ export async function getUserIdFromAuth(ctx: MutationCtx) {
 		.unique();
 
 	if (!user) {
-		throw new Error("User not found in database");
+		throwConvexError(ErrorCode.USER_NOT_FOUND, "User not found in database");
 	}
 
 	return user._id;
@@ -29,7 +30,7 @@ export const authQuery = customQuery(query, {
 	input: async (ctx, _args) => {
 		const identity = await ctx.auth.getUserIdentity();
 		if (!identity) {
-			throw new Error("Not authenticated");
+			throwConvexError(ErrorCode.NOT_AUTHENTICATED, "Not authenticated");
 		}
 
 		const user = await ctx.db
@@ -38,7 +39,7 @@ export const authQuery = customQuery(query, {
 			.unique();
 
 		if (!user) {
-			throw new Error("User not found in database");
+			throwConvexError(ErrorCode.USER_NOT_FOUND, "User not found in database");
 		}
 
 		return {
@@ -54,7 +55,7 @@ export const authMutation = customMutation(mutation, {
 	input: async (ctx, _args) => {
 		const identity = await ctx.auth.getUserIdentity();
 		if (!identity) {
-			throw new Error("Not authenticated");
+			throwConvexError(ErrorCode.NOT_AUTHENTICATED, "Not authenticated");
 		}
 
 		const user = await ctx.db
@@ -63,7 +64,7 @@ export const authMutation = customMutation(mutation, {
 			.unique();
 
 		if (!user) {
-			throw new Error("User not found in database");
+			throwConvexError(ErrorCode.USER_NOT_FOUND, "User not found in database");
 		}
 
 		return {
@@ -79,7 +80,7 @@ export const authAction = customAction(action, {
 	input: async (ctx, _args) => {
 		const identity = await ctx.auth.getUserIdentity();
 		if (!identity) {
-			throw new Error("Not authenticated");
+			throwConvexError(ErrorCode.NOT_AUTHENTICATED, "Not authenticated");
 		}
 		const user = (await ctx.runQuery(
 			api.users.queries.getUserByAuthId as import("convex/server").FunctionReference<
@@ -91,7 +92,7 @@ export const authAction = customAction(action, {
 			{ authId: identity.subject },
 		)) as Doc<"users"> | null;
 		if (!user) {
-			throw new Error("User not found in database");
+			throwConvexError(ErrorCode.USER_NOT_FOUND, "User not found in database");
 		}
 		return {
 			ctx: { user },

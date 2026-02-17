@@ -117,7 +117,11 @@ export function MonthEventBadge({
 		badgeVariant === "dot" ? `${event.color}-dot` : event.color
 	) as VariantProps<typeof eventBadgeVariants>["color"];
 
-	const eventBadgeClasses = cn(eventBadgeVariants({ color, className }));
+	const isTask = event.eventKind === "task";
+	const eventBadgeClasses = cn(
+		eventBadgeVariants({ color, className }),
+		isTask && "border-dashed",
+	);
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter" || e.key === " ") {

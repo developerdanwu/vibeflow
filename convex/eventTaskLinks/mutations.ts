@@ -1,19 +1,37 @@
 import { v } from "convex/values";
 import { authMutation } from "../helpers";
+import { ErrorCode, throwConvexError } from "../errors";
 
 export const linkTaskToEvent = authMutation({
 	args: {
 		eventId: v.id("events"),
 		externalTaskId: v.string(),
 		url: v.string(),
+		linkType: v.optional(
+			v.union(v.literal("scheduled"), v.literal("related")),
+		),
 	},
 	handler: async (ctx, args) => {
 		const event = await ctx.db.get(args.eventId);
 		if (!event) {
-			throw new Error("Event not found");
+			throwConvexError(ErrorCode.EVENT_NOT_FOUND, "Event not found");
 		}
 		if (event.userId !== ctx.user._id) {
-			throw new Error("Not authorized to link task to this event");
+			throwConvexError(ErrorCode.NOT_AUTHORIZED, "Not authorized to link task to this event");
+		}
+
+		const effectiveLinkType = args.linkType ?? "related";
+
+		if (effectiveLinkType === "scheduled") {
+			const existingScheduled = await ctx.db
+				.query("eventTaskLinks")
+				.withIndex("by_event", (q) => q.eq("eventId", args.eventId))
+				.collect();
+			for (const link of existingScheduled) {
+				if (link.linkType === "scheduled") {
+					await ctx.db.delete(link._id);
+				}
+			}
 		}
 
 		const existing = await ctx.db
@@ -24,6 +42,9 @@ export const linkTaskToEvent = authMutation({
 			.unique();
 
 		if (existing) {
+			if (effectiveLinkType !== existing.linkType) {
+				await ctx.db.patch(existing._id, { linkType: effectiveLinkType });
+			}
 			return existing._id;
 		}
 
@@ -32,6 +53,7 @@ export const linkTaskToEvent = authMutation({
 			externalTaskId: args.externalTaskId,
 			provider: "linear",
 			url: args.url,
+			linkType: effectiveLinkType,
 		});
 	},
 });
@@ -44,10 +66,10 @@ export const unlinkTaskFromEvent = authMutation({
 	handler: async (ctx, args) => {
 		const event = await ctx.db.get(args.eventId);
 		if (!event) {
-			throw new Error("Event not found");
+			throwConvexError(ErrorCode.EVENT_NOT_FOUND, "Event not found");
 		}
 		if (event.userId !== ctx.user._id) {
-			throw new Error("Not authorized to unlink task from this event");
+			throwConvexError(ErrorCode.NOT_AUTHORIZED, "Not authorized to unlink task from this event");
 		}
 
 		const link = await ctx.db

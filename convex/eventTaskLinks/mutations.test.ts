@@ -26,6 +26,7 @@ describe("linkTaskToEvent", () => {
 			externalTaskId: "linear-issue-1",
 			provider: "linear",
 			url: "https://linear.app/org/issue/1",
+			linkType: "related",
 		});
 	});
 

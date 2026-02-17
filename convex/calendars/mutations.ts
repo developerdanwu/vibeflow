@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { authMutation } from "../helpers";
+import { ErrorCode, throwConvexError } from "../errors";
 
 export const createCalendar = authMutation({
 	args: {
@@ -40,10 +41,10 @@ export const updateCalendar = authMutation({
 		const calendar = await ctx.db.get(id);
 
 		if (!calendar) {
-			throw new Error("Calendar not found");
+			throwConvexError(ErrorCode.CALENDAR_NOT_FOUND, "Calendar not found");
 		}
 		if (calendar.userId !== ctx.user._id) {
-			throw new Error("Not authorized to update this calendar");
+			throwConvexError(ErrorCode.NOT_AUTHORIZED, "Not authorized to update this calendar");
 		}
 
 		if (updates.isDefault === true) {
@@ -75,13 +76,13 @@ export const deleteCalendar = authMutation({
 		const calendar = await ctx.db.get(args.id);
 
 		if (!calendar) {
-			throw new Error("Calendar not found");
+			throwConvexError(ErrorCode.CALENDAR_NOT_FOUND, "Calendar not found");
 		}
 		if (calendar.userId !== ctx.user._id) {
-			throw new Error("Not authorized to delete this calendar");
+			throwConvexError(ErrorCode.NOT_AUTHORIZED, "Not authorized to delete this calendar");
 		}
 		if (calendar.isDefault) {
-			throw new Error("Cannot delete the default calendar");
+			throwConvexError(ErrorCode.CANNOT_DELETE_DEFAULT_CALENDAR, "Cannot delete the default calendar");
 		}
 
 		const eventsInCalendar = await ctx.db

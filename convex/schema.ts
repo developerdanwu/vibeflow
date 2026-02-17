@@ -44,9 +44,9 @@ export default defineSchema({
 			v.literal("outOfOffice"),
 		),
 		visibility: v.union(v.literal("public"), v.literal("private")),
-		externalTaskProvider: v.optional(v.union(v.literal("linear"))),
-		externalTaskId: v.optional(v.string()),
-		externalTaskUrl: v.optional(v.string()),
+		eventKind: v.optional(
+			v.union(v.literal("event"), v.literal("task")),
+		),
 	})
 		.index("by_user", ["userId"])
 		.index("by_user_and_date", ["userId", "startTimestamp"])
@@ -57,7 +57,6 @@ export default defineSchema({
 			"externalEventId",
 		])
 		.index("by_recurring_event", ["recurringEventId"]),
-
 	calendars: defineTable({
 		name: v.string(),
 		color: v.string(),
@@ -66,7 +65,6 @@ export default defineSchema({
 	})
 		.index("by_user", ["userId"])
 		.index("by_user_default", ["userId", "isDefault"]),
-
 	calendarConnections: defineTable({
 		userId: v.id("users"),
 		provider: v.union(v.literal("google"), v.literal("microsoft")),
@@ -76,7 +74,6 @@ export default defineSchema({
 		createdAt: v.number(),
 		updatedAt: v.number(),
 	}).index("by_user_and_provider", ["userId", "provider"]),
-
 	externalCalendars: defineTable({
 		connectionId: v.id("calendarConnections"),
 		provider: v.union(v.literal("google"), v.literal("microsoft")),
@@ -124,7 +121,6 @@ export default defineSchema({
 		createdAt: v.number(),
 		updatedAt: v.number(),
 	}).index("by_user_and_provider", ["userId", "provider"]),
-
 	taskItems: defineTable({
 		userId: v.id("users"),
 		connectionId: v.id("taskConnections"),
@@ -142,12 +138,14 @@ export default defineSchema({
 	})
 		.index("by_user_and_provider", ["userId", "provider"])
 		.index("by_external_task", ["provider", "externalTaskId"]),
-
 	eventTaskLinks: defineTable({
 		eventId: v.id("events"),
 		externalTaskId: v.string(),
 		provider: v.union(v.literal("linear")),
 		url: v.string(),
+		linkType: v.optional(
+			v.union(v.literal("scheduled"), v.literal("related")),
+		),
 	})
 		.index("by_event", ["eventId"])
 		.index("by_external_task", ["provider", "externalTaskId"])

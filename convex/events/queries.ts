@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { authQuery } from "../helpers";
 import { internalQuery } from "../_generated/server";
+import { ErrorCode, throwConvexError } from "../errors";
 
 export const getEventsByUser = authQuery({
 	args: {},
@@ -44,7 +45,7 @@ export const getEventById = authQuery({
 			return null;
 		}
 		if (event.userId !== ctx.user._id) {
-			throw new Error("Not authorized to view this event");
+			throwConvexError(ErrorCode.NOT_AUTHORIZED, "Not authorized to view this event");
 		}
 
 		return event;

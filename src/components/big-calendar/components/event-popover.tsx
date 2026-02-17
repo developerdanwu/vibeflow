@@ -33,12 +33,14 @@ import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { TimeInput } from "@/components/ui/time-input";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useDisclosure } from "@/hooks/use-disclosure";
+import { getConvexErrorMessage } from "@/lib/convex-error";
 import { dialogStore } from "@/lib/dialog-store";
 import type { PopoverRootProps } from "@base-ui/react";
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
@@ -157,6 +159,7 @@ export const eventFormSchema = z
 		calendarId: z.custom<Id<"calendars">>().optional(),
 		busy: z.enum(["busy", "free", "tentative", "outOfOffice"]).optional(),
 		visibility: z.enum(["public", "private"]).optional(),
+		eventKind: z.enum(["event", "task"]),
 	})
 	.superRefine((data, ctx) => {
 		if (data.allDay) {
@@ -207,6 +210,7 @@ type GetCreateDefaultValuesInput = {
 	calendarId?: Id<"calendars">;
 	busy?: "busy" | "free" | "tentative" | "outOfOffice";
 	visibility?: "public" | "private";
+	eventKind?: "event" | "task";
 };
 
 function getCreateDefaultValues(
@@ -224,6 +228,7 @@ function getCreateDefaultValues(
 		calendarId,
 		busy = "free",
 		visibility = "public",
+		eventKind = "event",
 	} = input;
 	return {
 		title,
@@ -237,6 +242,7 @@ function getCreateDefaultValues(
 		calendarId,
 		busy,
 		visibility,
+		eventKind,
 	};
 }
 
@@ -311,6 +317,12 @@ const EventPopoverContent = forwardRef<
 		}),
 		enabled: !!eventIdForLinks,
 	});
+	const { data: scheduledLink } = useQuery({
+		...convexQuery(api.eventTaskLinks.queries.getScheduledLinkByEventId, {
+			eventId: eventIdForLinks as Id<"events">,
+		}),
+		enabled: !!eventIdForLinks,
+	});
 	type LinearTaskItem = {
 		_id: string;
 		externalTaskId: string;
@@ -346,7 +358,6 @@ const EventPopoverContent = forwardRef<
 			toast.error("Failed to unlink task");
 		},
 	});
-
 	const handleDelete = () => {
 		if (!event?.convexId) return;
 		// Check if recurring event needs dialog
@@ -389,6 +400,7 @@ const EventPopoverContent = forwardRef<
 						calendarId: values.calendarId,
 						busy: values.busy,
 						visibility: values.visibility,
+						eventKind: values.eventKind,
 						recurringEditMode,
 					});
 				} else {
@@ -419,6 +431,7 @@ const EventPopoverContent = forwardRef<
 						calendarId: values.calendarId,
 						busy: values.busy,
 						visibility: values.visibility,
+						eventKind: values.eventKind,
 						recurringEditMode,
 					});
 				}
@@ -434,6 +447,7 @@ const EventPopoverContent = forwardRef<
 						calendarId: values.calendarId,
 						busy: values.busy,
 						visibility: values.visibility,
+						eventKind: values.eventKind,
 					});
 				} else {
 					const startTimeVal = values.startTime ?? new Time(9, 0);
@@ -462,6 +476,7 @@ const EventPopoverContent = forwardRef<
 						calendarId: values.calendarId,
 						busy: values.busy,
 						visibility: values.visibility,
+						eventKind: values.eventKind,
 					});
 				}
 			}
@@ -469,6 +484,11 @@ const EventPopoverContent = forwardRef<
 			form.reset();
 			calendarStore.trigger.resetNewEvent();
 		} catch (error) {
+			const message = getConvexErrorMessage(
+				error,
+				`Failed to ${mode === "edit" ? "update" : "create"} event`,
+			);
+			toast.error(message);
 			console.error(
 				`Failed to ${mode === "edit" ? "update" : "create"} event:`,
 				error,
@@ -574,6 +594,40 @@ const EventPopoverContent = forwardRef<
 				}}
 				className="grid"
 			>
+				<form.AppField name="eventKind">
+					{(field) => {
+						const eventKind = field.state.value;
+						return (
+							<ToggleGroup
+								value={eventKind ? [eventKind] : []}
+								onValueChange={(v: string[]) => {
+									const first = v?.[0];
+									if (first != null) {
+										field.handleChange(first as "event" | "task");
+									}
+								}}
+								className="absolute -top-9 left-0"
+								variant="outline"
+								size="xs"
+							>
+								<ToggleGroupItem
+									value="task"
+									className="flex w-max gap-1.5 bg-background"
+								>
+									<ClipboardCheck className="size-4 shrink-0" />
+									<span>Task</span>
+								</ToggleGroupItem>
+								<ToggleGroupItem
+									value="event"
+									className="flex w-max gap-1.5 bg-background"
+								>
+									<CalendarIcon className="size-4 shrink-0" />
+									<span>Event</span>
+								</ToggleGroupItem>
+							</ToggleGroup>
+						);
+					}}
+				</form.AppField>
 				{mode === "edit" && (
 					<div className="absolute -top-9 right-0 flex rounded-md border bg-background">
 						<Popover>
@@ -877,8 +931,38 @@ const EventPopoverContent = forwardRef<
 						<div className="space-y-2 bg-muted/30 px-2 py-2">
 							<div className="flex items-center gap-1">
 								<ClipboardCheck className="size-4 text-muted-foreground" />
-								<span className="font-medium text-sm">Tasks</span>
+								<span className="font-medium text-sm">Related tasks</span>
 							</div>
+							{scheduledLink && (
+								<div className="flex items-center gap-2 rounded-md border bg-background px-2 py-1.5">
+									<span className="min-w-0 flex-1 truncate font-medium text-sm">
+										Scheduled task
+									</span>
+									<Tooltip>
+										<TooltipTrigger
+											render={
+												<Button
+													variant="ghost"
+													size="icon-sm"
+													aria-label="Open in Linear"
+													className="shrink-0"
+													render={
+														// biome-ignore lint/a11y/useAnchorContent: content provided by Button children
+														<a
+															href={scheduledLink.url}
+															target="_blank"
+															rel="noopener noreferrer"
+														/>
+													}
+												>
+													<ExternalLink className="size-3.5" />
+												</Button>
+											}
+										/>
+										<TooltipContent>Open in Linear</TooltipContent>
+									</Tooltip>
+								</div>
+							)}
 							{isLinkedTasksLoading ? (
 								<p className="text-muted-foreground text-sm">Loading...</p>
 							) : linkedTasks && linkedTasks.length > 0 ? (
@@ -896,6 +980,11 @@ const EventPopoverContent = forwardRef<
 											>
 												<span className="min-w-0 flex-1 truncate text-sm">
 													{label}
+													{link.linkType === "scheduled" && (
+														<span className="ml-1.5 rounded bg-muted px-1.5 py-0.5 font-medium text-2xs text-muted-foreground">
+															Scheduled
+														</span>
+													)}
 												</span>
 												<Tooltip>
 													<TooltipTrigger
@@ -973,6 +1062,7 @@ const EventPopoverContent = forwardRef<
 											eventId: eventIdForLinks,
 											externalTaskId: task.externalTaskId,
 											url: task.url,
+											linkType: "related",
 										});
 									}}
 									itemToStringValue={(item) =>
@@ -1238,6 +1328,7 @@ export function EventPopover({
 						calendarId: event.calendarId as Id<"calendars"> | undefined,
 						busy: event.busy,
 						visibility: event.visibility,
+						eventKind: event.eventKind ?? "event",
 					});
 					return (
 						<EventPopoverContent

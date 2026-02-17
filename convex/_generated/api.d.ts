@@ -12,6 +12,7 @@ import type * as auth from "../auth.js";
 import type * as calendars_mutations from "../calendars/mutations.js";
 import type * as calendars_queries from "../calendars/queries.js";
 import type * as crons from "../crons.js";
+import type * as errors from "../errors.js";
 import type * as eventTaskLinks_mutations from "../eventTaskLinks/mutations.js";
 import type * as eventTaskLinks_queries from "../eventTaskLinks/queries.js";
 import type * as events_mutations from "../events/mutations.js";
@@ -39,6 +40,7 @@ declare const fullApi: ApiFromModules<{
   "calendars/mutations": typeof calendars_mutations;
   "calendars/queries": typeof calendars_queries;
   crons: typeof crons;
+  errors: typeof errors;
   "eventTaskLinks/mutations": typeof eventTaskLinks_mutations;
   "eventTaskLinks/queries": typeof eventTaskLinks_queries;
   "events/mutations": typeof events_mutations;

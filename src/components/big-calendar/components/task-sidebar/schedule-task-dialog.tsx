@@ -32,6 +32,7 @@ import { set, startOfDay } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { getConvexErrorMessage } from "@/lib/convex-error";
 
 export type TaskItemForSchedule = {
 	_id: string;
@@ -129,14 +130,14 @@ export function ScheduleTaskDialog({
 				startTimestamp: startDateTime.getTime(),
 				endTimestamp: endDateTime.getTime(),
 				calendarId,
-				externalTaskProvider: "linear",
-				externalTaskId: task.externalTaskId,
-				externalTaskUrl: task.url,
+				eventKind: "task",
+				scheduledTaskExternalId: task.externalTaskId,
+				scheduledTaskUrl: task.url,
 			});
 			onOpenChange(false);
 			resetForm();
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : "Failed to schedule");
+			toast.error(getConvexErrorMessage(err, "Failed to schedule"));
 		}
 	};
 

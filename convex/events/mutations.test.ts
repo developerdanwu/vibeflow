@@ -84,6 +84,55 @@ describe("createEvent", () => {
 			"Must provide startTimestamp/endTimestamp for timed events",
 		);
 	});
+
+	test("creates task block with scheduled link when eventKind task and scheduled task args", async ({
+		t,
+		auth,
+		expect,
+	}) => {
+		const { asUser, userId } = auth;
+		const eventId = await asUser.mutation(
+			api.events.mutations.createEvent,
+			{
+				...factories.event(),
+				eventKind: "task",
+				scheduledTaskExternalId: "linear-123",
+				scheduledTaskUrl: "https://linear.app/org/issue/123",
+			},
+		);
+		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get(eventId));
+		expect(event).toMatchObject({
+			title: "Test Event",
+			userId,
+			eventKind: "task",
+		});
+		const links = await t.run(async (ctx: MutationCtx) =>
+			ctx.db
+				.query("eventTaskLinks")
+				.withIndex("by_event", (q) => q.eq("eventId", eventId))
+				.collect(),
+		);
+		expect(links).toHaveLength(1);
+		expect(links[0]).toMatchObject({
+			externalTaskId: "linear-123",
+			url: "https://linear.app/org/issue/123",
+			linkType: "scheduled",
+		});
+	});
+
+	test("creates event with default eventKind when omitted", async ({
+		t,
+		auth,
+		expect,
+	}) => {
+		const { asUser } = auth;
+		const eventId = await asUser.mutation(
+			api.events.mutations.createEvent,
+			factories.event(),
+		);
+		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get(eventId));
+		expect(event?.eventKind).toBe("event");
+	});
 });
 
 describe("updateEvent", () => {
@@ -168,6 +217,49 @@ describe("updateEvent", () => {
 				title: "Hacked",
 			}),
 		).rejects.toThrowError("This event cannot be edited");
+	});
+
+	test("updates eventKind", async ({ t, auth, expect }) => {
+		const { asUser } = auth;
+		const eventId = await asUser.mutation(
+			api.events.mutations.createEvent,
+			factories.event(),
+		);
+		await asUser.mutation(api.events.mutations.updateEvent, {
+			id: eventId,
+			eventKind: "task",
+		});
+		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get(eventId));
+		expect(event?.eventKind).toBe("task");
+	});
+
+	test("converting synced Google event to task detaches and sets busy", async ({
+		t,
+		auth,
+		expect,
+	}) => {
+		const { asUser, userId } = auth;
+		const externalCalendarId = "google-cal-1";
+		const eventId = await t.run(async (ctx: MutationCtx) =>
+			ctx.db.insert("events", {
+				...factories.event(),
+				userId,
+				externalProvider: "google",
+				externalEventId: "google-ev-1",
+				externalCalendarId,
+				isEditable: true,
+			}),
+		);
+		await asUser.mutation(api.events.mutations.updateEvent, {
+			id: eventId,
+			eventKind: "task",
+		});
+		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get(eventId));
+		expect(event?.eventKind).toBe("task");
+		expect(event?.busy).toBe("busy");
+		expect(event?.externalProvider).toBeUndefined();
+		expect(event?.externalCalendarId).toBeUndefined();
+		expect(event?.externalEventId).toBeUndefined();
 	});
 });
 
