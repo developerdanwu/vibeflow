@@ -18,9 +18,7 @@ describe("linkTaskToEvent", () => {
 				url: "https://linear.app/org/issue/1",
 			},
 		);
-		const link = await t.run(async (ctx: MutationCtx) =>
-			ctx.db.get(linkId),
-		);
+		const link = await t.run(async (ctx: MutationCtx) => ctx.db.get(linkId));
 		expect(link).toMatchObject({
 			eventId,
 			externalTaskId: "linear-issue-1",
@@ -119,18 +117,15 @@ describe("unlinkTaskFromEvent", () => {
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
-		await asUser.mutation(
-			api.eventTaskLinks.mutations.linkTaskToEvent,
-			{
-				eventId,
-				externalTaskId: "linear-issue-1",
-				url: "https://linear.app/org/issue/1",
-			},
-		);
-		await asUser.mutation(
-			api.eventTaskLinks.mutations.unlinkTaskFromEvent,
-			{ eventId, externalTaskId: "linear-issue-1" },
-		);
+		await asUser.mutation(api.eventTaskLinks.mutations.linkTaskToEvent, {
+			eventId,
+			externalTaskId: "linear-issue-1",
+			url: "https://linear.app/org/issue/1",
+		});
+		await asUser.mutation(api.eventTaskLinks.mutations.unlinkTaskFromEvent, {
+			eventId,
+			externalTaskId: "linear-issue-1",
+		});
 		const links = await t.run(async (ctx: MutationCtx) =>
 			ctx.db
 				.query("eventTaskLinks")
@@ -147,10 +142,10 @@ describe("unlinkTaskFromEvent", () => {
 			factories.event(),
 		);
 		await expect(
-			asUser.mutation(
-				api.eventTaskLinks.mutations.unlinkTaskFromEvent,
-				{ eventId, externalTaskId: "nonexistent-task" },
-			),
+			asUser.mutation(api.eventTaskLinks.mutations.unlinkTaskFromEvent, {
+				eventId,
+				externalTaskId: "nonexistent-task",
+			}),
 		).resolves.toBeNull();
 	});
 
@@ -178,10 +173,10 @@ describe("unlinkTaskFromEvent", () => {
 			id: deletedId,
 		});
 		await expect(
-			asUser.mutation(
-				api.eventTaskLinks.mutations.unlinkTaskFromEvent,
-				{ eventId: deletedId, externalTaskId: "linear-issue-1" },
-			),
+			asUser.mutation(api.eventTaskLinks.mutations.unlinkTaskFromEvent, {
+				eventId: deletedId,
+				externalTaskId: "linear-issue-1",
+			}),
 		).rejects.toThrowError("Event not found");
 	});
 
@@ -196,19 +191,16 @@ describe("unlinkTaskFromEvent", () => {
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
-		await asAlice.mutation(
-			api.eventTaskLinks.mutations.linkTaskToEvent,
-			{
+		await asAlice.mutation(api.eventTaskLinks.mutations.linkTaskToEvent, {
+			eventId,
+			externalTaskId: "linear-issue-1",
+			url: "https://linear.app/org/issue/1",
+		});
+		await expect(
+			asBob.mutation(api.eventTaskLinks.mutations.unlinkTaskFromEvent, {
 				eventId,
 				externalTaskId: "linear-issue-1",
-				url: "https://linear.app/org/issue/1",
-			},
-		);
-		await expect(
-			asBob.mutation(
-				api.eventTaskLinks.mutations.unlinkTaskFromEvent,
-				{ eventId, externalTaskId: "linear-issue-1" },
-			),
+			}),
 		).rejects.toThrowError("Not authorized to unlink task from this event");
 	});
 });

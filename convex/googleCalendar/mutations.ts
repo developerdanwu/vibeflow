@@ -76,7 +76,7 @@ export const addExternalCalendar = internalMutation({
 			.withIndex("by_connection_and_external_id", (q) =>
 				q
 					.eq("connectionId", args.connectionId)
-					.eq("externalCalendarId", args.externalCalendarId)
+					.eq("externalCalendarId", args.externalCalendarId),
 			)
 			.unique();
 		if (existing) {
@@ -147,7 +147,7 @@ export const upsertEventFromExternal = internalMutation({
 				q
 					.eq("externalProvider", provider)
 					.eq("externalCalendarId", externalCalendarId)
-					.eq("externalEventId", externalEventId)
+					.eq("externalEventId", externalEventId),
 			)
 			.unique();
 		const doc = {
@@ -180,7 +180,7 @@ export const deleteEventByExternalId = internalMutation({
 				q
 					.eq("externalProvider", args.provider)
 					.eq("externalCalendarId", args.externalCalendarId)
-					.eq("externalEventId", args.externalEventId)
+					.eq("externalEventId", args.externalEventId),
 			)
 			.unique();
 		if (event) {
@@ -208,7 +208,7 @@ export const deleteEventsByExternalIdBatch = internalMutation({
 					q
 						.eq("externalProvider", d.provider)
 						.eq("externalCalendarId", d.externalCalendarId)
-						.eq("externalEventId", d.externalEventId)
+						.eq("externalEventId", d.externalEventId),
 				)
 				.unique();
 			if (event) {
@@ -239,7 +239,7 @@ export const upsertEventsFromExternalBatch = internalMutation({
 					q
 						.eq("externalProvider", provider)
 						.eq("externalCalendarId", externalCalendarId)
-						.eq("externalEventId", externalEventId)
+						.eq("externalEventId", externalEventId),
 				)
 				.unique();
 			const doc = {
@@ -272,7 +272,7 @@ export const updateExternalCalendarSyncToken = internalMutation({
 			.withIndex("by_connection_and_external_id", (q) =>
 				q
 					.eq("connectionId", args.connectionId)
-					.eq("externalCalendarId", args.externalCalendarId)
+					.eq("externalCalendarId", args.externalCalendarId),
 			)
 			.unique();
 		if (ext) {
@@ -296,7 +296,7 @@ export const updateExternalCalendarChannel = internalMutation({
 			.withIndex("by_connection_and_external_id", (q) =>
 				q
 					.eq("connectionId", args.connectionId)
-					.eq("externalCalendarId", args.externalCalendarId)
+					.eq("externalCalendarId", args.externalCalendarId),
 			)
 			.unique();
 		if (ext) {

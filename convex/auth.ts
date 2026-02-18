@@ -6,7 +6,7 @@ import type { DataModel } from "./_generated/dataModel";
 const authFunctions: AuthFunctions = internal.auth;
 
 export const authKit = new AuthKit<DataModel>(components.workOSAuthKit, {
-  authFunctions,
+	authFunctions,
 });
 
 export const { authKitEvent } = authKit.events({

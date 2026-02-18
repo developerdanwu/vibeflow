@@ -8,7 +8,9 @@ describe("getUserCalendars", () => {
 		expect,
 	}) => {
 		const { asUser } = auth;
-		const calendars = await asUser.query(api.calendars.queries.getUserCalendars);
+		const calendars = await asUser.query(
+			api.calendars.queries.getUserCalendars,
+		);
 		expect(calendars).toEqual([]);
 	});
 
@@ -18,7 +20,9 @@ describe("getUserCalendars", () => {
 			api.calendars.mutations.createCalendar,
 			factories.calendar({ name: "Work" }),
 		);
-		const calendars = await asUser.query(api.calendars.queries.getUserCalendars);
+		const calendars = await asUser.query(
+			api.calendars.queries.getUserCalendars,
+		);
 		expect(calendars).toHaveLength(1);
 		expect(calendars[0].name).toBe("Work");
 	});
@@ -43,10 +47,7 @@ describe("getDefaultCalendar", () => {
 		expect(defaultCal).toBeNull();
 	});
 
-	test("returns default calendar when one exists", async ({
-		auth,
-		expect,
-	}) => {
+	test("returns default calendar when one exists", async ({ auth, expect }) => {
 		const { asUser } = auth;
 		await asUser.mutation(
 			api.calendars.mutations.createCalendar,

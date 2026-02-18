@@ -7,9 +7,7 @@ import schema from "./schema";
 export const modules = import.meta.glob("./**/*.ts");
 
 /** Table names derived from schema; used for test data cleanup */
-const CONVEX_TABLE_NAMES: TableNames[] = Object.keys(
-	schema,
-) as TableNames[];
+const CONVEX_TABLE_NAMES: TableNames[] = Object.keys(schema) as TableNames[];
 
 /** Clear all documents from all tables in the given test instance. Call in fixture teardown. */
 export async function clearAllTables(
@@ -119,7 +117,18 @@ export type EventFields = Omit<Doc<"events">, "_id" | "_creationTime">;
 
 /** Factory for createEvent args or event doc (timed event by default). Return type omits userId so it works as createEvent args; for db.insert spread and add userId. */
 export const factories = {
-	event: (overrides?: Partial<EventFields>): Partial<EventFields> & Pick<EventFields, "title" | "startTimestamp" | "endTimestamp" | "allDay" | "busy" | "visibility"> => {
+	event: (
+		overrides?: Partial<EventFields>,
+	): Partial<EventFields> &
+		Pick<
+			EventFields,
+			| "title"
+			| "startTimestamp"
+			| "endTimestamp"
+			| "allDay"
+			| "busy"
+			| "visibility"
+		> => {
 		const now = Date.now();
 		return {
 			title: "Test Event",
@@ -130,7 +139,15 @@ export const factories = {
 			visibility: "public",
 			...overrides,
 		} satisfies Partial<EventFields> &
-			Pick<EventFields, "title" | "startTimestamp" | "endTimestamp" | "allDay" | "busy" | "visibility">;
+			Pick<
+				EventFields,
+				| "title"
+				| "startTimestamp"
+				| "endTimestamp"
+				| "allDay"
+				| "busy"
+				| "visibility"
+			>;
 	},
 	/** Calendar fields (for createCalendar args or db.insert). Input uses Doc for type safety. */
 	calendar: (

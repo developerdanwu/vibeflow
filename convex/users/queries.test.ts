@@ -40,7 +40,10 @@ describe("getUserPreferences", () => {
 		).rejects.toThrowError("Not authenticated");
 	});
 
-	test("returns null when user has no preferences", async ({ auth, expect }) => {
+	test("returns null when user has no preferences", async ({
+		auth,
+		expect,
+	}) => {
 		const { asUser } = auth;
 		const prefs = await asUser.query(api.users.queries.getUserPreferences);
 		expect(prefs).toBeNull();

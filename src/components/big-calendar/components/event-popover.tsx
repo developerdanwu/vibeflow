@@ -53,7 +53,7 @@ import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { Time } from "@internationalized/date";
-import { useStore } from "@tanstack/react-form-start";
+import { useStore } from "@tanstack/react-form";
 import { useQuery } from "@tanstack/react-query";
 import { addDays, format, parseISO, set, startOfDay, subDays } from "date-fns";
 import {

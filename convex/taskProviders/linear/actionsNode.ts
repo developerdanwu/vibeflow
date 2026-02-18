@@ -28,7 +28,7 @@ function normalizeState(type: string | undefined): string | undefined {
 	return m[type] ?? type;
 }
 
-type StatePayload = { userId: string };
+type StatePayload = { userId: string; returnTo: string; redirectUri: string };
 
 function decodeState(state: string): StatePayload {
 	try {
@@ -50,7 +50,10 @@ async function exchangeCodeForTokens(
 	const clientId = process.env.LINEAR_CLIENT_ID;
 	const clientSecret = process.env.LINEAR_CLIENT_SECRET;
 	if (!clientId || !clientSecret) {
-		throwConvexError(ErrorCode.OAUTH_NOT_CONFIGURED, "Linear OAuth not configured");
+		throwConvexError(
+			ErrorCode.OAUTH_NOT_CONFIGURED,
+			"Linear OAuth not configured",
+		);
 	}
 	const body = new URLSearchParams({
 		grant_type: "authorization_code",
@@ -91,7 +94,10 @@ async function refreshAccessToken(refreshToken: string): Promise<{
 	const clientId = process.env.LINEAR_CLIENT_ID;
 	const clientSecret = process.env.LINEAR_CLIENT_SECRET;
 	if (!clientId || !clientSecret) {
-		throwConvexError(ErrorCode.OAUTH_NOT_CONFIGURED, "Linear OAuth not configured");
+		throwConvexError(
+			ErrorCode.OAUTH_NOT_CONFIGURED,
+			"Linear OAuth not configured",
+		);
 	}
 	const body = new URLSearchParams({
 		grant_type: "refresh_token",
@@ -128,23 +134,25 @@ export const exchangeCode = action({
 	args: {
 		code: v.string(),
 		state: v.string(),
-		redirectUri: v.string(),
 	},
-	handler: async (ctx, args): Promise<{ connectionId: Id<"taskConnections"> }> => {
-		const { userId: userIdStr } = decodeState(args.state);
+	handler: async (ctx, args) => {
+		const {
+			userId: userIdStr,
+			returnTo,
+			redirectUri,
+		} = decodeState(args.state);
 		const userId = userIdStr as Id<"users">;
 
-		const tokens = await exchangeCodeForTokens(
-			args.code,
-			args.redirectUri,
-		);
+		const tokens = await exchangeCodeForTokens(args.code, redirectUri);
 		const now = Date.now();
 		const accessTokenExpiresAt = tokens.refresh_token
 			? now + tokens.expires_in * 1000
 			: undefined;
 
 		const client = new LinearClient({ accessToken: tokens.access_token });
-		let providerMetadata: { organizationName?: string; urlKey?: string } | undefined;
+		let providerMetadata:
+			| { organizationName?: string; urlKey?: string }
+			| undefined;
 		try {
 			const org = await client.organization;
 			if (org) {
@@ -168,7 +176,7 @@ export const exchangeCode = action({
 			},
 		)) as Id<"taskConnections">;
 
-		return { connectionId };
+		return { connectionId, returnTo };
 	},
 });
 
@@ -181,8 +189,15 @@ export async function getLinearClient(
 		internal.taskProviders.linear.queries.getConnectionById,
 		{ connectionId },
 	);
-	if (!connection || typeof connection !== "object" || !("accessToken" in connection)) {
-		throwConvexError(ErrorCode.LINEAR_CONNECTION_NOT_FOUND, "Linear connection not found");
+	if (
+		!connection ||
+		typeof connection !== "object" ||
+		!("accessToken" in connection)
+	) {
+		throwConvexError(
+			ErrorCode.LINEAR_CONNECTION_NOT_FOUND,
+			"Linear connection not found",
+		);
 	}
 	const conn = connection as {
 		accessToken: string;
@@ -232,7 +247,10 @@ export const fetchMyIssues = authAction({
 		const { client } = await getLinearClient(ctx, connection._id);
 		const viewer = await client.viewer;
 		if (!viewer) {
-			throwConvexError(ErrorCode.LINEAR_VIEWER_LOAD_FAILED, "Could not load Linear viewer");
+			throwConvexError(
+				ErrorCode.LINEAR_VIEWER_LOAD_FAILED,
+				"Could not load Linear viewer",
+			);
 		}
 		const issuesConnection = await viewer.assignedIssues({
 			first: 50,
@@ -257,11 +275,14 @@ export const fetchMyIssues = authAction({
 				url: issue.url ?? "",
 			} satisfies TaskItem);
 		}
-		await ctx.runMutation(internal.taskProviders.linear.mutations.upsertTaskItems, {
-			userId: ctx.user._id,
-			connectionId: connection._id,
-			items,
-		});
+		await ctx.runMutation(
+			internal.taskProviders.linear.mutations.upsertTaskItems,
+			{
+				userId: ctx.user._id,
+				connectionId: connection._id,
+				items,
+			},
+		);
 		return { count: items.length };
 	},
 });

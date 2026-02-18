@@ -16,7 +16,7 @@ export const getDefaultCalendar = authQuery({
 		return await ctx.db
 			.query("calendars")
 			.withIndex("by_user_default", (q) =>
-				q.eq("userId", ctx.user._id).eq("isDefault", true)
+				q.eq("userId", ctx.user._id).eq("isDefault", true),
 			)
 			.first();
 	},

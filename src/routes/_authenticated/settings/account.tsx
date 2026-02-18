@@ -1,7 +1,3 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useAuth } from "@workos/authkit-tanstack-react-start/client";
-import { toast } from "sonner";
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,13 +8,16 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { useAppAuth } from "@/lib/auth-context";
+import { createFileRoute } from "@tanstack/react-router";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/settings/account")({
 	component: AccountSettings,
 });
 
 function AccountSettings() {
-	const { user } = useAuth();
+	const { user } = useAppAuth();
 
 	return (
 		<div className="space-y-8">

@@ -10,7 +10,7 @@ export const getMyGoogleConnection = authQuery({
 		const connection = await ctx.db
 			.query("calendarConnections")
 			.withIndex("by_user_and_provider", (q) =>
-				q.eq("userId", ctx.user._id).eq("provider", "google")
+				q.eq("userId", ctx.user._id).eq("provider", "google"),
 			)
 			.unique();
 		if (!connection) return null;
@@ -38,7 +38,7 @@ export const getConnectionByUserId = internalQuery({
 		const connection = await ctx.db
 			.query("calendarConnections")
 			.withIndex("by_user_and_provider", (q) =>
-				q.eq("userId", args.userId).eq("provider", "google")
+				q.eq("userId", args.userId).eq("provider", "google"),
 			)
 			.unique();
 		if (!connection) return null;
@@ -48,7 +48,9 @@ export const getConnectionByUserId = internalQuery({
 			.collect();
 		return {
 			connectionId: connection._id,
-			externalCalendarIds: externalCalendars.map((ext) => ext.externalCalendarId),
+			externalCalendarIds: externalCalendars.map(
+				(ext) => ext.externalCalendarId,
+			),
 		};
 	},
 });
@@ -96,7 +98,7 @@ export const getConnectionAndExternalCalendar = internalQuery({
 			.withIndex("by_connection_and_external_id", (q) =>
 				q
 					.eq("connectionId", args.connectionId)
-					.eq("externalCalendarId", args.externalCalendarId)
+					.eq("externalCalendarId", args.externalCalendarId),
 			)
 			.unique();
 		if (!ext) return null;
@@ -144,9 +146,7 @@ export const getCalendarsNeedingChannelRenewal = internalQuery({
 		const all = await ctx.db.query("externalCalendars").collect();
 		return all
 			.filter(
-				(ext) =>
-					ext.channelId &&
-					(!ext.expiration || ext.expiration < cutoff),
+				(ext) => ext.channelId && (!ext.expiration || ext.expiration < cutoff),
 			)
 			.map((ext) => ({
 				connectionId: ext.connectionId,

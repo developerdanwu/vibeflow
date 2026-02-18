@@ -25,6 +25,7 @@ export const ErrorCode = {
 	LINEAR_VIEWER_LOAD_FAILED: "LINEAR_VIEWER_LOAD_FAILED",
 	LINEAR_TOKEN_EXCHANGE_FAILED: "LINEAR_TOKEN_EXCHANGE_FAILED",
 	LINEAR_TOKEN_REFRESH_FAILED: "LINEAR_TOKEN_REFRESH_FAILED",
+	WORKOS_CODE_EXCHANGE_FAILED: "WORKOS_CODE_EXCHANGE_FAILED",
 } as const;
 
 export type AppErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
@@ -40,5 +41,8 @@ export type AppErrorData = {
  * Use this so the client receives structured error.data (code, message).
  */
 export function throwConvexError(code: AppErrorCode, message?: string): never {
-	throw new ConvexError<AppErrorData>({ code, ...(message ? { message } : {}) });
+	throw new ConvexError<AppErrorData>({
+		code,
+		...(message ? { message } : {}),
+	});
 }

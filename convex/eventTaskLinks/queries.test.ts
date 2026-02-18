@@ -10,22 +10,16 @@ describe("getLinksByEventId", () => {
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
-		await asUser.mutation(
-			api.eventTaskLinks.mutations.linkTaskToEvent,
-			{
-				eventId,
-				externalTaskId: "linear-issue-1",
-				url: "https://linear.app/org/issue/1",
-			},
-		);
-		await asUser.mutation(
-			api.eventTaskLinks.mutations.linkTaskToEvent,
-			{
-				eventId,
-				externalTaskId: "linear-issue-2",
-				url: "https://linear.app/org/issue/2",
-			},
-		);
+		await asUser.mutation(api.eventTaskLinks.mutations.linkTaskToEvent, {
+			eventId,
+			externalTaskId: "linear-issue-1",
+			url: "https://linear.app/org/issue/1",
+		});
+		await asUser.mutation(api.eventTaskLinks.mutations.linkTaskToEvent, {
+			eventId,
+			externalTaskId: "linear-issue-2",
+			url: "https://linear.app/org/issue/2",
+		});
 		const links = await asUser.query(
 			api.eventTaskLinks.queries.getLinksByEventId,
 			{ eventId },
@@ -134,15 +128,12 @@ describe("getScheduledLinksByEventId", () => {
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
-		await asUser.mutation(
-			api.eventTaskLinks.mutations.linkTaskToEvent,
-			{
-				eventId,
-				externalTaskId: "linear-scheduled-1",
-				url: "https://linear.app/org/issue/scheduled",
-				linkType: "scheduled",
-			},
-		);
+		await asUser.mutation(api.eventTaskLinks.mutations.linkTaskToEvent, {
+			eventId,
+			externalTaskId: "linear-scheduled-1",
+			url: "https://linear.app/org/issue/scheduled",
+			linkType: "scheduled",
+		});
 		const scheduled = await asUser.query(
 			api.eventTaskLinks.queries.getScheduledLinksByEventId,
 			{ eventId },
@@ -161,24 +152,18 @@ describe("getScheduledLinksByEventId", () => {
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
-		await asUser.mutation(
-			api.eventTaskLinks.mutations.linkTaskToEvent,
-			{
-				eventId,
-				externalTaskId: "linear-scheduled-1",
-				url: "https://linear.app/org/issue/scheduled1",
-				linkType: "scheduled",
-			},
-		);
-		await asUser.mutation(
-			api.eventTaskLinks.mutations.linkTaskToEvent,
-			{
-				eventId,
-				externalTaskId: "linear-scheduled-2",
-				url: "https://linear.app/org/issue/scheduled2",
-				linkType: "scheduled",
-			},
-		);
+		await asUser.mutation(api.eventTaskLinks.mutations.linkTaskToEvent, {
+			eventId,
+			externalTaskId: "linear-scheduled-1",
+			url: "https://linear.app/org/issue/scheduled1",
+			linkType: "scheduled",
+		});
+		await asUser.mutation(api.eventTaskLinks.mutations.linkTaskToEvent, {
+			eventId,
+			externalTaskId: "linear-scheduled-2",
+			url: "https://linear.app/org/issue/scheduled2",
+			linkType: "scheduled",
+		});
 		const scheduled = await asUser.query(
 			api.eventTaskLinks.queries.getScheduledLinksByEventId,
 			{ eventId },
@@ -223,14 +208,11 @@ describe("getScheduledLinksByEventId", () => {
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
-		await asUser.mutation(
-			api.eventTaskLinks.mutations.linkTaskToEvent,
-			{
-				eventId,
-				externalTaskId: "linear-issue-1",
-				url: "https://linear.app/org/issue/1",
-			},
-		);
+		await asUser.mutation(api.eventTaskLinks.mutations.linkTaskToEvent, {
+			eventId,
+			externalTaskId: "linear-issue-1",
+			url: "https://linear.app/org/issue/1",
+		});
 		const scheduled = await asUser.query(
 			api.eventTaskLinks.queries.getScheduledLinksByEventId,
 			{ eventId },

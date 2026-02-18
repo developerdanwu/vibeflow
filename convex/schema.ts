@@ -44,9 +44,7 @@ export default defineSchema({
 			v.literal("outOfOffice"),
 		),
 		visibility: v.union(v.literal("public"), v.literal("private")),
-		eventKind: v.optional(
-			v.union(v.literal("event"), v.literal("task")),
-		),
+		eventKind: v.optional(v.union(v.literal("event"), v.literal("task"))),
 	})
 		.index("by_user", ["userId"])
 		.index("by_user_and_date", ["userId", "startTimestamp"])
@@ -103,8 +101,8 @@ export default defineSchema({
 				v.literal("week"),
 				v.literal("month"),
 				v.literal("year"),
-				v.literal("agenda")
-			)
+				v.literal("agenda"),
+			),
 		),
 		weekStartDay: v.optional(v.number()),
 		timeFormat: v.optional(v.union(v.literal("12h"), v.literal("24h"))),
@@ -143,9 +141,7 @@ export default defineSchema({
 		externalTaskId: v.string(),
 		provider: v.union(v.literal("linear")),
 		url: v.string(),
-		linkType: v.optional(
-			v.union(v.literal("scheduled"), v.literal("related")),
-		),
+		linkType: v.optional(v.union(v.literal("scheduled"), v.literal("related"))),
 	})
 		.index("by_event", ["eventId"])
 		.index("by_external_task", ["provider", "externalTaskId"])

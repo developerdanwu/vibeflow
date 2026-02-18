@@ -27,9 +27,7 @@ export const createEvent = authMutation({
 			),
 		),
 		visibility: v.optional(v.union(v.literal("public"), v.literal("private"))),
-		eventKind: v.optional(
-			v.union(v.literal("event"), v.literal("task")),
-		),
+		eventKind: v.optional(v.union(v.literal("event"), v.literal("task"))),
 		scheduledTaskLinks: v.optional(
 			v.array(
 				v.object({
@@ -51,7 +49,10 @@ export const createEvent = authMutation({
 		let derivedStartTimestamp = args.startTimestamp;
 		let derivedEndTimestamp = args.endTimestamp;
 
-		if (derivedStartTimestamp === undefined || derivedEndTimestamp === undefined) {
+		if (
+			derivedStartTimestamp === undefined ||
+			derivedEndTimestamp === undefined
+		) {
 			if (args.allDay && args.startDateStr && args.endDateStr) {
 				const startDateObj = new Date(args.startDateStr + "T00:00:00Z");
 				const endDateObj = new Date(args.endDateStr + "T00:00:00Z");
@@ -66,7 +67,10 @@ export const createEvent = authMutation({
 		}
 
 		if (derivedEndTimestamp < derivedStartTimestamp) {
-			throwConvexError(ErrorCode.BAD_REQUEST, "End date must be after start date");
+			throwConvexError(
+				ErrorCode.BAD_REQUEST,
+				"End date must be after start date",
+			);
 		}
 
 		const eventKind = args.eventKind ?? "event";
@@ -119,9 +123,7 @@ export const createEvent = authMutation({
 		if (args.calendarId) {
 			const ext = await ctx.db
 				.query("externalCalendars")
-				.withIndex("by_calendar", (q) =>
-					q.eq("calendarId", args.calendarId),
-				)
+				.withIndex("by_calendar", (q) => q.eq("calendarId", args.calendarId))
 				.unique();
 			if (ext?.provider === "google") {
 				await ctx.scheduler.runAfter(
@@ -162,9 +164,7 @@ export const updateEvent = authMutation({
 			),
 		),
 		visibility: v.optional(v.union(v.literal("public"), v.literal("private"))),
-		eventKind: v.optional(
-			v.union(v.literal("event"), v.literal("task")),
-		),
+		eventKind: v.optional(v.union(v.literal("event"), v.literal("task"))),
 		scheduledTaskLinks: v.optional(
 			v.array(
 				v.object({
@@ -196,13 +196,13 @@ export const updateEvent = authMutation({
 			throwConvexError(ErrorCode.EVENT_NOT_FOUND, "Event not found");
 		}
 		if (event.userId !== ctx.user._id) {
-			throwConvexError(ErrorCode.NOT_AUTHORIZED, "Not authorized to update this event");
+			throwConvexError(
+				ErrorCode.NOT_AUTHORIZED,
+				"Not authorized to update this event",
+			);
 		}
 
-		if (
-			event.externalProvider === "google" &&
-			event.isEditable === false
-		) {
+		if (event.externalProvider === "google" && event.isEditable === false) {
 			throwConvexError(
 				ErrorCode.EVENT_CANNOT_BE_EDITED,
 				"This event cannot be edited. It was created by someone else.",
@@ -235,7 +235,14 @@ export const updateEvent = authMutation({
 					end: new Date(endDateStr + "T00:00:00Z").getTime(),
 				};
 			}
-			if (!allDay && startDateStr && startTime && endDateStr && endTime && timeZone) {
+			if (
+				!allDay &&
+				startDateStr &&
+				startTime &&
+				endDateStr &&
+				endTime &&
+				timeZone
+			) {
 				return {
 					start: new Date(`${startDateStr}T${startTime}:00Z`).getTime(),
 					end: new Date(`${endDateStr}T${endTime}:00Z`).getTime(),
@@ -247,15 +254,20 @@ export const updateEvent = authMutation({
 			};
 		})();
 
-		const newStartTimestamp = derived.start ?? updates.startTimestamp ?? event.startTimestamp;
-		const newEndTimestamp = derived.end ?? updates.endTimestamp ?? event.endTimestamp;
+		const newStartTimestamp =
+			derived.start ?? updates.startTimestamp ?? event.startTimestamp;
+		const newEndTimestamp =
+			derived.end ?? updates.endTimestamp ?? event.endTimestamp;
 
 		if (newEndTimestamp < newStartTimestamp) {
-			throwConvexError(ErrorCode.BAD_REQUEST, "End date must be after start date");
+			throwConvexError(
+				ErrorCode.BAD_REQUEST,
+				"End date must be after start date",
+			);
 		}
 
 		const cleanUpdates = Object.fromEntries(
-			Object.entries(updates).filter(([_, v]) => v !== undefined)
+			Object.entries(updates).filter(([_, v]) => v !== undefined),
 		);
 
 		if (derived.start !== undefined) {
@@ -276,7 +288,8 @@ export const updateEvent = authMutation({
 			event.externalEventId &&
 			event.externalCalendarId;
 		const convertingSyncedToTask =
-			hasGoogleIds && (args.eventKind === "task" || cleanUpdates.eventKind === "task");
+			hasGoogleIds &&
+			(args.eventKind === "task" || cleanUpdates.eventKind === "task");
 
 		const applyTaskLinkUpdates = async () => {
 			if (scheduledTaskLinks !== undefined) {
@@ -328,7 +341,9 @@ export const updateEvent = authMutation({
 		};
 
 		if (convertingSyncedToTask) {
-			const externalCalendars = await ctx.db.query("externalCalendars").collect();
+			const externalCalendars = await ctx.db
+				.query("externalCalendars")
+				.collect();
 			const ext = externalCalendars.find(
 				(e) =>
 					e.provider === "google" &&
@@ -361,20 +376,34 @@ export const updateEvent = authMutation({
 			event.isEditable === true &&
 			event.externalEventId &&
 			event.externalCalendarId;
-		console.log("[updateEvent] eventId=%s externalProvider=%s isEditable=%s hasExternalIds=%s willSyncToGoogle=%s", id, event.externalProvider, event.isEditable, Boolean(event.externalEventId && event.externalCalendarId), willSyncToGoogle);
+		console.log(
+			"[updateEvent] eventId=%s externalProvider=%s isEditable=%s hasExternalIds=%s willSyncToGoogle=%s",
+			id,
+			event.externalProvider,
+			event.isEditable,
+			Boolean(event.externalEventId && event.externalCalendarId),
+			willSyncToGoogle,
+		);
 
 		if (willSyncToGoogle) {
 			const originalStartTimestamp =
 				event.recurringEventId && recurringEditMode === "this"
 					? event.startTimestamp
 					: undefined;
-			console.log("[updateEvent] scheduling syncEventToGoogle for eventId=%s", id);
-			await ctx.scheduler.runAfter(0, internal.googleCalendar.actionsNode.syncEventToGoogle, {
-				eventId: id,
-				updates: cleanUpdates,
-				recurringEditMode,
-				originalStartTimestamp,
-			});
+			console.log(
+				"[updateEvent] scheduling syncEventToGoogle for eventId=%s",
+				id,
+			);
+			await ctx.scheduler.runAfter(
+				0,
+				internal.googleCalendar.actionsNode.syncEventToGoogle,
+				{
+					eventId: id,
+					updates: cleanUpdates,
+					recurringEditMode,
+					originalStartTimestamp,
+				},
+			);
 		}
 
 		if (!willSyncToGoogle) {
@@ -385,9 +414,12 @@ export const updateEvent = authMutation({
 					.withIndex("by_calendar", (q) =>
 						q.eq("calendarId", effectiveCalendarId),
 					)
-				.unique();
+					.unique();
 				if (ext?.provider === "google") {
-					console.log("[updateEvent] scheduling createEventInGoogle for eventId=%s", id);
+					console.log(
+						"[updateEvent] scheduling createEventInGoogle for eventId=%s",
+						id,
+					);
 					await ctx.scheduler.runAfter(
 						0,
 						internal.googleCalendar.actionsNode.createEventInGoogle,
@@ -413,7 +445,10 @@ export const deleteEvent = authMutation({
 			throwConvexError(ErrorCode.EVENT_NOT_FOUND, "Event not found");
 		}
 		if (event.userId !== ctx.user._id) {
-			throwConvexError(ErrorCode.NOT_AUTHORIZED, "Not authorized to delete this event");
+			throwConvexError(
+				ErrorCode.NOT_AUTHORIZED,
+				"Not authorized to delete this event",
+			);
 		}
 
 		const externalProvider = event.externalProvider;

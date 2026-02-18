@@ -26,7 +26,7 @@ export const getEventsByDateRange = authQuery({
 		const events = await ctx.db
 			.query("events")
 			.withIndex("by_user_and_date", (q) =>
-				q.eq("userId", ctx.user._id).gte("startTimestamp", bufferedStart)
+				q.eq("userId", ctx.user._id).gte("startTimestamp", bufferedStart),
 			)
 			.collect();
 
@@ -45,7 +45,10 @@ export const getEventById = authQuery({
 			return null;
 		}
 		if (event.userId !== ctx.user._id) {
-			throwConvexError(ErrorCode.NOT_AUTHORIZED, "Not authorized to view this event");
+			throwConvexError(
+				ErrorCode.NOT_AUTHORIZED,
+				"Not authorized to view this event",
+			);
 		}
 
 		return event;

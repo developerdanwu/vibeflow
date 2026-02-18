@@ -91,19 +91,16 @@ describe("createEvent", () => {
 		expect,
 	}) => {
 		const { asUser, userId } = auth;
-		const eventId = await asUser.mutation(
-			api.events.mutations.createEvent,
-			{
-				...factories.event(),
-				eventKind: "task",
-				scheduledTaskLinks: [
-					{
-						externalTaskId: "linear-123",
-						url: "https://linear.app/org/issue/123",
-					},
-				],
-			},
-		);
+		const eventId = await asUser.mutation(api.events.mutations.createEvent, {
+			...factories.event(),
+			eventKind: "task",
+			scheduledTaskLinks: [
+				{
+					externalTaskId: "linear-123",
+					url: "https://linear.app/org/issue/123",
+				},
+			],
+		});
 		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get(eventId));
 		expect(event).toMatchObject({
 			title: "Test Event",
@@ -130,23 +127,20 @@ describe("createEvent", () => {
 		expect,
 	}) => {
 		const { asUser, userId } = auth;
-		const eventId = await asUser.mutation(
-			api.events.mutations.createEvent,
-			{
-				...factories.event(),
-				eventKind: "task",
-				scheduledTaskLinks: [
-					{
-						externalTaskId: "linear-a",
-						url: "https://linear.app/org/issue/a",
-					},
-					{
-						externalTaskId: "linear-b",
-						url: "https://linear.app/org/issue/b",
-					},
-				],
-			},
-		);
+		const eventId = await asUser.mutation(api.events.mutations.createEvent, {
+			...factories.event(),
+			eventKind: "task",
+			scheduledTaskLinks: [
+				{
+					externalTaskId: "linear-a",
+					url: "https://linear.app/org/issue/a",
+				},
+				{
+					externalTaskId: "linear-b",
+					url: "https://linear.app/org/issue/b",
+				},
+			],
+		});
 		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get(eventId));
 		expect(event).toMatchObject({
 			userId,
@@ -181,22 +175,19 @@ describe("createEvent", () => {
 		expect,
 	}) => {
 		const { asUser, userId } = auth;
-		const eventId = await asUser.mutation(
-			api.events.mutations.createEvent,
-			{
-				...factories.event(),
-				relatedTaskLinks: [
-					{
-						externalTaskId: "linear-related-1",
-						url: "https://linear.app/org/issue/related-1",
-					},
-					{
-						externalTaskId: "linear-related-2",
-						url: "https://linear.app/org/issue/related-2",
-					},
-				],
-			},
-		);
+		const eventId = await asUser.mutation(api.events.mutations.createEvent, {
+			...factories.event(),
+			relatedTaskLinks: [
+				{
+					externalTaskId: "linear-related-1",
+					url: "https://linear.app/org/issue/related-1",
+				},
+				{
+					externalTaskId: "linear-related-2",
+					url: "https://linear.app/org/issue/related-2",
+				},
+			],
+		});
 		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get(eventId));
 		expect(event).toMatchObject({ userId });
 		const links = await t.run(async (ctx: MutationCtx) =>
@@ -272,11 +263,7 @@ describe("updateEvent", () => {
 		).rejects.toThrowError("Not authorized to update this event");
 	});
 
-	test("rejects update when event not found", async ({
-		t,
-		auth,
-		expect,
-	}) => {
+	test("rejects update when event not found", async ({ t, auth, expect }) => {
 		const { asUser } = auth;
 		const fakeId = await t.run(async (ctx: MutationCtx) => {
 			const userId = (await ctx.db.query("users").first())!._id;
@@ -374,31 +361,31 @@ describe("updateEvent", () => {
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
-		await asUser.mutation(
-			api.eventTaskLinks.mutations.linkTaskToEvent,
-			{
-				eventId,
-				externalTaskId: "linear-old-scheduled",
-				url: "https://linear.app/org/issue/old-sched",
-				linkType: "scheduled",
-			},
-		);
-		await asUser.mutation(
-			api.eventTaskLinks.mutations.linkTaskToEvent,
-			{
-				eventId,
-				externalTaskId: "linear-old-related",
-				url: "https://linear.app/org/issue/old-rel",
-				linkType: "related",
-			},
-		);
+		await asUser.mutation(api.eventTaskLinks.mutations.linkTaskToEvent, {
+			eventId,
+			externalTaskId: "linear-old-scheduled",
+			url: "https://linear.app/org/issue/old-sched",
+			linkType: "scheduled",
+		});
+		await asUser.mutation(api.eventTaskLinks.mutations.linkTaskToEvent, {
+			eventId,
+			externalTaskId: "linear-old-related",
+			url: "https://linear.app/org/issue/old-rel",
+			linkType: "related",
+		});
 		await asUser.mutation(api.events.mutations.updateEvent, {
 			id: eventId,
 			scheduledTaskLinks: [
-				{ externalTaskId: "linear-new-sched", url: "https://linear.app/org/issue/new-sched" },
+				{
+					externalTaskId: "linear-new-sched",
+					url: "https://linear.app/org/issue/new-sched",
+				},
 			],
 			relatedTaskLinks: [
-				{ externalTaskId: "linear-new-rel", url: "https://linear.app/org/issue/new-rel" },
+				{
+					externalTaskId: "linear-new-rel",
+					url: "https://linear.app/org/issue/new-rel",
+				},
 			],
 		});
 		const links = await t.run(async (ctx: MutationCtx) =>
@@ -455,11 +442,7 @@ describe("deleteEvent", () => {
 		).rejects.toThrowError("Not authorized to delete this event");
 	});
 
-	test("rejects delete when event not found", async ({
-		t,
-		auth,
-		expect,
-	}) => {
+	test("rejects delete when event not found", async ({ t, auth, expect }) => {
 		const { asUser } = auth;
 		const fakeId = await t.run(async (ctx: MutationCtx) => {
 			const userId = (await ctx.db.query("users").first())!._id;

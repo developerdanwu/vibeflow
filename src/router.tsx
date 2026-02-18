@@ -1,50 +1,37 @@
 import { ConvexQueryClient } from "@convex-dev/react-query";
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
-import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
-import {
-	AuthKitProvider,
-	useAccessToken,
-	useAuth,
-} from "@workos/authkit-tanstack-react-start/client";
-import { ConvexProviderWithAuth, ConvexReactClient } from "convex/react";
-import { useCallback, useMemo } from "react";
+import { useAuth } from "@workos-inc/authkit-react";
+import { ConvexReactClient } from "convex/react";
+import { useMemo } from "react";
 import { GlobalDialog } from "./components/dialogs/global-dialog";
+import { FullPageLoader } from "./components/full-page-loader";
 import { Toaster } from "./components/ui/sonner";
+import { AppAuthProvider } from "./lib/auth-context";
 import { DialogStoreProvider } from "./lib/dialog-store";
+import { ZEnvSchema } from "./lib/env";
 import { routeTree } from "./routeTree.gen";
 
-function useAuthFromWorkOS() {
-	const { loading, user } = useAuth();
-	const { accessToken, getAccessToken } = useAccessToken();
-
-	const fetchAccessToken = useCallback(
-		async ({ forceRefreshToken }: { forceRefreshToken: boolean }) => {
-			if (!accessToken || forceRefreshToken) {
-				return (await getAccessToken()) ?? null;
-			}
-			return accessToken;
-		},
-		[accessToken, getAccessToken],
-	);
-
-	return useMemo(
-		() => ({
-			isLoading: loading,
-			isAuthenticated: !!user,
-			fetchAccessToken,
-		}),
-		[loading, user, fetchAccessToken],
-	);
+declare module "@tanstack/react-router" {
+	interface Register {
+		router: ReturnType<typeof getRouter>["router"];
+	}
 }
 
-// Create a new router instance
-export const getRouter = () => {
-	const CONVEX_URL = (import.meta as any).env.VITE_CONVEX_URL!;
-	if (!CONVEX_URL) {
-		throw new Error("missing VITE_CONVEX_URL env var");
-	}
-	const convex = new ConvexReactClient(CONVEX_URL);
+function AuthBridge({ children }: { children: React.ReactNode }) {
+	const { user, isLoading } = useAuth();
+	const value = useMemo(
+		() => ({ user, loading: isLoading }),
+		[user, isLoading],
+	);
+	return <AppAuthProvider value={value}>{children}</AppAuthProvider>;
+}
+
+export type AuthContext = ReturnType<typeof useAuth>;
+
+export function getRouter() {
+	const env = ZEnvSchema.parse(import.meta.env);
+	const convex = new ConvexReactClient(env.VITE_CONVEX_URL);
 	const convexQueryClient = new ConvexQueryClient(convex);
 
 	const queryClient = new QueryClient({
@@ -62,32 +49,26 @@ export const getRouter = () => {
 		routeTree,
 		defaultPreload: "intent",
 		scrollRestoration: true,
-		defaultPreloadStaleTime: 0, // Let React Query handle all caching
+		defaultPreloadStaleTime: 0,
+		defaultPendingComponent: () => <FullPageLoader />,
 		defaultErrorComponent: (err) => <p>{err.error.stack}</p>,
 		defaultNotFoundComponent: () => <p>not found</p>,
 		context: {
+			convex,
 			queryClient,
+			auth: undefined as unknown as AuthContext,
+			env,
 		},
 		Wrap: ({ children }) => (
-			<AuthKitProvider>
-				<ConvexProviderWithAuth
-					client={convexQueryClient.convexClient}
-					useAuth={useAuthFromWorkOS}
-				>
-					<DialogStoreProvider>
-						{children}
-						<GlobalDialog />
-						<Toaster />
-					</DialogStoreProvider>
-				</ConvexProviderWithAuth>
-			</AuthKitProvider>
+			<AuthBridge>
+				<DialogStoreProvider>
+					{children}
+					<GlobalDialog />
+					<Toaster />
+				</DialogStoreProvider>
+			</AuthBridge>
 		),
 	});
 
-	setupRouterSsrQueryIntegration({
-		router,
-		queryClient: queryClient,
-	});
-
-	return router;
-};
+	return { router, queryClient, convexQueryClient, env };
+}

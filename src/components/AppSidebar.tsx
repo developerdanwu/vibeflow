@@ -1,7 +1,3 @@
-import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { useAuth } from "@workos/authkit-tanstack-react-start/client";
-import { Calendar } from "lucide-react";
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
 	DropdownMenu,
@@ -18,9 +14,12 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { useAppAuth } from "@/lib/auth-context";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { Calendar } from "lucide-react";
 
 export function AppSidebar() {
-	const { user } = useAuth();
+	const { user } = useAppAuth();
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
 	const isCalendarActive = pathname === "/calendar";
 	const navigate = useNavigate();

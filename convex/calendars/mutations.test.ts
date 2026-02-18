@@ -25,10 +25,7 @@ describe("createCalendar", () => {
 
 	test("requires auth", async ({ t, expect }) => {
 		await expect(
-			t.mutation(
-				api.calendars.mutations.createCalendar,
-				factories.calendar(),
-			),
+			t.mutation(api.calendars.mutations.createCalendar, factories.calendar()),
 		).rejects.toThrowError("Not authenticated");
 	});
 
@@ -47,7 +44,9 @@ describe("createCalendar", () => {
 			factories.calendar({ name: "Second", isDefault: true }),
 		);
 		const first = await t.run(async (ctx: MutationCtx) => ctx.db.get(firstId));
-		const second = await t.run(async (ctx: MutationCtx) => ctx.db.get(secondId));
+		const second = await t.run(async (ctx: MutationCtx) =>
+			ctx.db.get(secondId),
+		);
 		expect(first?.isDefault).toBe(false);
 		expect(second?.isDefault).toBe(true);
 	});
@@ -70,11 +69,7 @@ describe("updateCalendar", () => {
 		expect(cal?.color).toBe("red");
 	});
 
-	test("throws Calendar not found for bad id", async ({
-		auth,
-		t,
-		expect,
-	}) => {
+	test("throws Calendar not found for bad id", async ({ auth, t, expect }) => {
 		const { asUser } = auth;
 		const badId = await t.run(async (ctx: MutationCtx) => {
 			const userId = (await ctx.db.query("users").first())!._id;
@@ -144,16 +139,14 @@ describe("deleteCalendar", () => {
 			api.calendars.mutations.createCalendar,
 			factories.calendar({ isDefault: false }),
 		);
-		await asUser.mutation(api.calendars.mutations.deleteCalendar, { id: calId });
+		await asUser.mutation(api.calendars.mutations.deleteCalendar, {
+			id: calId,
+		});
 		const cal = await t.run(async (ctx: MutationCtx) => ctx.db.get(calId));
 		expect(cal).toBeNull();
 	});
 
-	test("throws Calendar not found for bad id", async ({
-		auth,
-		t,
-		expect,
-	}) => {
+	test("throws Calendar not found for bad id", async ({ auth, t, expect }) => {
 		const { asUser } = auth;
 		const badId = await t.run(async (ctx: MutationCtx) => {
 			const userId = (await ctx.db.query("users").first())!._id;
@@ -213,7 +206,9 @@ describe("deleteCalendar", () => {
 			api.events.mutations.createEvent,
 			factories.event({ calendarId: calId }),
 		);
-		await asUser.mutation(api.calendars.mutations.deleteCalendar, { id: calId });
+		await asUser.mutation(api.calendars.mutations.deleteCalendar, {
+			id: calId,
+		});
 		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get(eventId));
 		expect(event?.calendarId).toBeUndefined();
 	});

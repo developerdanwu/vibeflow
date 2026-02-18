@@ -28,7 +28,7 @@ import { api } from "@convex/_generated/api";
 import { convexQuery } from "@convex-dev/react-query";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useAuth } from "@workos/authkit-tanstack-react-start/client";
+import { useAppAuth } from "@/lib/auth-context";
 import { useMemo, useState } from "react";
 import { z } from "zod";
 
@@ -72,7 +72,7 @@ function CalendarRoute() {
 
 function CalendarContent() {
 	const { view, date, dayRange } = Route.useSearch();
-	const { user } = useAuth();
+	const { user } = useAppAuth();
 
 	const currentUser: TUser | null = user
 		? {

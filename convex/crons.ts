@@ -7,14 +7,14 @@ const crons = cronJobs();
 crons.interval(
 	"renew google calendar channels",
 	{ hours: 12 },
-	internal.googleCalendar.actionsNode.renewExpiringChannels
+	internal.googleCalendar.actionsNode.renewExpiringChannels,
 );
 
 // Fallback sync for dropped push notifications
 crons.interval(
 	"fallback sync google calendars",
 	{ minutes: 30 },
-	internal.googleCalendar.actionsNode.runFallbackSync
+	internal.googleCalendar.actionsNode.runFallbackSync,
 );
 
 export default crons;

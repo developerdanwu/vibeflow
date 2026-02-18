@@ -47,10 +47,10 @@ describe("getEventsByDateRange", () => {
 				endTimestamp: start + 3600000 + 1800000,
 			}),
 		);
-		const events = await asUser.query(
-			api.events.queries.getEventsByDateRange,
-			{ startTimestamp: start, endTimestamp: end },
-		);
+		const events = await asUser.query(api.events.queries.getEventsByDateRange, {
+			startTimestamp: start,
+			endTimestamp: end,
+		});
 		expect(events).toHaveLength(1);
 		expect(events[0].title).toBe("In Range");
 	});

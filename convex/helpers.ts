@@ -1,4 +1,8 @@
-import { customAction, customMutation, customQuery } from "convex-helpers/server/customFunctions";
+import {
+	customAction,
+	customMutation,
+	customQuery,
+} from "convex-helpers/server/customFunctions";
 import type { Doc } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { action, mutation, query } from "./_generated/server";
@@ -83,7 +87,8 @@ export const authAction = customAction(action, {
 			throwConvexError(ErrorCode.NOT_AUTHENTICATED, "Not authenticated");
 		}
 		const user = (await ctx.runQuery(
-			api.users.queries.getUserByAuthId as import("convex/server").FunctionReference<
+			api.users.queries
+				.getUserByAuthId as import("convex/server").FunctionReference<
 				"query",
 				"public",
 				{ authId: string },
@@ -100,4 +105,3 @@ export const authAction = customAction(action, {
 		};
 	},
 });
-

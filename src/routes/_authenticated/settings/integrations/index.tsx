@@ -6,10 +6,15 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { selectPlatform } from "@/lib/tauri";
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	useLocation,
+	useRouteContext,
+} from "@tanstack/react-router";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/settings/integrations/")({
@@ -17,11 +22,27 @@ export const Route = createFileRoute("/_authenticated/settings/integrations/")({
 });
 
 function IntegrationsSettings() {
+	const { env, user } = useRouteContext({
+		from: "/_authenticated",
+	});
+
+	const location = useLocation();
+	const clientId = env.VITE_LINEAR_CLIENT_ID;
+	// Linear only accepts http(s) callback URLs; public route so system-browser flow works
+	const redirectUri = `${location.url.origin}/oauth/linear-callback`;
+	const encodedState = btoa(
+		JSON.stringify({
+			redirectUri,
+			userId: user._id,
+			returnTo: selectPlatform({
+				web: `${location.url.origin}/settings/integrations`,
+				tauri: "vibeflow://settings/integrations",
+			}),
+		}),
+	);
+	const linearAuthUrl = `https://linear.app/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=read&state=${encodeURIComponent(encodedState)}`;
 	const { data: linearConnection } = useQuery(
 		convexQuery(api.taskProviders.linear.queries.getMyLinearConnection),
-	);
-	const { data: currentUserId } = useQuery(
-		convexQuery(api.users.queries.getCurrentUserId),
 	);
 	const removeConnection = useConvexMutation(
 		api.taskProviders.linear.mutations.removeMyLinearConnection,
@@ -36,32 +57,10 @@ function IntegrationsSettings() {
 		},
 	});
 
-	const clientId = import.meta.env.VITE_LINEAR_CLIENT_ID as string | undefined;
-	const redirectUri =
-		typeof window !== "undefined"
-			? `${window.location.origin}/settings/integrations/linear-callback`
-			: "";
-	const encodedState =
-		currentUserId && typeof btoa !== "undefined"
-			? btoa(JSON.stringify({ userId: currentUserId }))
-			: "";
-	const linearAuthUrl =
-		clientId && redirectUri && encodedState
-			? `https://linear.app/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=read&state=${encodeURIComponent(encodedState)}`
-			: null;
-
-	const handleConnectLinear = () => {
-		if (linearAuthUrl) {
-			window.location.href = linearAuthUrl;
-		}
-	};
-
 	return (
 		<div className="space-y-6">
 			<div>
-				<h1 className="font-semibold text-2xl tracking-tight">
-					Integrations
-				</h1>
+				<h1 className="font-semibold text-2xl tracking-tight">Integrations</h1>
 				<p className="text-muted-foreground text-sm">
 					Connect task and calendar providers to schedule work from your
 					calendar.
@@ -92,7 +91,7 @@ function IntegrationsSettings() {
 							<Button
 								variant="outline"
 								size="sm"
-								onClick={() => disconnectLinear()}
+								onClick={() => disconnectLinear({})}
 								disabled={isDisconnecting}
 							>
 								Disconnect
@@ -101,21 +100,21 @@ function IntegrationsSettings() {
 					) : (
 						<div className="space-y-2">
 							<Button
-								onClick={handleConnectLinear}
+								onClick={selectPlatform({
+									tauri: async () => {
+										const { openUrl } = await import(
+											"@tauri-apps/plugin-opener"
+										);
+										await openUrl(linearAuthUrl);
+									},
+									web: () => {
+										window.location.href = linearAuthUrl;
+									},
+								})}
 								disabled={!linearAuthUrl}
-								title={
-									!clientId
-										? "Configure VITE_LINEAR_CLIENT_ID to connect"
-										: undefined
-								}
 							>
 								Connect Linear
 							</Button>
-							{!clientId && (
-								<p className="text-muted-foreground text-sm">
-									Configure VITE_LINEAR_CLIENT_ID in .env.local to connect.
-								</p>
-							)}
 						</div>
 					)}
 				</CardContent>

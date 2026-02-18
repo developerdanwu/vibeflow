@@ -13,7 +13,7 @@ export const createCalendar = authMutation({
 			const existingDefault = await ctx.db
 				.query("calendars")
 				.withIndex("by_user_default", (q) =>
-					q.eq("userId", ctx.user._id).eq("isDefault", true)
+					q.eq("userId", ctx.user._id).eq("isDefault", true),
 				)
 				.first();
 
@@ -44,14 +44,17 @@ export const updateCalendar = authMutation({
 			throwConvexError(ErrorCode.CALENDAR_NOT_FOUND, "Calendar not found");
 		}
 		if (calendar.userId !== ctx.user._id) {
-			throwConvexError(ErrorCode.NOT_AUTHORIZED, "Not authorized to update this calendar");
+			throwConvexError(
+				ErrorCode.NOT_AUTHORIZED,
+				"Not authorized to update this calendar",
+			);
 		}
 
 		if (updates.isDefault === true) {
 			const existingDefault = await ctx.db
 				.query("calendars")
 				.withIndex("by_user_default", (q) =>
-					q.eq("userId", ctx.user._id).eq("isDefault", true)
+					q.eq("userId", ctx.user._id).eq("isDefault", true),
 				)
 				.first();
 
@@ -61,7 +64,7 @@ export const updateCalendar = authMutation({
 		}
 
 		const cleanUpdates = Object.fromEntries(
-			Object.entries(updates).filter(([, val]) => val !== undefined)
+			Object.entries(updates).filter(([, val]) => val !== undefined),
 		);
 
 		return await ctx.db.patch(id, cleanUpdates);
@@ -79,10 +82,16 @@ export const deleteCalendar = authMutation({
 			throwConvexError(ErrorCode.CALENDAR_NOT_FOUND, "Calendar not found");
 		}
 		if (calendar.userId !== ctx.user._id) {
-			throwConvexError(ErrorCode.NOT_AUTHORIZED, "Not authorized to delete this calendar");
+			throwConvexError(
+				ErrorCode.NOT_AUTHORIZED,
+				"Not authorized to delete this calendar",
+			);
 		}
 		if (calendar.isDefault) {
-			throwConvexError(ErrorCode.CANNOT_DELETE_DEFAULT_CALENDAR, "Cannot delete the default calendar");
+			throwConvexError(
+				ErrorCode.CANNOT_DELETE_DEFAULT_CALENDAR,
+				"Cannot delete the default calendar",
+			);
 		}
 
 		const eventsInCalendar = await ctx.db

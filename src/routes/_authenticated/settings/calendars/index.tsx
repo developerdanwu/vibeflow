@@ -26,12 +26,17 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { getConvexErrorMessage } from "@/lib/convex-error";
+import { selectPlatform } from "@/lib/tauri";
 import { cn } from "@/lib/utils";
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	useLocation,
+	useRouteContext,
+} from "@tanstack/react-router";
 import { useAction } from "convex/react";
 import { Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -65,19 +70,20 @@ const GOOGLE_SCOPES =
 	"https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly";
 
 function CalendarsSettings() {
+	const { env, user } = useRouteContext({ from: "/_authenticated" });
+	const location = useLocation();
 	const { data: calendars, isLoading } = useQuery(
 		convexQuery(api.calendars.queries.getUserCalendars),
 	);
 	const { data: googleConnection } = useQuery(
 		convexQuery(api.googleCalendar.queries.getMyGoogleConnection),
 	);
-	const { data: currentUserId } = useQuery(
-		convexQuery(api.users.queries.getCurrentUserId),
-	);
 	const { data: userPreferences } = useQuery(
 		convexQuery(api.users.queries.getUserPreferences),
 	);
-	const syncMyCalendars = useAction(api.googleCalendar.actionsNode.syncMyCalendars);
+	const syncMyCalendars = useAction(
+		api.googleCalendar.actionsNode.syncMyCalendars,
+	);
 	const updateUserPreferencesFn = useConvexMutation(
 		api.users.mutations.updateUserPreferences,
 	);
@@ -89,21 +95,34 @@ function CalendarsSettings() {
 	});
 
 	const [syncLoading, setSyncLoading] = useState(false);
-	const clientId = import.meta.env.VITE_GOOGLE_CALENDAR_CLIENT_ID as
-		| string
-		| undefined;
-	const redirectUri =
-		typeof window !== "undefined"
-			? `${window.location.origin}/settings/calendars/callback`
-			: "";
+	const clientId = env.VITE_GOOGLE_CALENDAR_CLIENT_ID;
+	const redirectUri = `${location.url.origin}/oauth/google-callback`;
+	const encodedState = btoa(
+		JSON.stringify({
+			redirectUri,
+			userId: user._id,
+			returnTo: selectPlatform({
+				web: `${location.url.origin}/settings/calendars`,
+				tauri: "vibeflow://settings/calendars",
+			}),
+		}),
+	);
 	const authUrl =
-		clientId && currentUserId && redirectUri
-			? `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(GOOGLE_SCOPES)}&state=${encodeURIComponent(btoa(JSON.stringify({ userId: currentUserId })))}&access_type=offline&prompt=consent`
+		clientId && redirectUri
+			? `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(GOOGLE_SCOPES)}&state=${encodeURIComponent(encodedState)}&access_type=offline&prompt=consent`
 			: null;
 
 	const handleConnectGoogle = () => {
 		if (authUrl) {
-			window.location.href = authUrl;
+			void selectPlatform({
+				tauri: async () => {
+					const { openUrl } = await import("@tauri-apps/plugin-opener");
+					await openUrl(authUrl);
+				},
+				web: () => {
+					window.location.href = authUrl;
+				},
+			})();
 		}
 	};
 
@@ -119,7 +138,9 @@ function CalendarsSettings() {
 		}
 	};
 
-	const createCalendarFn = useConvexMutation(api.calendars.mutations.createCalendar);
+	const createCalendarFn = useConvexMutation(
+		api.calendars.mutations.createCalendar,
+	);
 	const { mutateAsync: createCalendar, isPending: isCreating } = useMutation({
 		mutationFn: createCalendarFn,
 		onSuccess: () => {
@@ -134,7 +155,9 @@ function CalendarsSettings() {
 		},
 	});
 
-	const updateCalendarFn = useConvexMutation(api.calendars.mutations.updateCalendar);
+	const updateCalendarFn = useConvexMutation(
+		api.calendars.mutations.updateCalendar,
+	);
 	const { mutateAsync: updateCalendar, isPending: isUpdating } = useMutation({
 		mutationFn: updateCalendarFn,
 		onSuccess: () => {
@@ -147,7 +170,9 @@ function CalendarsSettings() {
 		},
 	});
 
-	const deleteCalendarFn = useConvexMutation(api.calendars.mutations.deleteCalendar);
+	const deleteCalendarFn = useConvexMutation(
+		api.calendars.mutations.deleteCalendar,
+	);
 	const { mutateAsync: deleteCalendar, isPending: isDeleting } = useMutation({
 		mutationFn: deleteCalendarFn,
 		onSuccess: () => {
@@ -283,8 +308,8 @@ function CalendarsSettings() {
 									</SelectContent>
 								</Select>
 								<p className="text-muted-foreground text-xs">
-									Only affects the next full sync; incremental syncs stay in sync
-									automatically.
+									Only affects the next full sync; incremental syncs stay in
+									sync automatically.
 								</p>
 							</div>
 							{googleConnection.googleCalendars.length > 0 ? (

@@ -22,8 +22,9 @@ src/
 
 ### Routing
 - File-based routing via TanStack Router
-- **Root:** `__root.tsx`, `_authenticated.tsx`, `index.tsx`, `callback.tsx` (app-wide layout and top-level routes)
+- **Root:** `__root.tsx`, `_authenticated.tsx`, `index.tsx` (app-wide layout and top-level routes); WorkOS auth callback at `oauth/workos-callback.tsx`
 - **Feature folders** under `_authenticated/`: one folder per feature (e.g. `calendar/`, `settings/`) with route files by type (layout, index, child routes). Mirrors Convex folder structure (root + feature folders with procedures by type).
+- **Folder without layout:** A folder that only contains child route files (e.g. `oauth/linear-callback.tsx`) does not require an explicit parent layout file (`oauth.tsx`). The router plugin infers the segment from the folder name.
 - Add new routes for a feature in the appropriate file under that feature's folder.
 
 ### Components

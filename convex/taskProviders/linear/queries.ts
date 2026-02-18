@@ -9,7 +9,7 @@ export const getConnectionByUserId = internalQuery({
 		return await ctx.db
 			.query("taskConnections")
 			.withIndex("by_user_and_provider", (q) =>
-				q.eq("userId", args.userId).eq("provider", "linear")
+				q.eq("userId", args.userId).eq("provider", "linear"),
 			)
 			.unique();
 	},
@@ -30,7 +30,7 @@ export const getMyLinearConnection = authQuery({
 		const connection = await ctx.db
 			.query("taskConnections")
 			.withIndex("by_user_and_provider", (q) =>
-				q.eq("userId", ctx.user._id).eq("provider", "linear")
+				q.eq("userId", ctx.user._id).eq("provider", "linear"),
 			)
 			.unique();
 		if (!connection) return null;
@@ -48,7 +48,7 @@ export const getMyTaskItems = authQuery({
 		const items = await ctx.db
 			.query("taskItems")
 			.withIndex("by_user_and_provider", (q) =>
-				q.eq("userId", ctx.user._id).eq("provider", "linear")
+				q.eq("userId", ctx.user._id).eq("provider", "linear"),
 			)
 			.collect();
 		return items.sort((a, b) => {

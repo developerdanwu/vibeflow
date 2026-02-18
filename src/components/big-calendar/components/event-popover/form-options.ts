@@ -4,7 +4,7 @@
  */
 import type { Id } from "@convex/_generated/dataModel";
 import { Time } from "@internationalized/date";
-import { formOptions } from "@tanstack/react-form-start";
+import { formOptions } from "@tanstack/react-form";
 import { z } from "zod";
 
 export const eventFormSchema = z
@@ -124,6 +124,7 @@ export const eventFormOptions = formOptions({
 		startDate: new Date(),
 	}),
 	validators: {
-		onSubmit: eventFormSchema,
+		// Zod schema: base @tanstack/react-form types don't include Zod; runtime works
+		onSubmit: eventFormSchema as any,
 	},
 });

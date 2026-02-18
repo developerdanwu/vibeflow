@@ -16,7 +16,10 @@ export const getLinksByEventId = authQuery({
 			return [];
 		}
 		if (event.userId !== ctx.user._id) {
-			throwConvexError(ErrorCode.NOT_AUTHORIZED, "Not authorized to view this event");
+			throwConvexError(
+				ErrorCode.NOT_AUTHORIZED,
+				"Not authorized to view this event",
+			);
 		}
 
 		const links = await ctx.db
@@ -46,7 +49,10 @@ export const getScheduledLinksByEventId = authQuery({
 			return [];
 		}
 		if (event.userId !== ctx.user._id) {
-			throwConvexError(ErrorCode.NOT_AUTHORIZED, "Not authorized to view this event");
+			throwConvexError(
+				ErrorCode.NOT_AUTHORIZED,
+				"Not authorized to view this event",
+			);
 		}
 
 		const links = await ctx.db

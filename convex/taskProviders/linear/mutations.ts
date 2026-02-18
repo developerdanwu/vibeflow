@@ -25,7 +25,7 @@ export const saveConnection = internalMutation({
 		const existing = await ctx.db
 			.query("taskConnections")
 			.withIndex("by_user_and_provider", (q) =>
-				q.eq("userId", args.userId).eq("provider", "linear")
+				q.eq("userId", args.userId).eq("provider", "linear"),
 			)
 			.unique();
 		if (existing) {
@@ -62,7 +62,9 @@ export const updateConnectionTokens = internalMutation({
 	handler: async (ctx, args) => {
 		await ctx.db.patch(args.connectionId, {
 			accessToken: args.accessToken,
-			...(args.refreshToken !== undefined && { refreshToken: args.refreshToken }),
+			...(args.refreshToken !== undefined && {
+				refreshToken: args.refreshToken,
+			}),
 			accessTokenExpiresAt: args.accessTokenExpiresAt,
 			updatedAt: Date.now(),
 		});
@@ -106,7 +108,7 @@ export const upsertTaskItems = internalMutation({
 			const existing = await ctx.db
 				.query("taskItems")
 				.withIndex("by_external_task", (q) =>
-					q.eq("provider", "linear").eq("externalTaskId", item.externalTaskId)
+					q.eq("provider", "linear").eq("externalTaskId", item.externalTaskId),
 				)
 				.unique();
 			const doc = {
@@ -134,7 +136,7 @@ export const upsertTaskItems = internalMutation({
 		const allForConnection = await ctx.db
 			.query("taskItems")
 			.withIndex("by_user_and_provider", (q) =>
-				q.eq("userId", args.userId).eq("provider", "linear")
+				q.eq("userId", args.userId).eq("provider", "linear"),
 			)
 			.collect();
 		for (const row of allForConnection) {
@@ -152,7 +154,7 @@ export const removeMyLinearConnection = authMutation({
 		const connection = await ctx.db
 			.query("taskConnections")
 			.withIndex("by_user_and_provider", (q) =>
-				q.eq("userId", ctx.user._id).eq("provider", "linear")
+				q.eq("userId", ctx.user._id).eq("provider", "linear"),
 			)
 			.unique();
 		if (!connection) return;
@@ -160,7 +162,7 @@ export const removeMyLinearConnection = authMutation({
 		const items = await ctx.db
 			.query("taskItems")
 			.withIndex("by_user_and_provider", (q) =>
-				q.eq("userId", ctx.user._id).eq("provider", "linear")
+				q.eq("userId", ctx.user._id).eq("provider", "linear"),
 			)
 			.collect();
 		for (const item of items) {

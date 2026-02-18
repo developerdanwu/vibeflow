@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
+import { ErrorCode, throwConvexError } from "../errors";
 import { authMutation } from "../helpers";
 
 const calendarSyncFromMonthsValidator = v.optional(
@@ -30,25 +31,24 @@ export const ensureUserExists = mutation({
 			return existingUser;
 		}
 
-		try {
-			const userId = await ctx.db.insert("users", {
-				authId: args.authId,
-				email: args.email,
-				firstName: args.firstName,
-				lastName: args.lastName,
-				fullName:
-					`${args.firstName ?? ""} ${args.lastName ?? ""}`.trim() || args.email,
-				profileImageUrl: args.profileImageUrl,
-				updatedAt: Date.now(),
-			});
-			return await ctx.db.get(userId);
-		} catch (error) {
-			console.log(`Concurrent user creation for: ${args.authId}`, error);
-			return await ctx.db
-				.query("users")
-				.withIndex("authId", (q) => q.eq("authId", args.authId))
-				.unique();
+		const userId = await ctx.db.insert("users", {
+			authId: args.authId,
+			email: args.email,
+			firstName: args.firstName,
+			lastName: args.lastName,
+			fullName:
+				`${args.firstName ?? ""} ${args.lastName ?? ""}`.trim() || args.email,
+			profileImageUrl: args.profileImageUrl,
+			updatedAt: Date.now(),
+		});
+
+		const user = await ctx.db.get(userId);
+
+		if (!user) {
+			throwConvexError(ErrorCode.USER_NOT_FOUND, "User not found");
 		}
+
+		return user;
 	},
 });
 

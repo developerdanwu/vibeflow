@@ -7,9 +7,7 @@ export const linkTaskToEvent = authMutation({
 		eventId: v.id("events"),
 		externalTaskId: v.string(),
 		url: v.string(),
-		linkType: v.optional(
-			v.union(v.literal("scheduled"), v.literal("related")),
-		),
+		linkType: v.optional(v.union(v.literal("scheduled"), v.literal("related"))),
 	},
 	handler: async (ctx, args) => {
 		const event = await ctx.db.get(args.eventId);
@@ -17,7 +15,10 @@ export const linkTaskToEvent = authMutation({
 			throwConvexError(ErrorCode.EVENT_NOT_FOUND, "Event not found");
 		}
 		if (event.userId !== ctx.user._id) {
-			throwConvexError(ErrorCode.NOT_AUTHORIZED, "Not authorized to link task to this event");
+			throwConvexError(
+				ErrorCode.NOT_AUTHORIZED,
+				"Not authorized to link task to this event",
+			);
 		}
 
 		const effectiveLinkType = args.linkType ?? "related";
@@ -57,7 +58,10 @@ export const unlinkTaskFromEvent = authMutation({
 			throwConvexError(ErrorCode.EVENT_NOT_FOUND, "Event not found");
 		}
 		if (event.userId !== ctx.user._id) {
-			throwConvexError(ErrorCode.NOT_AUTHORIZED, "Not authorized to unlink task from this event");
+			throwConvexError(
+				ErrorCode.NOT_AUTHORIZED,
+				"Not authorized to unlink task from this event",
+			);
 		}
 
 		const link = await ctx.db

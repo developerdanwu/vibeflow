@@ -9,9 +9,12 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as CallbackRouteImport } from './routes/callback'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OauthWorkosCallbackRouteImport } from './routes/oauth/workos-callback'
+import { Route as OauthLinearCallbackRouteImport } from './routes/oauth/linear-callback'
+import { Route as OauthGoogleCallbackRouteImport } from './routes/oauth/google-callback'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
 import { Route as AuthenticatedCalendarIndexRouteImport } from './routes/_authenticated/calendar/index'
@@ -20,12 +23,10 @@ import { Route as AuthenticatedSettingsCalendarsRouteImport } from './routes/_au
 import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_authenticated/settings/account'
 import { Route as AuthenticatedSettingsIntegrationsIndexRouteImport } from './routes/_authenticated/settings/integrations/index'
 import { Route as AuthenticatedSettingsCalendarsIndexRouteImport } from './routes/_authenticated/settings/calendars/index'
-import { Route as AuthenticatedSettingsIntegrationsLinearCallbackRouteImport } from './routes/_authenticated/settings/integrations/linear-callback'
-import { Route as AuthenticatedSettingsCalendarsCallbackRouteImport } from './routes/_authenticated/settings/calendars/callback'
 
-const CallbackRoute = CallbackRouteImport.update({
-  id: '/callback',
-  path: '/callback',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
@@ -35,6 +36,21 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OauthWorkosCallbackRoute = OauthWorkosCallbackRouteImport.update({
+  id: '/oauth/workos-callback',
+  path: '/oauth/workos-callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OauthLinearCallbackRoute = OauthLinearCallbackRouteImport.update({
+  id: '/oauth/linear-callback',
+  path: '/oauth/linear-callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OauthGoogleCallbackRoute = OauthGoogleCallbackRouteImport.update({
+  id: '/oauth/google-callback',
+  path: '/oauth/google-callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
@@ -84,41 +100,31 @@ const AuthenticatedSettingsCalendarsIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedSettingsCalendarsRoute,
   } as any)
-const AuthenticatedSettingsIntegrationsLinearCallbackRoute =
-  AuthenticatedSettingsIntegrationsLinearCallbackRouteImport.update({
-    id: '/linear-callback',
-    path: '/linear-callback',
-    getParentRoute: () => AuthenticatedSettingsIntegrationsRoute,
-  } as any)
-const AuthenticatedSettingsCalendarsCallbackRoute =
-  AuthenticatedSettingsCalendarsCallbackRouteImport.update({
-    id: '/callback',
-    path: '/callback',
-    getParentRoute: () => AuthenticatedSettingsCalendarsRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/callback': typeof CallbackRoute
+  '/login': typeof LoginRoute
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
+  '/oauth/google-callback': typeof OauthGoogleCallbackRoute
+  '/oauth/linear-callback': typeof OauthLinearCallbackRoute
+  '/oauth/workos-callback': typeof OauthWorkosCallbackRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/settings/calendars': typeof AuthenticatedSettingsCalendarsRouteWithChildren
   '/settings/integrations': typeof AuthenticatedSettingsIntegrationsRouteWithChildren
   '/calendar/': typeof AuthenticatedCalendarIndexRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
-  '/settings/calendars/callback': typeof AuthenticatedSettingsCalendarsCallbackRoute
-  '/settings/integrations/linear-callback': typeof AuthenticatedSettingsIntegrationsLinearCallbackRoute
   '/settings/calendars/': typeof AuthenticatedSettingsCalendarsIndexRoute
   '/settings/integrations/': typeof AuthenticatedSettingsIntegrationsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/callback': typeof CallbackRoute
+  '/login': typeof LoginRoute
+  '/oauth/google-callback': typeof OauthGoogleCallbackRoute
+  '/oauth/linear-callback': typeof OauthLinearCallbackRoute
+  '/oauth/workos-callback': typeof OauthWorkosCallbackRoute
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/calendar': typeof AuthenticatedCalendarIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
-  '/settings/calendars/callback': typeof AuthenticatedSettingsCalendarsCallbackRoute
-  '/settings/integrations/linear-callback': typeof AuthenticatedSettingsIntegrationsLinearCallbackRoute
   '/settings/calendars': typeof AuthenticatedSettingsCalendarsIndexRoute
   '/settings/integrations': typeof AuthenticatedSettingsIntegrationsIndexRoute
 }
@@ -126,15 +132,16 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
-  '/callback': typeof CallbackRoute
+  '/login': typeof LoginRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
+  '/oauth/google-callback': typeof OauthGoogleCallbackRoute
+  '/oauth/linear-callback': typeof OauthLinearCallbackRoute
+  '/oauth/workos-callback': typeof OauthWorkosCallbackRoute
   '/_authenticated/settings/account': typeof AuthenticatedSettingsAccountRoute
   '/_authenticated/settings/calendars': typeof AuthenticatedSettingsCalendarsRouteWithChildren
   '/_authenticated/settings/integrations': typeof AuthenticatedSettingsIntegrationsRouteWithChildren
   '/_authenticated/calendar/': typeof AuthenticatedCalendarIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
-  '/_authenticated/settings/calendars/callback': typeof AuthenticatedSettingsCalendarsCallbackRoute
-  '/_authenticated/settings/integrations/linear-callback': typeof AuthenticatedSettingsIntegrationsLinearCallbackRoute
   '/_authenticated/settings/calendars/': typeof AuthenticatedSettingsCalendarsIndexRoute
   '/_authenticated/settings/integrations/': typeof AuthenticatedSettingsIntegrationsIndexRoute
 }
@@ -142,41 +149,44 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/callback'
+    | '/login'
     | '/settings'
+    | '/oauth/google-callback'
+    | '/oauth/linear-callback'
+    | '/oauth/workos-callback'
     | '/settings/account'
     | '/settings/calendars'
     | '/settings/integrations'
     | '/calendar/'
     | '/settings/'
-    | '/settings/calendars/callback'
-    | '/settings/integrations/linear-callback'
     | '/settings/calendars/'
     | '/settings/integrations/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/callback'
+    | '/login'
+    | '/oauth/google-callback'
+    | '/oauth/linear-callback'
+    | '/oauth/workos-callback'
     | '/settings/account'
     | '/calendar'
     | '/settings'
-    | '/settings/calendars/callback'
-    | '/settings/integrations/linear-callback'
     | '/settings/calendars'
     | '/settings/integrations'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
-    | '/callback'
+    | '/login'
     | '/_authenticated/settings'
+    | '/oauth/google-callback'
+    | '/oauth/linear-callback'
+    | '/oauth/workos-callback'
     | '/_authenticated/settings/account'
     | '/_authenticated/settings/calendars'
     | '/_authenticated/settings/integrations'
     | '/_authenticated/calendar/'
     | '/_authenticated/settings/'
-    | '/_authenticated/settings/calendars/callback'
-    | '/_authenticated/settings/integrations/linear-callback'
     | '/_authenticated/settings/calendars/'
     | '/_authenticated/settings/integrations/'
   fileRoutesById: FileRoutesById
@@ -184,16 +194,19 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
-  CallbackRoute: typeof CallbackRoute
+  LoginRoute: typeof LoginRoute
+  OauthGoogleCallbackRoute: typeof OauthGoogleCallbackRoute
+  OauthLinearCallbackRoute: typeof OauthLinearCallbackRoute
+  OauthWorkosCallbackRoute: typeof OauthWorkosCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/callback': {
-      id: '/callback'
-      path: '/callback'
-      fullPath: '/callback'
-      preLoaderRoute: typeof CallbackRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -208,6 +221,27 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/oauth/workos-callback': {
+      id: '/oauth/workos-callback'
+      path: '/oauth/workos-callback'
+      fullPath: '/oauth/workos-callback'
+      preLoaderRoute: typeof OauthWorkosCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/oauth/linear-callback': {
+      id: '/oauth/linear-callback'
+      path: '/oauth/linear-callback'
+      fullPath: '/oauth/linear-callback'
+      preLoaderRoute: typeof OauthLinearCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/oauth/google-callback': {
+      id: '/oauth/google-callback'
+      path: '/oauth/google-callback'
+      fullPath: '/oauth/google-callback'
+      preLoaderRoute: typeof OauthGoogleCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/settings': {
@@ -266,32 +300,15 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsCalendarsIndexRouteImport
       parentRoute: typeof AuthenticatedSettingsCalendarsRoute
     }
-    '/_authenticated/settings/integrations/linear-callback': {
-      id: '/_authenticated/settings/integrations/linear-callback'
-      path: '/linear-callback'
-      fullPath: '/settings/integrations/linear-callback'
-      preLoaderRoute: typeof AuthenticatedSettingsIntegrationsLinearCallbackRouteImport
-      parentRoute: typeof AuthenticatedSettingsIntegrationsRoute
-    }
-    '/_authenticated/settings/calendars/callback': {
-      id: '/_authenticated/settings/calendars/callback'
-      path: '/callback'
-      fullPath: '/settings/calendars/callback'
-      preLoaderRoute: typeof AuthenticatedSettingsCalendarsCallbackRouteImport
-      parentRoute: typeof AuthenticatedSettingsCalendarsRoute
-    }
   }
 }
 
 interface AuthenticatedSettingsCalendarsRouteChildren {
-  AuthenticatedSettingsCalendarsCallbackRoute: typeof AuthenticatedSettingsCalendarsCallbackRoute
   AuthenticatedSettingsCalendarsIndexRoute: typeof AuthenticatedSettingsCalendarsIndexRoute
 }
 
 const AuthenticatedSettingsCalendarsRouteChildren: AuthenticatedSettingsCalendarsRouteChildren =
   {
-    AuthenticatedSettingsCalendarsCallbackRoute:
-      AuthenticatedSettingsCalendarsCallbackRoute,
     AuthenticatedSettingsCalendarsIndexRoute:
       AuthenticatedSettingsCalendarsIndexRoute,
   }
@@ -302,14 +319,11 @@ const AuthenticatedSettingsCalendarsRouteWithChildren =
   )
 
 interface AuthenticatedSettingsIntegrationsRouteChildren {
-  AuthenticatedSettingsIntegrationsLinearCallbackRoute: typeof AuthenticatedSettingsIntegrationsLinearCallbackRoute
   AuthenticatedSettingsIntegrationsIndexRoute: typeof AuthenticatedSettingsIntegrationsIndexRoute
 }
 
 const AuthenticatedSettingsIntegrationsRouteChildren: AuthenticatedSettingsIntegrationsRouteChildren =
   {
-    AuthenticatedSettingsIntegrationsLinearCallbackRoute:
-      AuthenticatedSettingsIntegrationsLinearCallbackRoute,
     AuthenticatedSettingsIntegrationsIndexRoute:
       AuthenticatedSettingsIntegrationsIndexRoute,
   }
@@ -357,18 +371,11 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
-  CallbackRoute: CallbackRoute,
+  LoginRoute: LoginRoute,
+  OauthGoogleCallbackRoute: OauthGoogleCallbackRoute,
+  OauthLinearCallbackRoute: OauthLinearCallbackRoute,
+  OauthWorkosCallbackRoute: OauthWorkosCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

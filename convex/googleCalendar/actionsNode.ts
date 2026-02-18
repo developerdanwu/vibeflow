@@ -13,13 +13,20 @@ function getOAuth2Client(redirectUri?: string): OAuth2Client {
 	const clientId = process.env.GOOGLE_CALENDAR_CLIENT_ID;
 	const clientSecret = process.env.GOOGLE_CALENDAR_CLIENT_SECRET;
 	if (!clientId || !clientSecret) {
-		throwConvexError(ErrorCode.OAUTH_NOT_CONFIGURED, "Google Calendar OAuth not configured");
+		throwConvexError(
+			ErrorCode.OAUTH_NOT_CONFIGURED,
+			"Google Calendar OAuth not configured",
+		);
 	}
-	return new OAuth2Client(clientId, clientSecret, redirectUri ?? "http://localhost");
+	return new OAuth2Client(
+		clientId,
+		clientSecret,
+		redirectUri ?? "http://localhost",
+	);
 }
 
 function getAuthenticatedCalendarClient(
-	accessToken: string
+	accessToken: string,
 ): calendar_v3.Calendar {
 	const oauth2 = getOAuth2Client();
 	oauth2.setCredentials({ access_token: accessToken });
@@ -36,7 +43,10 @@ async function refreshAccessTokenWithOAuth2(refreshToken: string): Promise<{
 	const creds = oauth2.credentials;
 	const expiryDate = creds.expiry_date;
 	if (!creds.access_token || expiryDate == null) {
-		throwConvexError(ErrorCode.TOKEN_REFRESH_FAILED, "Token refresh failed: no access token or expiry");
+		throwConvexError(
+			ErrorCode.TOKEN_REFRESH_FAILED,
+			"Token refresh failed: no access token or expiry",
+		);
 	}
 	return {
 		access_token: creds.access_token,
@@ -44,7 +54,12 @@ async function refreshAccessTokenWithOAuth2(refreshToken: string): Promise<{
 	};
 }
 
-type StatePayload = { userId: string; provider?: "google" | "microsoft" };
+type StatePayload = {
+	userId: string;
+	returnTo: string;
+	redirectUri: string;
+	provider?: "google" | "microsoft";
+};
 
 function decodeState(state: string): StatePayload {
 	try {
@@ -174,16 +189,16 @@ export const exchangeCode = action({
 	args: {
 		code: v.string(),
 		state: v.string(),
-		redirectUri: v.string(),
 	},
 	handler: async (
 		ctx,
-		args
-	): Promise<{ connectionId: Id<"calendarConnections"> }> => {
-		const { userId: userIdStr } = decodeState(args.state);
+		args,
+	): Promise<{ connectionId: Id<"calendarConnections">; returnTo: string }> => {
+		const { userId: userIdStr, redirectUri, returnTo } =
+			decodeState(args.state);
 		const userId = userIdStr as Id<"users">;
 
-		const oauth2 = getOAuth2Client(args.redirectUri);
+		const oauth2 = getOAuth2Client(redirectUri);
 		const { tokens } = await oauth2.getToken(args.code);
 		if (!tokens.refresh_token) {
 			throwConvexError(ErrorCode.NO_REFRESH_TOKEN, "No refresh token returned");
@@ -198,7 +213,7 @@ export const exchangeCode = action({
 				refreshToken: tokens.refresh_token,
 				accessToken: tokens.access_token ?? "",
 				accessTokenExpiresAt,
-			}
+			},
 		)) as Id<"calendarConnections">;
 
 		// Fetch calendar list via client and add each as external calendar + Convex calendar
@@ -231,27 +246,33 @@ export const exchangeCode = action({
 			for (const cal of items) {
 				const calId = cal.id ?? "";
 				const color = cal.backgroundColor
-					? colorMap[cal.backgroundColor.toLowerCase()] ?? "blue"
+					? (colorMap[cal.backgroundColor.toLowerCase()] ?? "blue")
 					: "blue";
-				await ctx.runMutation(internal.googleCalendar.mutations.addExternalCalendar, {
-					connectionId,
-					provider: "google",
-					externalCalendarId: calId,
-					name: cal.summary ?? calId,
-					color,
-				});
-				try {
-					await ctx.runAction(internal.googleCalendar.actionsNode.registerWatch, {
+				await ctx.runMutation(
+					internal.googleCalendar.mutations.addExternalCalendar,
+					{
 						connectionId,
+						provider: "google",
 						externalCalendarId: calId,
-					});
+						name: cal.summary ?? calId,
+						color,
+					},
+				);
+				try {
+					await ctx.runAction(
+						internal.googleCalendar.actionsNode.registerWatch,
+						{
+							connectionId,
+							externalCalendarId: calId,
+						},
+					);
 				} catch (e) {
 					console.warn("registerWatch failed for", calId, e);
 				}
 			}
 		}
 
-		return { connectionId };
+		return { connectionId, returnTo };
 	},
 });
 
@@ -267,10 +288,13 @@ export const syncCalendar = internalAction({
 			{
 				connectionId: args.connectionId,
 				externalCalendarId: args.externalCalendarId,
-			}
+			},
 		);
 		if (!data) {
-			throwConvexError(ErrorCode.CONNECTION_NOT_FOUND, "Connection or calendar not found");
+			throwConvexError(
+				ErrorCode.CONNECTION_NOT_FOUND,
+				"Connection or calendar not found",
+			);
 		}
 		const { connection, externalCalendar } = data;
 		let accessToken = connection.accessToken;
@@ -284,11 +308,14 @@ export const syncCalendar = internalAction({
 			const refreshed = await refreshAccessToken(connection.refreshToken);
 			accessToken = refreshed.access_token;
 			accessTokenExpiresAt = now + refreshed.expires_in * 1000;
-			await ctx.runMutation(internal.googleCalendar.mutations.updateConnectionTokens, {
-				connectionId: args.connectionId,
-				accessToken,
-				accessTokenExpiresAt,
-			});
+			await ctx.runMutation(
+				internal.googleCalendar.mutations.updateConnectionTokens,
+				{
+					connectionId: args.connectionId,
+					accessToken,
+					accessTokenExpiresAt,
+				},
+			);
 		}
 
 		const userId = connection.userId;
@@ -361,7 +388,9 @@ export const syncCalendar = internalAction({
 		}
 
 		// Get user email for computing isEditable
-		const user = await ctx.runQuery(internal.users.queries.getUserById, { userId });
+		const user = await ctx.runQuery(internal.users.queries.getUserById, {
+			userId,
+		});
 		const userEmail = user?.email ?? "";
 
 		const BATCH_SIZE = 100;
@@ -469,7 +498,7 @@ export const syncCalendar = internalAction({
 					connectionId: args.connectionId,
 					externalCalendarId: args.externalCalendarId,
 					syncToken: lastNextSyncToken,
-				}
+				},
 			);
 		}
 	},
@@ -484,17 +513,23 @@ export const registerWatch = internalAction({
 	handler: async (ctx, args) => {
 		const webhookUrl = process.env.GOOGLE_CALENDAR_WEBHOOK_URL;
 		if (!webhookUrl) {
-			throwConvexError(ErrorCode.WEBHOOK_URL_NOT_SET, "GOOGLE_CALENDAR_WEBHOOK_URL not set");
+			throwConvexError(
+				ErrorCode.WEBHOOK_URL_NOT_SET,
+				"GOOGLE_CALENDAR_WEBHOOK_URL not set",
+			);
 		}
 		const data = await ctx.runQuery(
 			internal.googleCalendar.queries.getConnectionAndExternalCalendar,
 			{
 				connectionId: args.connectionId,
 				externalCalendarId: args.externalCalendarId,
-			}
+			},
 		);
 		if (!data) {
-			throwConvexError(ErrorCode.CONNECTION_NOT_FOUND, "Connection or calendar not found");
+			throwConvexError(
+				ErrorCode.CONNECTION_NOT_FOUND,
+				"Connection or calendar not found",
+			);
 		}
 		let accessToken = data.connection.accessToken;
 		let accessTokenExpiresAt = data.connection.accessTokenExpiresAt;
@@ -507,11 +542,14 @@ export const registerWatch = internalAction({
 			const refreshed = await refreshAccessToken(data.connection.refreshToken);
 			accessToken = refreshed.access_token;
 			accessTokenExpiresAt = now + refreshed.expires_in * 1000;
-			await ctx.runMutation(internal.googleCalendar.mutations.updateConnectionTokens, {
-				connectionId: args.connectionId,
-				accessToken,
-				accessTokenExpiresAt,
-			});
+			await ctx.runMutation(
+				internal.googleCalendar.mutations.updateConnectionTokens,
+				{
+					connectionId: args.connectionId,
+					accessToken,
+					accessTokenExpiresAt,
+				},
+			);
 		}
 		const channelId = crypto.randomUUID();
 		const expirationMs = now + 7 * 24 * 60 * 60 * 1000; // 7 days (Google max)
@@ -529,13 +567,16 @@ export const registerWatch = internalAction({
 		const expiration = watchData.expiration
 			? new Date(Number(watchData.expiration)).getTime()
 			: expirationMs;
-		await ctx.runMutation(internal.googleCalendar.mutations.updateExternalCalendarChannel, {
-			connectionId: args.connectionId,
-			externalCalendarId: args.externalCalendarId,
-			channelId: watchData.id ?? channelId,
-			resourceId: watchData.resourceId ?? "",
-			expiration,
-		});
+		await ctx.runMutation(
+			internal.googleCalendar.mutations.updateExternalCalendarChannel,
+			{
+				connectionId: args.connectionId,
+				externalCalendarId: args.externalCalendarId,
+				channelId: watchData.id ?? channelId,
+				resourceId: watchData.resourceId ?? "",
+				expiration,
+			},
+		);
 	},
 });
 
@@ -545,7 +586,7 @@ export const renewExpiringChannels = internalAction({
 	handler: async (ctx) => {
 		const list = await ctx.runQuery(
 			internal.googleCalendar.queries.getCalendarsNeedingChannelRenewal,
-			{}
+			{},
 		);
 		for (const { connectionId, externalCalendarId } of list) {
 			try {
@@ -558,7 +599,7 @@ export const renewExpiringChannels = internalAction({
 					"renewExpiringChannels failed",
 					connectionId,
 					externalCalendarId,
-					e
+					e,
 				);
 			}
 		}
@@ -571,7 +612,7 @@ export const runFallbackSync = internalAction({
 	handler: async (ctx) => {
 		const list = await ctx.runQuery(
 			internal.googleCalendar.queries.getAllSyncedCalendars,
-			{}
+			{},
 		);
 		for (const { connectionId, externalCalendarId } of list) {
 			try {
@@ -584,7 +625,7 @@ export const runFallbackSync = internalAction({
 					"runFallbackSync failed",
 					connectionId,
 					externalCalendarId,
-					e
+					e,
 				);
 			}
 		}
@@ -614,9 +655,12 @@ export const syncEventToGoogle = internalAction({
 	handler: async (ctx, args) => {
 		console.log("[syncEventToGoogle] started eventId=%s", args.eventId);
 		// 1. Get event data
-		const event = await ctx.runQuery(internal.events.queries.getEventByIdInternal, {
-			id: args.eventId,
-		});
+		const event = await ctx.runQuery(
+			internal.events.queries.getEventByIdInternal,
+			{
+				id: args.eventId,
+			},
+		);
 		if (!event) {
 			console.log("[syncEventToGoogle] skipped: event not found");
 			return;
@@ -626,7 +670,12 @@ export const syncEventToGoogle = internalAction({
 			!event.externalEventId ||
 			!event.externalCalendarId
 		) {
-			console.log("[syncEventToGoogle] skipped: not a Google event or missing external ids provider=%s externalEventId=%s externalCalendarId=%s", event.externalProvider, event.externalEventId ?? "(none)", event.externalCalendarId ?? "(none)");
+			console.log(
+				"[syncEventToGoogle] skipped: not a Google event or missing external ids provider=%s externalEventId=%s externalCalendarId=%s",
+				event.externalProvider,
+				event.externalEventId ?? "(none)",
+				event.externalCalendarId ?? "(none)",
+			);
 			return;
 		}
 
@@ -639,7 +688,10 @@ export const syncEventToGoogle = internalAction({
 			},
 		);
 		if (!externalCalendar) {
-			throwConvexError(ErrorCode.EXTERNAL_CALENDAR_NOT_FOUND, "External calendar not found");
+			throwConvexError(
+				ErrorCode.EXTERNAL_CALENDAR_NOT_FOUND,
+				"External calendar not found",
+			);
 		}
 
 		const connectionData = await ctx.runQuery(
@@ -667,11 +719,14 @@ export const syncEventToGoogle = internalAction({
 			const refreshed = await refreshAccessToken(connection.refreshToken);
 			accessToken = refreshed.access_token;
 			accessTokenExpiresAt = now + refreshed.expires_in * 1000;
-			await ctx.runMutation(internal.googleCalendar.mutations.updateConnectionTokens, {
-				connectionId: externalCalendar.connectionId,
-				accessToken,
-				accessTokenExpiresAt,
-			});
+			await ctx.runMutation(
+				internal.googleCalendar.mutations.updateConnectionTokens,
+				{
+					connectionId: externalCalendar.connectionId,
+					accessToken,
+					accessTokenExpiresAt,
+				},
+			);
 		}
 
 		// 4. Build Google Calendar API payload (single object with spread; type via satisfies)
@@ -726,7 +781,11 @@ export const syncEventToGoogle = internalAction({
 			originalStartTime?: string;
 		};
 		await calendarClient.events.patch(patchParams);
-		console.log("[syncEventToGoogle] completed eventId=%s externalEventId=%s", args.eventId, event.externalEventId);
+		console.log(
+			"[syncEventToGoogle] completed eventId=%s externalEventId=%s",
+			args.eventId,
+			event.externalEventId,
+		);
 	},
 });
 
@@ -734,9 +793,12 @@ export const syncEventToGoogle = internalAction({
 export const createEventInGoogle = internalAction({
 	args: { eventId: v.id("events") },
 	handler: async (ctx, args) => {
-		const event = await ctx.runQuery(internal.events.queries.getEventByIdInternal, {
-			id: args.eventId,
-		});
+		const event = await ctx.runQuery(
+			internal.events.queries.getEventByIdInternal,
+			{
+				id: args.eventId,
+			},
+		);
 		if (!event?.calendarId) {
 			return;
 		}
@@ -769,11 +831,14 @@ export const createEventInGoogle = internalAction({
 			const refreshed = await refreshAccessToken(connection.refreshToken);
 			accessToken = refreshed.access_token;
 			accessTokenExpiresAt = now + refreshed.expires_in * 1000;
-			await ctx.runMutation(internal.googleCalendar.mutations.updateConnectionTokens, {
-				connectionId: externalCalendar.connectionId,
-				accessToken,
-				accessTokenExpiresAt,
-			});
+			await ctx.runMutation(
+				internal.googleCalendar.mutations.updateConnectionTokens,
+				{
+					connectionId: externalCalendar.connectionId,
+					accessToken,
+					accessTokenExpiresAt,
+				},
+			);
 		}
 		const timeZone = event.timeZone ?? "UTC";
 		const startIso = new Date(event.startTimestamp).toISOString();
@@ -785,12 +850,10 @@ export const createEventInGoogle = internalAction({
 			...(event.allDay
 				? {
 						start: {
-							date:
-								event.startDateStr ?? startIso.slice(0, 10),
+							date: event.startDateStr ?? startIso.slice(0, 10),
 						},
 						end: {
-							date:
-								event.endDateStr ?? endIso.slice(0, 10),
+							date: event.endDateStr ?? endIso.slice(0, 10),
 						},
 					}
 				: {
@@ -805,15 +868,21 @@ export const createEventInGoogle = internalAction({
 		});
 		const externalEventId = insertRes.data.id;
 		if (!externalEventId) {
-			throwConvexError(ErrorCode.GOOGLE_INSERT_NO_EVENT_ID, "Google Calendar insert did not return event id");
+			throwConvexError(
+				ErrorCode.GOOGLE_INSERT_NO_EVENT_ID,
+				"Google Calendar insert did not return event id",
+			);
 		}
-		await ctx.runMutation(internal.googleCalendar.mutations.patchEventExternalFields, {
-			eventId: args.eventId,
-			externalProvider: "google",
-			externalCalendarId: externalCalendar.externalCalendarId,
-			externalEventId,
-			isEditable: true,
-		});
+		await ctx.runMutation(
+			internal.googleCalendar.mutations.patchEventExternalFields,
+			{
+				eventId: args.eventId,
+				externalProvider: "google",
+				externalCalendarId: externalCalendar.externalCalendarId,
+				externalEventId,
+				isEditable: true,
+			},
+		);
 	},
 });
 
@@ -847,11 +916,14 @@ export const deleteEventFromGoogle = internalAction({
 			const refreshed = await refreshAccessToken(connection.refreshToken);
 			accessToken = refreshed.access_token;
 			accessTokenExpiresAt = now + refreshed.expires_in * 1000;
-			await ctx.runMutation(internal.googleCalendar.mutations.updateConnectionTokens, {
-				connectionId: args.connectionId,
-				accessToken,
-				accessTokenExpiresAt,
-			});
+			await ctx.runMutation(
+				internal.googleCalendar.mutations.updateConnectionTokens,
+				{
+					connectionId: args.connectionId,
+					accessToken,
+					accessTokenExpiresAt,
+				},
+			);
 		}
 		const calendarClient = getAuthenticatedCalendarClient(accessToken);
 		try {
@@ -860,7 +932,8 @@ export const deleteEventFromGoogle = internalAction({
 				eventId: args.externalEventId,
 			});
 		} catch (err: unknown) {
-			const status = (err as { response?: { status?: number } })?.response?.status;
+			const status = (err as { response?: { status?: number } })?.response
+				?.status;
 			if (status === 404 || status === 410) {
 				return;
 			}

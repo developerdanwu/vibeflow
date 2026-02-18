@@ -1,38 +1,38 @@
 import { AuthenticatedLayout } from "@/components/layouts/AuthenticatedLayout";
 import { api } from "@convex/_generated/api";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { getAuth, getSignInUrl } from "@workos/authkit-tanstack-react-start";
-import { ConvexHttpClient } from "convex/browser";
-
-const convexUrl = import.meta.env.VITE_CONVEX_URL;
-if (!convexUrl) {
-	throw new Error("VITE_CONVEX_URL is not defined");
-}
-const convex = new ConvexHttpClient(convexUrl);
 
 export const Route = createFileRoute("/_authenticated")({
-	loader: async ({ location }) => {
-		const { user } = await getAuth();
-		if (!user) {
-			const path = location.pathname;
-			const href = await getSignInUrl({ data: { returnPathname: path } });
-			throw redirect({ href });
+	beforeLoad: async ({ context, location }) => {
+		if (!context.auth.user) {
+			throw redirect({
+				to: "/login",
+				search: { redirect: location.pathname },
+			});
 		}
 
-		// Ensure user exists in database before proceeding
-		await convex.mutation(api.users.mutations.ensureUserExists, {
-			authId: user.id,
-			email: user.email,
-			firstName: user.firstName ?? undefined,
-			lastName: user.lastName ?? undefined,
-			profileImageUrl: user.profilePictureUrl ?? undefined,
-		});
-
-		return { user };
+		const u = context.auth.user;
+		const user = await context.convex.mutation(
+			api.users.mutations.ensureUserExists,
+			{
+				authId: u.id,
+				email: u.email,
+				firstName: u.firstName ?? undefined,
+				lastName: u.lastName ?? undefined,
+				profileImageUrl: u.profilePictureUrl ?? undefined,
+			},
+		);
+		return {
+			user: user,
+		};
 	},
-	component: () => (
+	component: AuthenticatedLayoutWithGate,
+});
+
+function AuthenticatedLayoutWithGate() {
+	return (
 		<AuthenticatedLayout>
 			<Outlet />
 		</AuthenticatedLayout>
-	),
-});
+	);
+}

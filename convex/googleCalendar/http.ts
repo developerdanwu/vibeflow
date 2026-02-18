@@ -7,14 +7,21 @@ export const googleCalendarWebhook = httpAction(async (ctx, request) => {
 	if (!channelId) {
 		return new Response("Missing X-Goog-Channel-ID", { status: 400 });
 	}
-	const data = await ctx.runQuery(internal.googleCalendar.queries.getByChannelId, {
-		channelId,
-	});
+	const data = await ctx.runQuery(
+		internal.googleCalendar.queries.getByChannelId,
+		{
+			channelId,
+		},
+	);
 	if (data) {
-		await ctx.scheduler.runAfter(0, internal.googleCalendar.actionsNode.syncCalendar, {
-			connectionId: data.connectionId,
-			externalCalendarId: data.externalCalendarId,
-		});
+		await ctx.scheduler.runAfter(
+			0,
+			internal.googleCalendar.actionsNode.syncCalendar,
+			{
+				connectionId: data.connectionId,
+				externalCalendarId: data.externalCalendarId,
+			},
+		);
 	}
 	return new Response(null, { status: 200 });
 });
