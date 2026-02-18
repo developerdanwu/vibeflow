@@ -180,13 +180,14 @@ interface EventPopoverContentProps {
 	initialValues: TEventFormData;
 	mode?: EventPopoverMode;
 	event?: TEvent;
+	isLoadingRelatedTasks: boolean;
 }
 
 const EventPopoverContent = forwardRef<
 	EventPopoverContentHandle,
 	EventPopoverContentProps
 >(function EventPopoverContent(
-	{ onClose, initialValues, mode = "create", event },
+	{ onClose, initialValues, mode = "create", event, isLoadingRelatedTasks },
 	ref,
 ) {
 	const formId = useId();
@@ -750,6 +751,7 @@ const EventPopoverContent = forwardRef<
 								<EventFormBodySection
 									form={form}
 									eventIdForLinks={eventIdForLinks}
+									isLoadingRelatedTasks={isLoadingRelatedTasks}
 								/>
 							)}
 							{eventKind === "task" && (
@@ -759,6 +761,7 @@ const EventPopoverContent = forwardRef<
 										form={form}
 										eventIdForLinks={eventIdForLinks}
 										variant="task"
+										isLoadingRelatedTasks={isLoadingRelatedTasks}
 									/>
 								</>
 							)}
@@ -932,13 +935,6 @@ function EditEventPopoverContent({
 	const endDate = event.allDay ? subDays(rawEndDate, 1) : rawEndDate;
 	const { startTime, endTime } = getTimes(event, startDate, rawEndDate);
 
-	if (isLoading) {
-		return (
-			<div className="flex min-h-[200px] items-center justify-center text-muted-foreground text-sm">
-				Loading…
-			</div>
-		);
-	}
 	const relatedTaskLinks = (linkedTasks ?? [])
 		.filter(
 			(l) =>
@@ -966,6 +962,7 @@ function EditEventPopoverContent({
 			key={`edit-${event.id}-${openId}`}
 			initialValues={initialValues}
 			mode="edit"
+			isLoadingRelatedTasks={isLoading}
 			event={event}
 			onClose={onClose}
 		/>
@@ -1045,6 +1042,7 @@ export function EventPopover({
 						})}
 						mode="create"
 						onClose={handleClose}
+						isLoadingRelatedTasks={false}
 					/>
 				);
 			}}

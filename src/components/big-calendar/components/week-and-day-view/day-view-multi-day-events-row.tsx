@@ -45,9 +45,9 @@ export function DayViewMultiDayEventsRow({
 		.sort((a, b) => getEventTotalDays(b) - getEventTotalDays(a));
 
 	return (
-		<div className="flex flex-1">
-			<div className="w-18 shrink-0 border-t"></div>
-			<div className="flex min-h-6.5 flex-1 flex-col gap-1 border-t border-l px-1 py-1">
+		<div className="flex h-full min-w-0 shrink-0">
+			{/* <div className="w-18 shrink-0 border-t"></div> */}
+			<div className="flex h-full w-0 flex-1 flex-col justify-start gap-1 overflow-y-auto overflow-x-hidden border-t px-1 py-1 text-left">
 				{multiDayEventsInDay.map((event) => (
 					<MonthEventBadge
 						key={event.id}

@@ -1,14 +1,17 @@
-import { Popover as PopoverBase } from "@base-ui/react";
-import { addDays, format, isToday, parseISO, startOfDay } from "date-fns";
-import { useMemo } from "react";
 import { DroppableDayCell } from "@/components/big-calendar/components/dnd/droppable-day-cell";
 import { EventPopover } from "@/components/big-calendar/components/event-popover";
 import { useCalendar } from "@/components/big-calendar/contexts/calendar-context";
-import { getVisibleHours, groupEvents } from "@/components/big-calendar/helpers";
+import {
+	getVisibleHours,
+	groupEvents,
+} from "@/components/big-calendar/helpers";
 import type { TEvent } from "@/components/big-calendar/interfaces";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Route } from "@/routes/_authenticated/calendar";
+import { Popover as PopoverBase } from "@base-ui/react";
+import { addDays, format, isToday, parseISO, startOfDay } from "date-fns";
+import { useMemo } from "react";
 import { DayViewColumn } from "./day-view-column";
 import { DayViewMultiDayEventsRow } from "./day-view-multi-day-events-row";
 
@@ -37,9 +40,7 @@ export function CalendarMultiDayView({
 
 	const days = useMemo(
 		() =>
-			[...Array(dayCount)].map((_, i) =>
-				startOfDay(addDays(selectedDate, i)),
-			),
+			[...Array(dayCount)].map((_, i) => startOfDay(addDays(selectedDate, i))),
 		[selectedDate, dayCount],
 	);
 
@@ -69,41 +70,8 @@ export function CalendarMultiDayView({
 	);
 
 	const renderHeader = () => {
-		if (dayCount === 1) {
-			return (
-				<DroppableDayCell
-					cell={{
-						day: days[0].getDate(),
-						currentMonth: true,
-						date: days[0],
-					}}
-					className="relative z-20 flex flex-col border-b"
-				>
-					<div className="flex">
-						<div className="w-18 shrink-0" />
-						<span className="flex flex-1 items-center justify-center border-x py-1 font-medium text-muted-foreground text-xs">
-							{format(days[0], "EE")}{" "}
-							<span
-								className={cn(
-									"inline-flex size-6 items-center justify-center rounded-full font-semibold text-foreground",
-									isToday(days[0]) &&
-										"bg-primary font-bold text-primary-foreground",
-								)}
-							>
-								{format(days[0], "d")}
-							</span>
-						</span>
-					</div>
-					<DayViewMultiDayEventsRow
-						selectedDate={days[0]}
-						multiDayEvents={multiDayEvents}
-						handle={quickEventPopoverHandle}
-					/>
-				</DroppableDayCell>
-			);
-		}
 		return (
-			<div className="relative z-20 flex border-b">
+			<div className="relative z-20 flex h-full border-b">
 				<div className="w-18 shrink-0" />
 				{days.map((day) => (
 					<DroppableDayCell
@@ -113,7 +81,7 @@ export function CalendarMultiDayView({
 							currentMonth: true,
 							date: day,
 						}}
-						className="relative flex flex-1 flex-col border-x"
+						className="relative flex h-full flex-1 flex-col border-l"
 					>
 						<span className="flex items-center justify-center border-b py-1 font-medium text-muted-foreground text-xs">
 							{format(day, "EE")}{" "}

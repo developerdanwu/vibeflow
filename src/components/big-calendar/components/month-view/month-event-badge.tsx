@@ -14,7 +14,7 @@ import { cva } from "class-variance-authority";
 import { endOfDay, format, isSameDay, parseISO, startOfDay } from "date-fns";
 
 export const eventBadgeVariants = cva(
-	"flex size-auto h-6.5 w-full select-none items-center justify-between gap-1.5 truncate whitespace-nowrap rounded-md border px-2 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+	"flex size-auto h-6.5 w-full min-w-0 select-none items-center justify-between gap-1.5 truncate whitespace-nowrap rounded-md border px-2 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
 	{
 		variants: {
 			color: {
@@ -165,9 +165,9 @@ export function MonthEventBadge({
 						/>
 					}
 				>
-					<div className="flex items-center gap-1.5 truncate">
+					<div className="flex min-w-0 flex-1 items-center gap-1.5 truncate">
 						{renderBadgeText && (
-							<p className="flex-1 truncate font-semibold">
+							<p className="min-w-0 flex-1 truncate text-left font-semibold">
 								{eventCurrentDay && (
 									<span className="text-xs">
 										Day {eventCurrentDay} of {eventTotalDays} •{" "}
@@ -183,10 +183,8 @@ export function MonthEventBadge({
 					)}
 				</TooltipTrigger>
 				<TooltipContent side="top" className="max-w-xs px-3 py-2">
-					<p className="font-semibold">{event.title}</p>
-					{!event.allDay && (
-						<p className="text-2xs opacity-70">{timeRange}</p>
-					)}
+					<p className="text-left font-semibold">{event.title}</p>
+					{!event.allDay && <p className="text-2xs opacity-70">{timeRange}</p>}
 				</TooltipContent>
 			</Tooltip>
 		</DraggableEvent>

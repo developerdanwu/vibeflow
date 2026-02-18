@@ -5,7 +5,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { FunctionArgs } from "convex/server";
 import { toast } from "sonner";
 
-export type CreateEventPayload = FunctionArgs<typeof api.events.mutations.createEvent>;
+export type CreateEventPayload = FunctionArgs<
+	typeof api.events.mutations.createEvent
+>;
 
 const eventsQueryKey = convexQuery(api.events.queries.getEventsByUser).queryKey;
 

@@ -1,5 +1,3 @@
-import { useNavigate } from "@tanstack/react-router";
-import { CalendarDays } from "lucide-react";
 import type { TCalendarView, TDayRange } from "@/components/big-calendar/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,6 +7,8 @@ import {
 } from "@/components/ui/popover";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Route } from "@/routes/_authenticated/calendar";
+import { useNavigate } from "@tanstack/react-router";
+import { CalendarDays } from "lucide-react";
 
 const RANGE_OPTIONS: { value: TDayRange; label: string }[] = [
 	{ value: "1", label: "1" },
@@ -49,7 +49,7 @@ export function CalendarViewPopover() {
 				}
 			/>
 			<PopoverContent align="end" className="w-72">
-				<div className="flex flex-col gap-4">
+				<div className="flex flex-col gap-2">
 					<div className="flex items-center justify-between gap-4">
 						<span className="font-medium text-xs">View</span>
 						<ToggleGroup

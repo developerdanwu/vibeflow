@@ -6,7 +6,9 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 
 /** Use Convex’s FunctionArgs so you don’t have to manually type mutation payloads. */
-export type UpdateEventPayload = FunctionArgs<typeof api.events.mutations.updateEvent>;
+export type UpdateEventPayload = FunctionArgs<
+	typeof api.events.mutations.updateEvent
+>;
 
 export type UpdateEventMutationOptions = {
 	meta?: { updateType?: "drag" | "edit" };

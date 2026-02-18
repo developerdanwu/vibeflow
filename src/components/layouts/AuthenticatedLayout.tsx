@@ -9,7 +9,7 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
 	return (
 		<SidebarProvider>
 			<AppSidebar />
-			<SidebarInset className="min-h-0 overflow-hidden">
+			<SidebarInset className="flex min-h-0 flex-1 flex-col overflow-hidden">
 				{children}
 			</SidebarInset>
 		</SidebarProvider>

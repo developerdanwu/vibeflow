@@ -17,8 +17,13 @@ export const EventFormBodySection = withForm({
 	...eventFormOptions,
 	props: {
 		eventIdForLinks: undefined as Id<"events"> | undefined,
+		isLoadingRelatedTasks: false,
 	},
-	render: function EventFormBodyRender({ form, eventIdForLinks }) {
+	render: function EventFormBodyRender({
+		form,
+		eventIdForLinks,
+		isLoadingRelatedTasks,
+	}) {
 		const [, calendarStore] = useCalendar();
 		return (
 			<>
@@ -82,6 +87,7 @@ export const EventFormBodySection = withForm({
 					form={form}
 					eventIdForLinks={eventIdForLinks}
 					variant="event"
+					isLoadingRelatedTasks={isLoadingRelatedTasks}
 				/>
 			</>
 		);

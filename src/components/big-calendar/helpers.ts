@@ -8,19 +8,11 @@ import {
 	eachDayOfInterval,
 	endOfDay,
 	endOfMonth,
-	endOfWeek,
-	endOfYear,
 	format,
-	isSameDay,
-	isSameMonth,
-	isSameWeek,
-	isSameYear,
 	isWithinInterval,
 	parseISO,
 	startOfDay,
 	startOfMonth,
-	startOfWeek,
-	startOfYear,
 	subDays,
 	subMonths,
 	subWeeks,
@@ -47,41 +39,42 @@ export function dayRangeToDayCount(dayRange: TDayRange): number | null {
 	return Number.parseInt(dayRange, 10);
 }
 
-// ================ Header helper functions ================ //
-
-export function rangeText(view: TCalendarView, date: Date) {
-	const formatString = "MMM d, yyyy";
-	let start: Date;
-	let end: Date;
-
-	switch (view) {
-		case "agenda":
-			start = startOfMonth(date);
-			end = endOfMonth(date);
-			break;
-		case "year":
-			start = startOfYear(date);
-			end = endOfYear(date);
-			break;
-		case "month":
-			start = startOfMonth(date);
-			end = endOfMonth(date);
-			break;
-		case "week":
-			start = startOfWeek(date);
-			end = endOfWeek(date);
-			break;
-		case "2day":
-			start = startOfDay(date);
-			end = endOfDay(addDays(date, 1));
-			break;
-		case "day":
-			return format(date, formatString);
-		default:
-			return "Error while formatting ";
+/**
+ * Start and end timestamps (ms) for the calendar’s visible range.
+ * Used to fetch events via getEventsByDateRange.
+ */
+export function getCalendarVisibleRange(
+	view: "calendar" | "agenda",
+	date: Date,
+	dayRange: TDayRange,
+): { startTimestamp: number; endTimestamp: number } {
+	const dayCount = dayRangeToDayCount(dayRange);
+	if (view === "agenda") {
+		if (dayCount === null) {
+			return {
+				startTimestamp: startOfMonth(date).getTime(),
+				endTimestamp: endOfMonth(date).getTime(),
+			};
+		}
+		const start = startOfDay(date);
+		const end = endOfDay(addDays(date, dayCount - 1));
+		return {
+			startTimestamp: start.getTime(),
+			endTimestamp: end.getTime(),
+		};
 	}
-
-	return `${format(start, formatString)} - ${format(end, formatString)}`;
+	if (dayCount === null) {
+		return {
+			startTimestamp: startOfMonth(date).getTime(),
+			endTimestamp: endOfMonth(date).getTime(),
+		};
+	}
+	const start = startOfDay(date);
+	const end = endOfDay(addDays(date, dayCount - 1));
+	return {
+		startTimestamp: start.getTime(),
+		endTimestamp: end.getTime(),
+	};
 }
 
 export function navigateDate(
@@ -102,32 +95,6 @@ export function navigateDate(
 	return view === "2day"
 		? operations["2day"](date, 2)
 		: operations[view](date, 1);
-}
-
-export function getEventsCount(
-	events: TEvent[],
-	date: Date,
-	view: TCalendarView,
-): number {
-	const twoDayRange = {
-		start: startOfDay(date),
-		end: endOfDay(addDays(date, 1)),
-	};
-	const compareFns: Record<
-		TCalendarView,
-		(eventDate: Date, d: Date) => boolean
-	> = {
-		agenda: (eventDate, d) => isSameMonth(eventDate, d),
-		year: (eventDate, d) => isSameYear(eventDate, d),
-		day: (eventDate, d) => isSameDay(eventDate, d),
-		"2day": (eventDate) => isWithinInterval(eventDate, twoDayRange),
-		week: (eventDate, d) => isSameWeek(eventDate, d),
-		month: (eventDate, d) => isSameMonth(eventDate, d),
-	};
-
-	return events.filter((event) =>
-		compareFns[view](new Date(event.startDate), date),
-	).length;
 }
 
 // ================ Week and day view helper functions ================ //

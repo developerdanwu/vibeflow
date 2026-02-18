@@ -15,12 +15,12 @@ import type { PopoverRootProps } from "@base-ui/react";
 import type { VariantProps } from "class-variance-authority";
 import { cva } from "class-variance-authority";
 import { differenceInMinutes, format, parseISO } from "date-fns";
+import { ListChecks } from "lucide-react";
 import { animate, motion, useMotionValue, useTransform } from "motion/react";
 import { type HTMLAttributes, useEffect } from "react";
-import { ListChecks } from "lucide-react";
 
 export const calendarWeekEventCardVariants = cva(
-	"flex cursor-pointer select-none flex-col gap-0.5 truncate whitespace-nowrap rounded-md border px-2 text-xs transition-[filter] duration-150 hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+	"flex min-w-0 cursor-pointer select-none flex-col gap-0.5 truncate whitespace-nowrap rounded-md border px-2 text-xs transition-[filter] duration-150 hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
 	{
 		variants: {
 			color: {
@@ -178,7 +178,7 @@ export function EventBlock({
 							aria-label="Resize event start"
 						/>
 					</EventResizeHandle>
-					<div className="flex min-h-0 flex-1 flex-col justify-start">
+					<div className="flex min-h-0 min-w-0 flex-1 flex-col justify-start">
 						{isSingleLine ? (
 							<div className="flex min-w-0 items-center justify-between gap-2">
 								<div className="flex min-w-0 flex-1 items-center gap-1.5 truncate">

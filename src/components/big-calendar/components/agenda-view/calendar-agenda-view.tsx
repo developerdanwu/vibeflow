@@ -2,6 +2,7 @@ import { AgendaDayGroup } from "@/components/big-calendar/components/agenda-view
 import type { TEvent } from "@/components/big-calendar/interfaces";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { dayRangeToDayCount } from "@/components/big-calendar/helpers";
 import { Route } from "@/routes/_authenticated/calendar";
 import {
 	addDays,
@@ -10,6 +11,7 @@ import {
 	format,
 	parseISO,
 	startOfDay,
+	startOfMonth,
 } from "date-fns";
 import { CalendarSearch, CalendarX2 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -32,20 +34,21 @@ export function CalendarAgendaView({
 	singleDayEvents,
 	multiDayEvents,
 }: IProps) {
-	const { date: selectedDate, agendaRange } = Route.useSearch();
-	const effectiveRange = agendaRange ?? "7";
+	const { date: selectedDate, dayRange } = Route.useSearch();
 	const [searchQuery, setSearchQuery] = useState("");
 
 	const { rangeStart, rangeEnd } = useMemo(() => {
+		const dayCount = dayRangeToDayCount(dayRange);
+		if (dayCount === null) {
+			return {
+				rangeStart: startOfMonth(selectedDate),
+				rangeEnd: endOfMonth(selectedDate),
+			};
+		}
 		const start = startOfDay(selectedDate);
-		const end =
-			effectiveRange === "month"
-				? endOfMonth(selectedDate)
-				: endOfDay(
-						addDays(selectedDate, Number.parseInt(effectiveRange, 10) - 1),
-					);
+		const end = endOfDay(addDays(selectedDate, dayCount - 1));
 		return { rangeStart: start, rangeEnd: end };
-	}, [selectedDate, effectiveRange]);
+	}, [selectedDate, dayRange]);
 
 	const eventsByDay = useMemo(() => {
 		const allDates = new Map<

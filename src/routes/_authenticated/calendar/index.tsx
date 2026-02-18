@@ -7,7 +7,15 @@ import { CalendarHeader } from "@/components/big-calendar/components/header/cale
 import { CalendarMonthView } from "@/components/big-calendar/components/month-view/calendar-month-view";
 import { TaskSidebar } from "@/components/big-calendar/components/task-sidebar/task-sidebar";
 import { CalendarMultiDayView } from "@/components/big-calendar/components/week-and-day-view/calendar-multi-day-view";
-import { dayRangeToDayCount } from "@/components/big-calendar/helpers";
+import {
+	ResizableHandle,
+	ResizablePanel,
+	ResizablePanelGroup,
+} from "@/components/ui/resizable";
+import {
+	dayRangeToDayCount,
+	getCalendarVisibleRange,
+} from "@/components/big-calendar/helpers";
 import { CalendarProvider } from "@/components/big-calendar/contexts/calendar-context";
 import {
 	type TEvent,
@@ -26,11 +34,18 @@ import { z } from "zod";
 
 const dayRangeEnum = z.enum(["1", "2", "3", "4", "5", "6", "W", "M"]);
 
-const calendarSearchSchema = z.object({
-	view: z.enum(["calendar", "agenda"]).default("calendar"),
-	date: z.coerce.date().default(new Date()),
-	dayRange: dayRangeEnum.default("M"),
-});
+const calendarSearchSchema = z
+	.object({
+		view: z.enum(["calendar", "agenda"]).default("calendar"),
+		date: z.coerce.date().optional(),
+		day: z.coerce.date().optional(),
+		dayRange: dayRangeEnum.default("M"),
+	})
+	.transform(({ view, date, day, dayRange }) => ({
+		view,
+		date: date ?? day ?? new Date(),
+		dayRange,
+	}));
 
 export const Route = createFileRoute("/_authenticated/calendar/")({
 	validateSearch: calendarSearchSchema,
@@ -56,7 +71,7 @@ function CalendarRoute() {
 }
 
 function CalendarContent() {
-	const { view, dayRange } = Route.useSearch();
+	const { view, date, dayRange } = Route.useSearch();
 	const { user } = useAuth();
 
 	const currentUser: TUser | null = user
@@ -67,8 +82,16 @@ function CalendarContent() {
 			}
 		: null;
 
+	const dateRange = useMemo(
+		() => getCalendarVisibleRange(view, date, dayRange),
+		[view, date, dayRange],
+	);
+
 	const { data: convexEvents } = useQuery(
-		convexQuery(api.events.queries.getEventsByUser),
+		convexQuery(api.events.queries.getEventsByDateRange, {
+			startTimestamp: dateRange.startTimestamp,
+			endTimestamp: dateRange.endTimestamp,
+		}),
 	);
 
 	const events: TEvent[] = useMemo(() => {
@@ -132,25 +155,20 @@ function CalendarContent() {
 	const [taskSidebarOpen, _setTaskSidebarOpen] = useState(true);
 
 	return (
-		<div className="calendar-container flex h-[calc(100vh-52px)] flex-col bg-background">
-			<div className="flex h-full min-w-0">
-				<div className="flex min-h-0 flex-1 flex-col">
-					<div className="flex items-center gap-1">
+		<div className="calendar-container flex min-h-0 flex-1 flex-col bg-background">
+			<ResizablePanelGroup
+				className="h-full min-h-0 min-w-0 flex-1"
+				orientation="horizontal"
+			>
+				<ResizablePanel
+					defaultSize="75%"
+					minSize="30%"
+					className="flex min-h-0 min-w-0 flex-1 flex-col"
+				>
+					<div className="flex shrink-0 items-center gap-1">
 						<CalendarHeader dayRange={dayRange} events={events} />
-						{/* <Button
-							variant="ghost"
-							size="icon-sm"
-							onClick={() => setTaskSidebarOpen((o) => !o)}
-							title={taskSidebarOpen ? "Hide tasks" : "Show tasks"}
-						>
-							{taskSidebarOpen ? (
-								<PanelRightClose className="size-4" />
-							) : (
-								<PanelRightOpen className="size-4" />
-							)}
-						</Button> */}
 					</div>
-					<div className="flex h-full flex-col">
+					<div className="flex min-h-0 flex-1 flex-col">
 						{isLoading ? (
 							<div className="flex h-full items-center justify-center">
 								<div className="flex flex-col items-center gap-4">
@@ -192,9 +210,21 @@ function CalendarContent() {
 							</>
 						)}
 					</div>
-				</div>
-				{taskSidebarOpen && <TaskSidebar />}
-			</div>
+				</ResizablePanel>
+				{taskSidebarOpen ? (
+					<>
+						<ResizableHandle withHandle />
+						<ResizablePanel
+							defaultSize="25%"
+							maxSize={400}
+							minSize={240}
+							className="flex min-h-0 min-w-0 flex-1 flex-col"
+						>
+							<TaskSidebar />
+						</ResizablePanel>
+					</>
+				) : null}
+			</ResizablePanelGroup>
 		</div>
 	);
 }

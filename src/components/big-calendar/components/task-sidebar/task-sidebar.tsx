@@ -58,8 +58,8 @@ export function TaskSidebar() {
 
 	return (
 		<>
-			<div className="flex w-72 shrink-0 flex-col border-l bg-muted/30">
-				<div className="flex items-center justify-between gap-2 border-b px-3 py-2">
+			<div className="flex min-h-0 min-w-0 flex-1 flex-col border-l bg-muted/30">
+				<div className="flex shrink-0 items-center justify-between gap-2 border-b px-3 py-2">
 					<span className="font-medium text-sm">Linear tasks</span>
 					<Button
 						variant="ghost"
@@ -75,7 +75,7 @@ export function TaskSidebar() {
 						)}
 					</Button>
 				</div>
-				<ScrollArea className="flex-1">
+				<ScrollArea className="min-h-0 flex-1">
 					<div className="flex flex-col gap-1 p-2">
 						{isLoading ? (
 							<p className="px-2 py-4 text-center text-muted-foreground text-sm">

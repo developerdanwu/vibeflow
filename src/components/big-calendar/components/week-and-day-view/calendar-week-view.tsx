@@ -22,6 +22,7 @@ import {
 	areIntervalsOverlapping,
 	format,
 	isSameDay,
+	isToday,
 	parseISO,
 	startOfWeek,
 } from "date-fns";
@@ -231,15 +232,16 @@ export function CalendarWeekView({ singleDayEvents, multiDayEvents }: IProps) {
 													);
 												}),
 											)}
+											{isToday(day) && (
+												<CalendarTimeline
+													firstVisibleHour={earliestEventHour}
+													lastVisibleHour={latestEventHour}
+												/>
+											)}
 										</div>
 									);
 								})}
 							</div>
-
-							<CalendarTimeline
-								firstVisibleHour={earliestEventHour}
-								lastVisibleHour={latestEventHour}
-							/>
 						</div>
 					</div>
 				</ScrollArea>

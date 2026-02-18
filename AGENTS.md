@@ -150,6 +150,7 @@ vibeflow/
 
 ### Date and time
 - **Prefer date-fns for date/time manipulation** - Use date-fns utilities (e.g. `set`, `setHours`, `startOfDay`, `addDays`, `differenceInMinutes`) for consistency and immutability. Avoid mutating native `Date` with `setHours`/`setMinutes`; use date-fns equivalents that return new dates instead.
+- **Use date-fns built-ins instead of reimplementing** - For common checks use the library’s helpers (e.g. `isToday(date)`, `isSameDay(a, b)`) rather than writing your own (e.g. `isSameDay(d, new Date())` for “is today”). See [date-fns](https://date-fns.org/docs/Home) for the full API.
 
 ### Imports
 - **Use import aliases where possible** - Prefer `@/` over relative paths
@@ -304,7 +305,7 @@ import { useUser } from "../../hooks/useUser";
 - **Product Requirements:** Refer to `SPEC.md` for feature details
 - **UI/UX Design:** Refer to `UI_SPEC.md` for visual design and component specifications
 - **UI Components:** Check `components.json` for shadcn configuration
-- **Forms and popover patterns:** See [src/docs/ui.md](src/docs/ui.md) for TanStack Form, withForm for breaking big forms into smaller pieces, form-components, shared Popover handle, submit-dirty-form-on-close/unmount, clearing external store on unmount, Base UI Combobox value handling, and Button/Toggle component icon sizing.
+- **Forms and popover patterns:** See [src/docs/ui.md](src/docs/ui.md) for TanStack Form, withForm for breaking big forms into smaller pieces, async initial values (no useEffect), form-components, shared Popover handle, submit-dirty-form-on-close/unmount, clearing external store on unmount, Base UI Combobox value handling, and Button/Toggle component icon sizing.
 - **Calendar events:** See [src/docs/calendar-events.md](src/docs/calendar-events.md) for event time display patterns and timezone handling.
 - **Drag and Drop:** See [src/docs/dnd-handling.md](src/docs/dnd-handling.md) for locked event handling, distinguishing clicks from drags, and preventing visual drag movement.
 - **Deployment:** Build with `pnpm deploy`; deploy `dist/` to your chosen host. OAuth redirect URIs (e.g. Linear) must use your app's real origin (e.g. `https://<your-domain>/settings/integrations/linear-callback`).

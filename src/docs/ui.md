@@ -247,7 +247,15 @@ props: {
 
 **Render function:** Use a **named function** for `render` (e.g. `render: function EventFormBodyRender({ form, ... }) { ... }`) so ESLint recognizes it as a component and doesn’t report hooks-in-render when the render body uses hooks.
 
-**Reducing props:** Prefer using hooks inside the form-body render instead of passing store/context actions from the parent (e.g. `useCalendar()` for `setNewEventDescription`). For data used only by one child (e.g. related-tasks queries/mutations), inline the `useQuery`/`useMutation` calls in that child component rather than creating a dedicated hook or passing data from the parent. Only extract a hook when the same logic is needed in multiple places.
+**Reducing props:** Prefer using hooks inside the form-body render instead of passing store/context actions from the parent (e.g. `useCalendar()` for `setNewEventDescription`). For data used only by one child (e.g. related-tasks queries/mutations), inline the `useQuery`/`useMutation` calls in that child component rather than creating a dedicated hook or passing data from the parent. Exception: when that data is needed as **form initial values**, fetch in the parent and use the async initial values pattern below. Only extract a hook when the same logic is needed in multiple places.
+
+### Async initial values (no useEffect)
+
+**When this applies:** A form field’s initial value comes from an async source (e.g. `useQuery`). You want to avoid `useEffect` + `setFieldValue` to sync that value into the form.
+
+**Pattern:** Fetch in the **parent**. Pass a **loading boolean** down. Build `defaultValues`/`initialValues` from the query result (e.g. `relatedTaskLinks: (linkedTasks ?? []).filter(...)`). Only **mount the form field UI** (the `form.AppField` that subscribes to that value) **after** the data is loaded—when loading is true, render a skeleton (or placeholder) instead of the field. When loading becomes false, the parent re-renders with correct `initialValues` and the field mounts and reads the correct value. No `useEffect` needed. See [TanStack Form – Async Initial Values](https://tanstack.com/form/v1/docs/framework/react/guides/async-initial-values).
+
+**Loading UX:** Keep the section label visible (e.g. "Related tasks"); show the skeleton only where the field content would be, not the whole section.
 
 ### Zod validation (superRefine)
 

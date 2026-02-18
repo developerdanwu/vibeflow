@@ -1,11 +1,3 @@
-import { mergeProps } from "@base-ui/react";
-import type { Popover as PopoverBase } from "@base-ui/react";
-import { useDndContext } from "@dnd-kit/core";
-import { Time } from "@internationalized/date";
-import type { VariantProps } from "class-variance-authority";
-import { areIntervalsOverlapping, format, parseISO } from "date-fns";
-import { motion } from "motion/react";
-import { useEffect, useMemo, useRef } from "react";
 import {
 	ZCalendarDragData,
 	ZTimeBlockOverData,
@@ -26,6 +18,14 @@ import { useDragToCreate } from "@/components/big-calendar/hooks/use-drag-to-cre
 import type { TEvent } from "@/components/big-calendar/interfaces";
 import { PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import type { Popover as PopoverBase } from "@base-ui/react";
+import { mergeProps } from "@base-ui/react";
+import { useDndContext } from "@dnd-kit/core";
+import { Time } from "@internationalized/date";
+import type { VariantProps } from "class-variance-authority";
+import { areIntervalsOverlapping, format, isToday, parseISO } from "date-fns";
+import { motion } from "motion/react";
+import { useEffect, useMemo, useRef } from "react";
 
 const MIN_DURATION_MS = 15 * 60 * 1000;
 
@@ -133,15 +133,17 @@ export function DayViewColumn({
 		}
 		return newEventStartTime
 			? format(
-					new Date(1970, 0, 1, newEventStartTime.hour, newEventStartTime.minute),
+					new Date(
+						1970,
+						0,
+						1,
+						newEventStartTime.hour,
+						newEventStartTime.minute,
+					),
 					"h:mm a",
 				)
 			: null;
-	}, [
-		dragToCreate.dragPreview,
-		newEventStartTime,
-		newEventEndTime,
-	]);
+	}, [dragToCreate.dragPreview, newEventStartTime, newEventEndTime]);
 
 	const newEventPayload = useMemo(
 		() =>
@@ -180,11 +182,7 @@ export function DayViewColumn({
 			<div ref={gridRef} className="relative">
 				<DropRangeRing day={day} firstHour={hours[0]} />
 				{hours.map((hour, index) => {
-					const isDisabled = !isWorkingHour(
-						day,
-						hour,
-						effectiveWorkingHours,
-					);
+					const isDisabled = !isWorkingHour(day, hour, effectiveWorkingHours);
 					return (
 						<div
 							key={hour}
@@ -353,10 +351,12 @@ export function DayViewColumn({
 					}),
 				)}
 			</div>
-			<CalendarTimeline
-				firstVisibleHour={earliestEventHour}
-				lastVisibleHour={latestEventHour}
-			/>
+			{isToday(day) && (
+				<CalendarTimeline
+					firstVisibleHour={earliestEventHour}
+					lastVisibleHour={latestEventHour}
+				/>
+			)}
 		</div>
 	);
 }
