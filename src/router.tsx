@@ -47,5 +47,5 @@ export function getRouter() {
 		},
 	});
 
-	return { router, queryClient, convexQueryClient, env };
+	return { router, queryClient, convexQueryClient, convex, env };
 }

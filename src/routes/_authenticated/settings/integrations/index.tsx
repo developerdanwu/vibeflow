@@ -25,18 +25,19 @@ function IntegrationsSettings() {
 	const { env, user } = useRouteContext({
 		from: "/_authenticated",
 	});
+	const test = useLocation();
+	console.log("ORIGIN", test);
 
-	const location = useLocation();
 	const clientId = env.VITE_LINEAR_CLIENT_ID;
 	// Linear only accepts http(s) callback URLs; public route so system-browser flow works
-	const redirectUri = `${location.url.origin}/oauth/linear-callback`;
+	const redirectUri = `http://localhost:3000/oauth/linear-callback`;
 	const encodedState = btoa(
 		JSON.stringify({
 			redirectUri,
 			userId: user._id,
 			returnTo: selectPlatform({
-				web: `${location.url.origin}/settings/integrations`,
-				tauri: "vibeflow://settings/integrations",
+				web: `${env.VITE_WEB_ORIGIN}/settings/integrations`,
+				tauri: `${env.VITE_TAURI_ORIGIN}/settings/integrations`,
 			}),
 		}),
 	);

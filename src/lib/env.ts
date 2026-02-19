@@ -7,6 +7,8 @@ export const ZEnvSchema = z.object({
 	VITE_WORKOS_CLIENT_ID: z.string(),
 	VITE_WEB_WORKOS_REDIRECT_URI: z.string(),
 	VITE_TAURI_WORKOS_REDIRECT_URI: z.string(),
+	VITE_WEB_ORIGIN: z.string(),
+	VITE_TAURI_ORIGIN: z.string(),
 });
 
 export type TEnv = z.infer<typeof ZEnvSchema>;

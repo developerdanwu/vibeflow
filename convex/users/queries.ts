@@ -1,7 +1,7 @@
 import { v } from "convex/values";
+import type { Doc } from "../_generated/dataModel";
 import { internalQuery, query } from "../_generated/server";
 import { authQuery } from "../helpers";
-import { Doc } from "../_generated/dataModel";
 
 export const getCurrentUserId = query({
 	args: {},
@@ -20,20 +20,8 @@ export const getCurrentUserId = query({
 	},
 });
 
-const userDocValidator = v.object({
-	_id: v.id("users"),
-	authId: v.string(),
-	email: v.string(),
-	firstName: v.optional(v.string()),
-	lastName: v.optional(v.string()),
-	fullName: v.string(),
-	profileImageUrl: v.optional(v.string()),
-	updatedAt: v.number(),
-});
-
 export const getUserByAuthId = query({
 	args: { authId: v.string() },
-	returns: v.union(userDocValidator, v.null()),
 	handler: async (ctx, args): Promise<Doc<"users"> | null> => {
 		return await ctx.db
 			.query("users")
