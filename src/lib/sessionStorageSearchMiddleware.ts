@@ -22,6 +22,7 @@ export function sessionStorageSearchMiddleware<
 ): (ctx: { search: T; next: (s: T) => T }) => T {
 	return ({ search, next }) => {
 		const nextSearch = next(search);
+		console.log("sessionStorageSearchMiddleware", nextSearch);
 
 		for (const [field, storageKey] of Object.entries(persistKeys)) {
 			const value = nextSearch[field];
@@ -52,7 +53,6 @@ export function sessionStorageSearchMiddleware<
 /** Dates are stored as YYYY-MM-DD using local date components (timezone-agnostic). */
 function serializeValue(value: unknown): string {
 	if (value instanceof Date) {
-		console.log("serializeValue", format(value, "yyyy-MM-dd"));
 		return format(value, "yyyy-MM-dd");
 	}
 	return String(value);

@@ -3,7 +3,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { AgendaDayGroup } from "@/routes/_authenticated/calendar/-components/calendar/components/agenda-view/agenda-day-group";
 import { dayRangeToDayCount } from "@/routes/_authenticated/calendar/-components/calendar/core/helpers";
 import type { TEvent } from "@/routes/_authenticated/calendar/-components/calendar/core/interfaces";
-import { useSearch } from "@tanstack/react-router";
+import { useCalendarSearch } from "@/routes/_authenticated/calendar/index";
 import {
 	addDays,
 	endOfDay,
@@ -34,9 +34,7 @@ export function CalendarAgendaView({
 	singleDayEvents,
 	multiDayEvents,
 }: IProps) {
-	const { date: selectedDate, dayRange } = useSearch({
-		from: "/_authenticated/calendar/",
-	});
+	const { date: selectedDate, dayRange } = useCalendarSearch();
 	const [searchQuery, setSearchQuery] = useState("");
 
 	const { rangeStart, rangeEnd } = useMemo(() => {

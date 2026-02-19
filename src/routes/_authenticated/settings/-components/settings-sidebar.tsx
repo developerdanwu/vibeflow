@@ -41,14 +41,10 @@ export function SettingsSidebar() {
 			<SidebarHeader>
 				<SidebarMenu>
 					<SidebarMenuItem>
-						<SidebarMenuButton
-							render={(props) => (
-								<Link to="/calendar" {...props} search={{}}>
-									<ArrowLeft className="size-4" />
-									<span>Back</span>
-								</Link>
-							)}
-						/>
+						<SidebarMenuButton render={<Link to="/calendar" />}>
+							<ArrowLeft className="size-4" />
+							<span>Back</span>
+						</SidebarMenuButton>
 					</SidebarMenuItem>
 				</SidebarMenu>
 			</SidebarHeader>

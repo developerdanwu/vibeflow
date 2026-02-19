@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import type { TEvent } from "@/routes/_authenticated/calendar/-components/calendar/core/interfaces";
 import { useNavigate } from "@tanstack/react-router";
-import { isToday } from "date-fns";
+import { format, isToday } from "date-fns";
 
 interface IProps {
 	day: number;
@@ -18,7 +18,11 @@ export function YearViewDayCell({ day, date, events }: IProps) {
 	const handleClick = () =>
 		navigate({
 			to: "/calendar",
-			search: (prev) => ({ ...prev, view: "day", date }),
+			search: (prev) => ({
+				...prev,
+				view: "calendar",
+				date: format(date, "yyyy-MM-dd"),
+			}),
 		});
 
 	return (

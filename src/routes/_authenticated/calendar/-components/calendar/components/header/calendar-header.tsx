@@ -8,7 +8,15 @@ import type {
 	TDayRange,
 } from "@/routes/_authenticated/calendar/-components/calendar/core/types";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { addDays, addMonths, subDays, subMonths } from "date-fns";
+import {
+	addDays,
+	addMonths,
+	format,
+	parse,
+	startOfDay,
+	subDays,
+	subMonths,
+} from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface IProps {
@@ -23,11 +31,18 @@ export function CalendarHeader({ dayRange, events }: IProps) {
 	const handleToday = () =>
 		navigate({
 			to: "/calendar",
-			search: (prev) => ({ ...prev, date: new Date() }),
+			search: (prev) => ({
+				...prev,
+				date: format(startOfDay(new Date()), "yyyy-MM-dd"),
+			}),
 		});
 
 	const stepDays = dayRangeToDayCount(dayRange);
 	const stepByDays = stepDays !== null;
+
+	const defaultDateStr = format(startOfDay(new Date()), "yyyy-MM-dd");
+	const parsePrevDate = (dateStr: string | undefined) =>
+		parse(dateStr ?? defaultDateStr, "yyyy-MM-dd", new Date());
 
 	return (
 		<div className="flex w-full items-center justify-between gap-2 px-3 pt-2 pb-3">
@@ -40,9 +55,12 @@ export function CalendarHeader({ dayRange, events }: IProps) {
 					from="/calendar/"
 					search={(prev) => ({
 						...prev,
-						date: stepByDays
-							? subDays(prev.date, stepDays)
-							: subMonths(prev.date, 1),
+						date: format(
+							stepByDays
+								? subDays(parsePrevDate(prev.date), stepDays)
+								: subMonths(parsePrevDate(prev.date), 1),
+							"yyyy-MM-dd",
+						),
 					})}
 				>
 					<Button variant="ghost" size="icon-sm">
@@ -53,9 +71,12 @@ export function CalendarHeader({ dayRange, events }: IProps) {
 					from="/calendar/"
 					search={(prev) => ({
 						...prev,
-						date: stepByDays
-							? addDays(prev.date, stepDays)
-							: addMonths(prev.date, 1),
+						date: format(
+							stepByDays
+								? addDays(parsePrevDate(prev.date), stepDays)
+								: addMonths(parsePrevDate(prev.date), 1),
+							"yyyy-MM-dd",
+						),
 					})}
 				>
 					<Button variant="ghost" size="icon-sm">

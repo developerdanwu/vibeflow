@@ -37,8 +37,11 @@ export function YearViewMonth({ month, events }: IProps) {
 			to: "/calendar",
 			search: (prev) => ({
 				...prev,
-				view: "month",
-				date: new Date(month.getFullYear(), month.getMonth(), 1),
+				view: "calendar",
+				date: format(
+					new Date(month.getFullYear(), month.getMonth(), 1),
+					"yyyy-MM-dd",
+				),
 			}),
 		});
 

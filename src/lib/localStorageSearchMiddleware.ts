@@ -21,10 +21,7 @@ export function localStorageSearchMiddleware<T extends Record<string, unknown>>(
 		for (const [field, storageKey] of Object.entries(persistKeys)) {
 			const value = nextSearch[field];
 			if (value != null) {
-				localStorage.setItem(
-					storageKey as string,
-					serializeValue(value),
-				);
+				localStorage.setItem(storageKey as string, serializeValue(value));
 			}
 		}
 

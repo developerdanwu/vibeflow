@@ -15,6 +15,7 @@ import {
 	SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import {
+	Link,
 	useNavigate,
 	useRouteContext,
 	useRouterState,
@@ -62,7 +63,7 @@ export function CalendarSidebar() {
 							</Avatar>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent side="right" align="end">
-							<DropdownMenuItem onClick={() => navigate({ to: "/settings" })}>
+							<DropdownMenuItem render={<Link to="/settings" />}>
 								Settings
 							</DropdownMenuItem>
 						</DropdownMenuContent>
