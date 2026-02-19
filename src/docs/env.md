@@ -13,6 +13,29 @@
 2. **Router context** – The root route context type includes `env: TEnv`. Any route under that provider can read `env` via `useRouteContext({ from: "/_authenticated" })` (or from the root that declares `env`).
 3. **Using env in routes** – Prefer `context.env` so you get validated, typed values. Example: `const { env } = useRouteContext({ from: "/_authenticated" }); env.VITE_LINEAR_CLIENT_ID`.
 
+## Auth from router context
+
+**When this applies:** You need the current user or auth helpers (signIn, signOut, isLoading) in a route or any component under the router.
+
+Auth is provided by the root route’s `beforeLoad` (it awaits `context.authPromise` and returns `{ auth }`). Read it from the root route context; do not add a separate React Context for auth.
+
+### Root route id
+
+Use the root route id `"__root__"` (no leading slash). The route tree uses this id for the root route.
+
+**Wrong:** `useRouteContext({ from: "/__root__" })` — type error (invalid route id).
+
+**Correct:** `useRouteContext({ from: "__root__" })` — returns root context including `auth`.
+
+### Example
+
+```tsx
+const { auth } = useRouteContext({ from: "__root__" });
+const user = auth.user;       // WorkOS user or null
+const loading = auth.isLoading;
+// auth.signIn, auth.signOut also available
+```
+
 ## Schema: never optional
 
 **All env vars in `ZEnvSchema` must be required** (e.g. `z.string()`). Do not use `z.string().optional()` or other optional validators. If a var is missing, the app should fail at startup when `ZEnvSchema.parse(import.meta.env)` runs. Optional env leads to undefined at runtime and feature-specific code paths that are easy to miss; required env keeps behavior predictable.

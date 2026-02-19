@@ -1,5 +1,5 @@
-import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { CalendarSidebar } from "@/routes/_authenticated/calendar/-components/calendar-sidebar";
 
 interface AuthenticatedLayoutProps {
 	children: React.ReactNode;
@@ -8,7 +8,7 @@ interface AuthenticatedLayoutProps {
 export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
 	return (
 		<SidebarProvider>
-			<AppSidebar />
+			<CalendarSidebar />
 			<SidebarInset className="flex min-h-0 flex-1 flex-col overflow-hidden">
 				{children}
 			</SidebarInset>

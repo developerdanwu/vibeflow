@@ -1,3 +1,6 @@
+import { GlobalDialog } from "@/components/dialogs/global-dialog";
+import { Toaster } from "@/components/ui/sonner";
+import { DialogStoreProvider } from "@/lib/dialog-store";
 import type { TEnv } from "@/lib/env";
 import type { AuthContext } from "@/router";
 import { TanStackDevtools } from "@tanstack/react-devtools";
@@ -26,7 +29,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 
 function RootComponent() {
 	return (
-		<>
+		<DialogStoreProvider>
 			<Outlet />
 			<TanStackDevtools
 				config={{
@@ -43,6 +46,8 @@ function RootComponent() {
 					},
 				]}
 			/>
-		</>
+			<GlobalDialog />
+			<Toaster />
+		</DialogStoreProvider>
 	);
 }

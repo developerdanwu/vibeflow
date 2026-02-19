@@ -123,7 +123,7 @@ vibeflow/
 
 ### Language and Framework Rules
 - **TypeScript Only:** No plain JavaScript files in `src/`
-- **React 19:** Use modern patterns (Server Components when applicable)
+- **React 19:** Use modern patterns. This app is a Vite/TanStack Router SPA (not Next.js), so there are no Server Components and **do not add `"use client"`** at the top of components—everything is client-rendered by default.
 - **File-based Routing:** Routes are auto-generated from `src/routes/`
 - **Component Style:** Functional components with hooks only
 
@@ -282,7 +282,7 @@ import { useUser } from "../../hooks/useUser";
 - **Google Calendar:** Use existing OAuth flow in WorkOS
 - **Animations:** Use the **Motion** package (not framer-motion). Import from `"motion/react"` (e.g. `import { motion } from "motion/react"`) and use `motion.div`, `motion.button`, etc. for animated elements. Use `initial={false}` when you want no enter animation. For smooth numeric transitions (e.g. height), use `useMotionValue` + `animate()` + `useTransform` and pass the transformed value to `style` so the DOM updates without extra React re-renders.
 - **Styling:** Use Tailwind classes, avoid inline styles
-- **State Management:** Use TanStack Query for server state, XState Store for client state
+- **State Management:** Use TanStack Query for server state, XState Store for client state. See [src/docs/state.md](src/docs/state.md) for XState Store patterns (sending events, context handler return shape).
 - **Forms:** Use TanStack Form via `useAppForm` from `@/components/ui/form`. Use registered field components (e.g. `field.TextField`) inside `form.AppField` and form components (e.g. `form.SubmitButton`) inside `form.AppForm`. See [src/docs/ui.md](src/docs/ui.md) for TanStack Form.
 - **Time/Date:** Use existing date utilities, maintain timezone consistency
 
@@ -307,8 +307,9 @@ import { useUser } from "../../hooks/useUser";
 
 ### Related Documentation
 - **Planning:** See [docs/planning.md](docs/planning.md) for creating plans with agent and sub-agent usage in mind (owners, dependencies, handoffs). Do not create or save plan artifacts in `docs/`; use the plan tool output or `.cursor/plans/`.
+- **Routing (layout, route.tsx):** See [src/docs/routing.md](src/docs/routing.md) for segment layout in a folder with `route.tsx` and route tree regeneration.
 - **Convex data patterns (frontend):** See [src/docs/convex.md](src/docs/convex.md) for mutations (TanStack Query + `useConvexMutation`), no wrapper hooks, and when to use `mutateAsync` vs `mutate`.
-- **Environment variables:** See [src/docs/env.md](src/docs/env.md) for how env is typed (env.d.ts), validated (ZEnvSchema), and provided via router context.
+- **Environment variables and auth:** See [src/docs/env.md](src/docs/env.md) for env typing/validation and for reading auth from router context (`useRouteContext({ from: "__root__" })` — root id is `"__root__"`, no leading slash).
 - **Convex error handling:** See [convex/docs/error-handling.md](convex/docs/error-handling.md) for ConvexError, shared `errors.ts`, and using one helper.
 - **Convex backend testing:** See [convex/docs/testing.md](convex/docs/testing.md) for when to add tests, running tests after Convex changes, convex-test, fixtures, cleanup, API typing (`api.events.mutations`), multi-user tests (`addUserToTest`), factory types (`Doc`, `MutationCtx`), fixture bundling (`.nobundle.ts`), path naming (no dashes in convex paths), and `import.meta.glob` typing (`/// <reference types="vite/client" />`).
 - **Convex best practices:** See [convex/AGENTS.md](convex/AGENTS.md) and [convex/docs/](convex/docs/) (schema, patterns, error-handling, testing).
@@ -316,6 +317,7 @@ import { useUser } from "../../hooks/useUser";
 - **UI/UX Design:** Refer to `UI_SPEC.md` for visual design and component specifications
 - **UI Components:** Check `components.json` for shadcn configuration
 - **Forms and popover patterns:** See [src/docs/ui.md](src/docs/ui.md) for TanStack Form, withForm for breaking big forms into smaller pieces, async initial values (no useEffect), form-components, shared Popover handle, submit-dirty-form-on-close/unmount, clearing external store on unmount, Base UI Combobox value handling, and Button/Toggle component icon sizing.
+- **State (XState Store):** See [src/docs/state.md](src/docs/state.md) for sending events and context handler return shape.
 - **Calendar events:** See [src/docs/calendar-events.md](src/docs/calendar-events.md) for event time display patterns and timezone handling.
 - **Drag and Drop:** See [src/docs/dnd-handling.md](src/docs/dnd-handling.md) for locked event handling, distinguishing clicks from drags, and preventing visual drag movement.
 - **Deployment:** Build with `pnpm deploy`; deploy `dist/` to your chosen host. OAuth redirect URIs (e.g. Linear) must use your app's real origin (e.g. `https://<your-domain>/oauth/linear-callback`).

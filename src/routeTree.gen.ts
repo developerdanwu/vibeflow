@@ -10,17 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OauthWorkosCallbackRouteImport } from './routes/oauth/workos-callback'
 import { Route as OauthLinearCallbackRouteImport } from './routes/oauth/linear-callback'
 import { Route as OauthGoogleCallbackRouteImport } from './routes/oauth/google-callback'
-import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedSettingsRouteRouteImport } from './routes/_authenticated/settings/route'
+import { Route as AuthenticatedCalendarRouteRouteImport } from './routes/_authenticated/calendar/route'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
 import { Route as AuthenticatedCalendarIndexRouteImport } from './routes/_authenticated/calendar/index'
-import { Route as AuthenticatedSettingsIntegrationsRouteImport } from './routes/_authenticated/settings/integrations'
-import { Route as AuthenticatedSettingsCalendarsRouteImport } from './routes/_authenticated/settings/calendars'
 import { Route as AuthenticatedSettingsAccountRouteImport } from './routes/_authenticated/settings/account'
+import { Route as AuthenticatedSettingsIntegrationsRouteRouteImport } from './routes/_authenticated/settings/integrations/route'
+import { Route as AuthenticatedSettingsCalendarsRouteRouteImport } from './routes/_authenticated/settings/calendars/route'
 import { Route as AuthenticatedSettingsIntegrationsIndexRouteImport } from './routes/_authenticated/settings/integrations/index'
 import { Route as AuthenticatedSettingsCalendarsIndexRouteImport } from './routes/_authenticated/settings/calendars/index'
 
@@ -29,7 +30,7 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRoute = AuthenticatedRouteImport.update({
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
@@ -53,64 +54,72 @@ const OauthGoogleCallbackRoute = OauthGoogleCallbackRouteImport.update({
   path: '/oauth/google-callback',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
+const AuthenticatedSettingsRouteRoute =
+  AuthenticatedSettingsRouteRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCalendarRouteRoute =
+  AuthenticatedCalendarRouteRouteImport.update({
+    id: '/calendar',
+    path: '/calendar',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedSettingsIndexRoute =
   AuthenticatedSettingsIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => AuthenticatedSettingsRoute,
+    getParentRoute: () => AuthenticatedSettingsRouteRoute,
   } as any)
 const AuthenticatedCalendarIndexRoute =
   AuthenticatedCalendarIndexRouteImport.update({
-    id: '/calendar/',
-    path: '/calendar/',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedSettingsIntegrationsRoute =
-  AuthenticatedSettingsIntegrationsRouteImport.update({
-    id: '/integrations',
-    path: '/integrations',
-    getParentRoute: () => AuthenticatedSettingsRoute,
-  } as any)
-const AuthenticatedSettingsCalendarsRoute =
-  AuthenticatedSettingsCalendarsRouteImport.update({
-    id: '/calendars',
-    path: '/calendars',
-    getParentRoute: () => AuthenticatedSettingsRoute,
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedCalendarRouteRoute,
   } as any)
 const AuthenticatedSettingsAccountRoute =
   AuthenticatedSettingsAccountRouteImport.update({
     id: '/account',
     path: '/account',
-    getParentRoute: () => AuthenticatedSettingsRoute,
+    getParentRoute: () => AuthenticatedSettingsRouteRoute,
+  } as any)
+const AuthenticatedSettingsIntegrationsRouteRoute =
+  AuthenticatedSettingsIntegrationsRouteRouteImport.update({
+    id: '/integrations',
+    path: '/integrations',
+    getParentRoute: () => AuthenticatedSettingsRouteRoute,
+  } as any)
+const AuthenticatedSettingsCalendarsRouteRoute =
+  AuthenticatedSettingsCalendarsRouteRouteImport.update({
+    id: '/calendars',
+    path: '/calendars',
+    getParentRoute: () => AuthenticatedSettingsRouteRoute,
   } as any)
 const AuthenticatedSettingsIntegrationsIndexRoute =
   AuthenticatedSettingsIntegrationsIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => AuthenticatedSettingsIntegrationsRoute,
+    getParentRoute: () => AuthenticatedSettingsIntegrationsRouteRoute,
   } as any)
 const AuthenticatedSettingsCalendarsIndexRoute =
   AuthenticatedSettingsCalendarsIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => AuthenticatedSettingsCalendarsRoute,
+    getParentRoute: () => AuthenticatedSettingsCalendarsRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/settings': typeof AuthenticatedSettingsRouteWithChildren
+  '/calendar': typeof AuthenticatedCalendarRouteRouteWithChildren
+  '/settings': typeof AuthenticatedSettingsRouteRouteWithChildren
   '/oauth/google-callback': typeof OauthGoogleCallbackRoute
   '/oauth/linear-callback': typeof OauthLinearCallbackRoute
   '/oauth/workos-callback': typeof OauthWorkosCallbackRoute
+  '/settings/calendars': typeof AuthenticatedSettingsCalendarsRouteRouteWithChildren
+  '/settings/integrations': typeof AuthenticatedSettingsIntegrationsRouteRouteWithChildren
   '/settings/account': typeof AuthenticatedSettingsAccountRoute
-  '/settings/calendars': typeof AuthenticatedSettingsCalendarsRouteWithChildren
-  '/settings/integrations': typeof AuthenticatedSettingsIntegrationsRouteWithChildren
   '/calendar/': typeof AuthenticatedCalendarIndexRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/settings/calendars/': typeof AuthenticatedSettingsCalendarsIndexRoute
@@ -131,15 +140,16 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/login': typeof LoginRoute
-  '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
+  '/_authenticated/calendar': typeof AuthenticatedCalendarRouteRouteWithChildren
+  '/_authenticated/settings': typeof AuthenticatedSettingsRouteRouteWithChildren
   '/oauth/google-callback': typeof OauthGoogleCallbackRoute
   '/oauth/linear-callback': typeof OauthLinearCallbackRoute
   '/oauth/workos-callback': typeof OauthWorkosCallbackRoute
+  '/_authenticated/settings/calendars': typeof AuthenticatedSettingsCalendarsRouteRouteWithChildren
+  '/_authenticated/settings/integrations': typeof AuthenticatedSettingsIntegrationsRouteRouteWithChildren
   '/_authenticated/settings/account': typeof AuthenticatedSettingsAccountRoute
-  '/_authenticated/settings/calendars': typeof AuthenticatedSettingsCalendarsRouteWithChildren
-  '/_authenticated/settings/integrations': typeof AuthenticatedSettingsIntegrationsRouteWithChildren
   '/_authenticated/calendar/': typeof AuthenticatedCalendarIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/_authenticated/settings/calendars/': typeof AuthenticatedSettingsCalendarsIndexRoute
@@ -150,13 +160,14 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/calendar'
     | '/settings'
     | '/oauth/google-callback'
     | '/oauth/linear-callback'
     | '/oauth/workos-callback'
-    | '/settings/account'
     | '/settings/calendars'
     | '/settings/integrations'
+    | '/settings/account'
     | '/calendar/'
     | '/settings/'
     | '/settings/calendars/'
@@ -178,13 +189,14 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/login'
+    | '/_authenticated/calendar'
     | '/_authenticated/settings'
     | '/oauth/google-callback'
     | '/oauth/linear-callback'
     | '/oauth/workos-callback'
-    | '/_authenticated/settings/account'
     | '/_authenticated/settings/calendars'
     | '/_authenticated/settings/integrations'
+    | '/_authenticated/settings/account'
     | '/_authenticated/calendar/'
     | '/_authenticated/settings/'
     | '/_authenticated/settings/calendars/'
@@ -193,7 +205,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
   OauthGoogleCallbackRoute: typeof OauthGoogleCallbackRoute
   OauthLinearCallbackRoute: typeof OauthLinearCallbackRoute
@@ -213,7 +225,7 @@ declare module '@tanstack/react-router' {
       id: '/_authenticated'
       path: ''
       fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteImport
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -248,129 +260,150 @@ declare module '@tanstack/react-router' {
       id: '/_authenticated/settings'
       path: '/settings'
       fullPath: '/settings'
-      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
-      parentRoute: typeof AuthenticatedRoute
+      preLoaderRoute: typeof AuthenticatedSettingsRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/calendar': {
+      id: '/_authenticated/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof AuthenticatedCalendarRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/settings/': {
       id: '/_authenticated/settings/'
       path: '/'
       fullPath: '/settings/'
       preLoaderRoute: typeof AuthenticatedSettingsIndexRouteImport
-      parentRoute: typeof AuthenticatedSettingsRoute
+      parentRoute: typeof AuthenticatedSettingsRouteRoute
     }
     '/_authenticated/calendar/': {
       id: '/_authenticated/calendar/'
-      path: '/calendar'
+      path: '/'
       fullPath: '/calendar/'
       preLoaderRoute: typeof AuthenticatedCalendarIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/settings/integrations': {
-      id: '/_authenticated/settings/integrations'
-      path: '/integrations'
-      fullPath: '/settings/integrations'
-      preLoaderRoute: typeof AuthenticatedSettingsIntegrationsRouteImport
-      parentRoute: typeof AuthenticatedSettingsRoute
-    }
-    '/_authenticated/settings/calendars': {
-      id: '/_authenticated/settings/calendars'
-      path: '/calendars'
-      fullPath: '/settings/calendars'
-      preLoaderRoute: typeof AuthenticatedSettingsCalendarsRouteImport
-      parentRoute: typeof AuthenticatedSettingsRoute
+      parentRoute: typeof AuthenticatedCalendarRouteRoute
     }
     '/_authenticated/settings/account': {
       id: '/_authenticated/settings/account'
       path: '/account'
       fullPath: '/settings/account'
       preLoaderRoute: typeof AuthenticatedSettingsAccountRouteImport
-      parentRoute: typeof AuthenticatedSettingsRoute
+      parentRoute: typeof AuthenticatedSettingsRouteRoute
+    }
+    '/_authenticated/settings/integrations': {
+      id: '/_authenticated/settings/integrations'
+      path: '/integrations'
+      fullPath: '/settings/integrations'
+      preLoaderRoute: typeof AuthenticatedSettingsIntegrationsRouteRouteImport
+      parentRoute: typeof AuthenticatedSettingsRouteRoute
+    }
+    '/_authenticated/settings/calendars': {
+      id: '/_authenticated/settings/calendars'
+      path: '/calendars'
+      fullPath: '/settings/calendars'
+      preLoaderRoute: typeof AuthenticatedSettingsCalendarsRouteRouteImport
+      parentRoute: typeof AuthenticatedSettingsRouteRoute
     }
     '/_authenticated/settings/integrations/': {
       id: '/_authenticated/settings/integrations/'
       path: '/'
       fullPath: '/settings/integrations/'
       preLoaderRoute: typeof AuthenticatedSettingsIntegrationsIndexRouteImport
-      parentRoute: typeof AuthenticatedSettingsIntegrationsRoute
+      parentRoute: typeof AuthenticatedSettingsIntegrationsRouteRoute
     }
     '/_authenticated/settings/calendars/': {
       id: '/_authenticated/settings/calendars/'
       path: '/'
       fullPath: '/settings/calendars/'
       preLoaderRoute: typeof AuthenticatedSettingsCalendarsIndexRouteImport
-      parentRoute: typeof AuthenticatedSettingsCalendarsRoute
+      parentRoute: typeof AuthenticatedSettingsCalendarsRouteRoute
     }
   }
 }
 
-interface AuthenticatedSettingsCalendarsRouteChildren {
+interface AuthenticatedCalendarRouteRouteChildren {
+  AuthenticatedCalendarIndexRoute: typeof AuthenticatedCalendarIndexRoute
+}
+
+const AuthenticatedCalendarRouteRouteChildren: AuthenticatedCalendarRouteRouteChildren =
+  {
+    AuthenticatedCalendarIndexRoute: AuthenticatedCalendarIndexRoute,
+  }
+
+const AuthenticatedCalendarRouteRouteWithChildren =
+  AuthenticatedCalendarRouteRoute._addFileChildren(
+    AuthenticatedCalendarRouteRouteChildren,
+  )
+
+interface AuthenticatedSettingsCalendarsRouteRouteChildren {
   AuthenticatedSettingsCalendarsIndexRoute: typeof AuthenticatedSettingsCalendarsIndexRoute
 }
 
-const AuthenticatedSettingsCalendarsRouteChildren: AuthenticatedSettingsCalendarsRouteChildren =
+const AuthenticatedSettingsCalendarsRouteRouteChildren: AuthenticatedSettingsCalendarsRouteRouteChildren =
   {
     AuthenticatedSettingsCalendarsIndexRoute:
       AuthenticatedSettingsCalendarsIndexRoute,
   }
 
-const AuthenticatedSettingsCalendarsRouteWithChildren =
-  AuthenticatedSettingsCalendarsRoute._addFileChildren(
-    AuthenticatedSettingsCalendarsRouteChildren,
+const AuthenticatedSettingsCalendarsRouteRouteWithChildren =
+  AuthenticatedSettingsCalendarsRouteRoute._addFileChildren(
+    AuthenticatedSettingsCalendarsRouteRouteChildren,
   )
 
-interface AuthenticatedSettingsIntegrationsRouteChildren {
+interface AuthenticatedSettingsIntegrationsRouteRouteChildren {
   AuthenticatedSettingsIntegrationsIndexRoute: typeof AuthenticatedSettingsIntegrationsIndexRoute
 }
 
-const AuthenticatedSettingsIntegrationsRouteChildren: AuthenticatedSettingsIntegrationsRouteChildren =
+const AuthenticatedSettingsIntegrationsRouteRouteChildren: AuthenticatedSettingsIntegrationsRouteRouteChildren =
   {
     AuthenticatedSettingsIntegrationsIndexRoute:
       AuthenticatedSettingsIntegrationsIndexRoute,
   }
 
-const AuthenticatedSettingsIntegrationsRouteWithChildren =
-  AuthenticatedSettingsIntegrationsRoute._addFileChildren(
-    AuthenticatedSettingsIntegrationsRouteChildren,
+const AuthenticatedSettingsIntegrationsRouteRouteWithChildren =
+  AuthenticatedSettingsIntegrationsRouteRoute._addFileChildren(
+    AuthenticatedSettingsIntegrationsRouteRouteChildren,
   )
 
-interface AuthenticatedSettingsRouteChildren {
+interface AuthenticatedSettingsRouteRouteChildren {
+  AuthenticatedSettingsCalendarsRouteRoute: typeof AuthenticatedSettingsCalendarsRouteRouteWithChildren
+  AuthenticatedSettingsIntegrationsRouteRoute: typeof AuthenticatedSettingsIntegrationsRouteRouteWithChildren
   AuthenticatedSettingsAccountRoute: typeof AuthenticatedSettingsAccountRoute
-  AuthenticatedSettingsCalendarsRoute: typeof AuthenticatedSettingsCalendarsRouteWithChildren
-  AuthenticatedSettingsIntegrationsRoute: typeof AuthenticatedSettingsIntegrationsRouteWithChildren
   AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
 }
 
-const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
-  AuthenticatedSettingsAccountRoute: AuthenticatedSettingsAccountRoute,
-  AuthenticatedSettingsCalendarsRoute:
-    AuthenticatedSettingsCalendarsRouteWithChildren,
-  AuthenticatedSettingsIntegrationsRoute:
-    AuthenticatedSettingsIntegrationsRouteWithChildren,
-  AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
-}
+const AuthenticatedSettingsRouteRouteChildren: AuthenticatedSettingsRouteRouteChildren =
+  {
+    AuthenticatedSettingsCalendarsRouteRoute:
+      AuthenticatedSettingsCalendarsRouteRouteWithChildren,
+    AuthenticatedSettingsIntegrationsRouteRoute:
+      AuthenticatedSettingsIntegrationsRouteRouteWithChildren,
+    AuthenticatedSettingsAccountRoute: AuthenticatedSettingsAccountRoute,
+    AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
+  }
 
-const AuthenticatedSettingsRouteWithChildren =
-  AuthenticatedSettingsRoute._addFileChildren(
-    AuthenticatedSettingsRouteChildren,
+const AuthenticatedSettingsRouteRouteWithChildren =
+  AuthenticatedSettingsRouteRoute._addFileChildren(
+    AuthenticatedSettingsRouteRouteChildren,
   )
 
-interface AuthenticatedRouteChildren {
-  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren
-  AuthenticatedCalendarIndexRoute: typeof AuthenticatedCalendarIndexRoute
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedCalendarRouteRoute: typeof AuthenticatedCalendarRouteRouteWithChildren
+  AuthenticatedSettingsRouteRoute: typeof AuthenticatedSettingsRouteRouteWithChildren
 }
 
-const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
-  AuthenticatedSettingsRoute: AuthenticatedSettingsRouteWithChildren,
-  AuthenticatedCalendarIndexRoute: AuthenticatedCalendarIndexRoute,
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedCalendarRouteRoute: AuthenticatedCalendarRouteRouteWithChildren,
+  AuthenticatedSettingsRouteRoute: AuthenticatedSettingsRouteRouteWithChildren,
 }
 
-const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
-  AuthenticatedRouteChildren,
-)
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   LoginRoute: LoginRoute,
   OauthGoogleCallbackRoute: OauthGoogleCallbackRoute,
   OauthLinearCallbackRoute: OauthLinearCallbackRoute,

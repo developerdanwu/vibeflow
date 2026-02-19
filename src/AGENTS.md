@@ -7,7 +7,7 @@ src/
 ├── routes/           # TanStack Router file-based routes
 ├── components/       # React components
 │   ├── ui/          # shadcn/ui primitives (29 components)
-│   ├── big-calendar/ # Full calendar feature module
+│   ├── (calendar feature under routes/_authenticated/calendar/-components/calendar/)
 │   ├── layouts/     # Page layout wrappers
 │   └── dialogs/     # Global dialog components
 ├── hooks/           # Custom React hooks
@@ -22,21 +22,22 @@ src/
 
 ### Routing
 - File-based routing via TanStack Router
-- **Root:** `__root.tsx`, `_authenticated.tsx`, `index.tsx` (app-wide layout and top-level routes); WorkOS auth callback at `oauth/workos-callback.tsx`
-- **Feature folders** under `_authenticated/`: one folder per feature (e.g. `calendar/`, `settings/`) with route files by type (layout, index, child routes). Mirrors Convex folder structure (root + feature folders with procedures by type).
+- **Root:** `__root.tsx`, `_authenticated/route.tsx`, `index.tsx` (app-wide layout and top-level routes); WorkOS auth callback at `oauth/workos-callback.tsx`
+- **Feature folders** under `_authenticated/`: one folder per feature (e.g. `calendar/`, `settings/`) with `route.tsx` as the segment layout (TanStack Router default `routeToken`), plus `index.tsx` and child route files. See [src/docs/routing.md](src/docs/routing.md) for layout-in-folder pattern and route tree regeneration.
 - **Folder without layout:** A folder that only contains child route files (e.g. `oauth/linear-callback.tsx`) does not require an explicit parent layout file (`oauth.tsx`). The router plugin infers the segment from the folder name.
 - Add new routes for a feature in the appropriate file under that feature's folder.
 
 ### Components
 - **UI primitives** (`components/ui/`): shadcn/ui components, use `pnpm dlx shadcn@latest add [name]` to add new ones (see root AGENTS.md for shadcn overwrite/install rules)
-- **Feature modules** (`components/big-calendar/`): Self-contained with own contexts, hooks, stores, and types
+- **Feature modules** (e.g. `routes/…/calendar/-components/calendar/`): Self-contained with own contexts, hooks, stores, and types
 - **Layouts**: Wrap routes with consistent structure
-- **No `"use client"`**: You do not need `"use client"` at the top of components; the app uses TanStack Router (not Next.js), so all components are client-rendered by default.
+- **No `"use client"`**: Omit it. The app is a Vite/TanStack Router SPA, so all components are client-rendered by default. Adding `"use client"` is unnecessary and can confuse (e.g. copy-paste from Next.js).
 
 ### State Management
 - **Server state**: TanStack Query + Convex
-- **Client state**: XState Store (`big-calendar/store/calendarStore.ts`)
-- **Context**: React Context for component trees (`big-calendar/contexts/`)
+- **Client state**: XState Store (calendar module `store/calendarStore.ts`; global UI in `lib/global-store.tsx`)
+- **Context**: React Context for component trees (calendar module `contexts/`)
+- **XState Store patterns:** See [src/docs/state.md](src/docs/state.md) for sending events and context handler return shape.
 
 ### Styling
 - Tailwind CSS v4
@@ -59,7 +60,7 @@ src/
 
 ## Calendar Module
 
-The `big-calendar/` module is the main feature. Key files:
+The calendar feature lives under `routes/_authenticated/calendar/-components/calendar/`. Key files:
 
 - `types.ts` - Core types (`TCalendarView`, `TEventColor`, etc.)
 - `interfaces.ts` - Event and calendar interfaces
@@ -80,5 +81,6 @@ The `big-calendar/` module is the main feature. Key files:
 - `header/` - Navigation and view controls
 
 ### Related Documentation
+- **State (XState Store):** See [src/docs/state.md](src/docs/state.md) for sending events and context handler return shape.
 - **Drag and Drop:** See [src/docs/dnd-handling.md](src/docs/dnd-handling.md) for locked event handling and drag prevention patterns
 - **Form composition:** See [src/docs/ui.md](src/docs/ui.md) (TanStack Form → Breaking big forms into smaller pieces) for withForm in child files, shared form-options, and props typing

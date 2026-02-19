@@ -10,8 +10,8 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { dialogStore, useDialogStore } from "@/lib/dialog-store";
+import { RecurringEventEditDialog } from "@/routes/_authenticated/calendar/-components/dialogs/recurring-event-edit-dialog";
 import { useSelector } from "@xstate/store-react";
-import { RecurringEventEditDialog } from "@/components/big-calendar/components/recurring-event-edit-dialog";
 
 export function GlobalDialog() {
 	const store = useDialogStore();
@@ -65,7 +65,8 @@ export function GlobalDialog() {
 						</Button>
 					)}
 					<Button onClick={handleConfirm}>
-						{dialog.data.confirmText ?? (dialog.type === "alert" ? "OK" : "Continue")}
+						{dialog.data.confirmText ??
+							(dialog.type === "alert" ? "OK" : "Continue")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

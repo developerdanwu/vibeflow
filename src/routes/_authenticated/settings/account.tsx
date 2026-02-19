@@ -8,8 +8,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { useAppAuth } from "@/lib/auth-context";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouteContext } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/settings/account")({
@@ -17,7 +16,8 @@ export const Route = createFileRoute("/_authenticated/settings/account")({
 });
 
 function AccountSettings() {
-	const { user } = useAppAuth();
+	const { auth } = useRouteContext({ from: "__root__" });
+	const user = auth.user;
 
 	return (
 		<div className="space-y-8">

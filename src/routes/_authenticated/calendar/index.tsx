@@ -1,35 +1,35 @@
-import { CalendarAgendaView } from "@/components/big-calendar/components/agenda-view/calendar-agenda-view";
-import {
-	DayWeekDndProvider,
-	MonthDndProvider,
-} from "@/components/big-calendar/components/dnd/dnd-provider";
-import { CalendarHeader } from "@/components/big-calendar/components/header/calendar-header";
-import { CalendarMonthView } from "@/components/big-calendar/components/month-view/calendar-month-view";
-import { TaskSidebar } from "@/components/big-calendar/components/task-sidebar/task-sidebar";
-import { CalendarMultiDayView } from "@/components/big-calendar/components/week-and-day-view/calendar-multi-day-view";
 import {
 	ResizableHandle,
 	ResizablePanel,
 	ResizablePanelGroup,
 } from "@/components/ui/resizable";
+import { useGlobalStore } from "@/lib/global-store";
+import { CalendarAgendaView } from "@/routes/_authenticated/calendar/-components/calendar/components/agenda-view/calendar-agenda-view";
+import {
+	DayWeekDndProvider,
+	MonthDndProvider,
+} from "@/routes/_authenticated/calendar/-components/calendar/components/dnd/dnd-provider";
+import { CalendarHeader } from "@/routes/_authenticated/calendar/-components/calendar/components/header/calendar-header";
+import { CalendarMonthView } from "@/routes/_authenticated/calendar/-components/calendar/components/month-view/calendar-month-view";
+import { CalendarMultiDayView } from "@/routes/_authenticated/calendar/-components/calendar/components/week-and-day-view/calendar-multi-day-view";
+import { CalendarProvider } from "@/routes/_authenticated/calendar/-components/calendar/contexts/calendar-context";
 import {
 	dayRangeToDayCount,
 	getCalendarVisibleRange,
-} from "@/components/big-calendar/helpers";
-import { CalendarProvider } from "@/components/big-calendar/contexts/calendar-context";
+} from "@/routes/_authenticated/calendar/-components/calendar/core/helpers";
 import {
 	type TEvent,
 	type TUser,
 	ZEventSchema,
-} from "@/components/big-calendar/interfaces";
-import type { TEventColor } from "@/components/big-calendar/types";
+} from "@/routes/_authenticated/calendar/-components/calendar/core/interfaces";
+import type { TEventColor } from "@/routes/_authenticated/calendar/-components/calendar/core/types";
+import { TaskSidebar } from "@/routes/_authenticated/calendar/-components/task-sidebar/task-sidebar";
 import "@/styles/calendar.css";
-import { api } from "@convex/_generated/api";
 import { convexQuery } from "@convex-dev/react-query";
+import { api } from "@convex/_generated/api";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { useAppAuth } from "@/lib/auth-context";
-import { useMemo, useState } from "react";
+import { createFileRoute, useRouteContext } from "@tanstack/react-router";
+import { useMemo } from "react";
 import { z } from "zod";
 
 const dayRangeEnum = z.enum(["1", "2", "3", "4", "5", "6", "W", "M"]);
@@ -72,7 +72,8 @@ function CalendarRoute() {
 
 function CalendarContent() {
 	const { view, date, dayRange } = Route.useSearch();
-	const { user } = useAppAuth();
+	const { auth } = useRouteContext({ from: "__root__" });
+	const user = auth.user;
 
 	const currentUser: TUser | null = user
 		? {
@@ -152,14 +153,26 @@ function CalendarContent() {
 	}, [events]);
 
 	const isLoading = convexEvents === undefined;
-	const [taskSidebarOpen, _setTaskSidebarOpen] = useState(true);
-
+	const [taskPanelOpen] = useGlobalStore((s) => s.context.taskPanelOpen);
 	return (
 		<div className="calendar-container flex min-h-0 flex-1 flex-col bg-background">
 			<ResizablePanelGroup
 				className="h-full min-h-0 min-w-0 flex-1"
 				orientation="horizontal"
 			>
+				{taskPanelOpen ? (
+					<>
+						<ResizablePanel
+							defaultSize="25%"
+							maxSize={400}
+							minSize={240}
+							className="flex min-h-0 min-w-0 flex-1 flex-col"
+						>
+							<TaskSidebar />
+						</ResizablePanel>
+						<ResizableHandle withHandle={false} />
+					</>
+				) : null}
 				<ResizablePanel
 					defaultSize="75%"
 					minSize="30%"
@@ -188,13 +201,18 @@ function CalendarContent() {
 								) : null}
 								{view === "calendar" && dayRange !== "M" ? (
 									<DayWeekDndProvider
-										view={
-											dayRangeToDayCount(dayRange) === 1 ? "day" : "2day"
-										}
+										view={dayRangeToDayCount(dayRange) === 1 ? "day" : "2day"}
 									>
 										<CalendarMultiDayView
 											dayCount={
-												dayRangeToDayCount(dayRange) as 1 | 2 | 3 | 4 | 5 | 6 | 7
+												dayRangeToDayCount(dayRange) as
+													| 1
+													| 2
+													| 3
+													| 4
+													| 5
+													| 6
+													| 7
 											}
 											singleDayEvents={singleDayEvents}
 											multiDayEvents={multiDayEvents}
@@ -211,19 +229,6 @@ function CalendarContent() {
 						)}
 					</div>
 				</ResizablePanel>
-				{taskSidebarOpen ? (
-					<>
-						<ResizableHandle withHandle />
-						<ResizablePanel
-							defaultSize="25%"
-							maxSize={400}
-							minSize={240}
-							className="flex min-h-0 min-w-0 flex-1 flex-col"
-						>
-							<TaskSidebar />
-						</ResizablePanel>
-					</>
-				) : null}
 			</ResizablePanelGroup>
 		</div>
 	);
