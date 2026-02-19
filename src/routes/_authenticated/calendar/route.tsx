@@ -42,7 +42,7 @@ function CalendarLayout() {
 							<Button
 								variant={"ghost"}
 								size="icon"
-								render={<Link to="/settings" />}
+								render={<Link to="/settings" state={{}} />}
 								aria-label="Toggle Linear task panel"
 							>
 								<Settings />

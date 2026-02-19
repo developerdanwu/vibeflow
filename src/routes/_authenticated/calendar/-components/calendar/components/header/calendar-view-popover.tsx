@@ -5,7 +5,7 @@ import {
 	PopoverTrigger,
 } from "@/components/ui/popover";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Route } from "@/routes/_authenticated/calendar/index";
+import { useCalendarSearch } from "@/routes/_authenticated/calendar/index";
 import type {
 	TCalendarView,
 	TDayRange,
@@ -26,7 +26,7 @@ const RANGE_OPTIONS: { value: TDayRange; label: string }[] = [
 
 export function CalendarViewPopover() {
 	const navigate = useNavigate();
-	const { view, dayRange } = Route.useSearch();
+	const { view, dayRange } = useCalendarSearch();
 
 	const setView = (next: TCalendarView) => {
 		navigate({

@@ -43,7 +43,7 @@ export function SettingsSidebar() {
 					<SidebarMenuItem>
 						<SidebarMenuButton
 							render={(props) => (
-								<Link to="/calendar" {...props}>
+								<Link to="/calendar" {...props} search={{}}>
 									<ArrowLeft className="size-4" />
 									<span>Back</span>
 								</Link>

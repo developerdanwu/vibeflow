@@ -1,14 +1,14 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Route } from "@/routes/_authenticated/calendar/index";
 import { DroppableDayCell } from "@/routes/_authenticated/calendar/-components/calendar/components/dnd/droppable-day-cell";
-import { EventPopover } from "@/routes/_authenticated/calendar/-components/event-popover/event-popover";
 import { useCalendar } from "@/routes/_authenticated/calendar/-components/calendar/contexts/calendar-context";
 import {
 	getVisibleHours,
 	groupEvents,
 } from "@/routes/_authenticated/calendar/-components/calendar/core/helpers";
 import type { TEvent } from "@/routes/_authenticated/calendar/-components/calendar/core/interfaces";
+import { EventPopover } from "@/routes/_authenticated/calendar/-components/event-popover/event-popover";
+import { useCalendarSearch } from "@/routes/_authenticated/calendar/index";
 import { Popover as PopoverBase } from "@base-ui/react";
 import { addDays, format, isToday, parseISO, startOfDay } from "date-fns";
 import { useMemo } from "react";
@@ -35,7 +35,7 @@ export function CalendarMultiDayView({
 		[],
 	);
 	const quickEventPopoverHandle = useMemo(() => PopoverBase.createHandle(), []);
-	const { date: selectedDate } = Route.useSearch();
+	const { date: selectedDate } = useCalendarSearch();
 	const [workingHours] = useCalendar((s) => s.context.workingHours);
 
 	const days = useMemo(
@@ -141,7 +141,12 @@ export function CalendarMultiDayView({
 					</div>
 				</ScrollArea>
 			</div>
-			<EventPopover handle={quickAddEventPopoverHandle} />
+			<EventPopover
+				side="left"
+				align="start"
+				collisionAvoidance={{ side: "shift", align: "shift" }}
+				handle={quickAddEventPopoverHandle}
+			/>
 		</>
 	);
 }

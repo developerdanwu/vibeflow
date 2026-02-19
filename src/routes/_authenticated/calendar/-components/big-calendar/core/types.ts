@@ -1,0 +1,14 @@
+export type TCalendarView = "calendar" | "agenda";
+export type TDayRange = "1" | "2" | "3" | "4" | "5" | "6" | "W" | "M";
+export type TEventColor =
+	| "blue"
+	| "green"
+	| "red"
+	| "yellow"
+	| "purple"
+	| "orange"
+	| "gray";
+export type TBadgeVariant = "dot" | "colored" | "mixed";
+export type TDensity = "small" | "medium" | "large";
+export type TWorkingHours = { [key: number]: { from: number; to: number } };
+export type TVisibleHours = { from: number; to: number };

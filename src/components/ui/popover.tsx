@@ -17,13 +17,14 @@ function PopoverContent({
 	alignOffset = 0,
 	side = "bottom",
 	sideOffset = 4,
+	collisionAvoidance,
 	backdrop,
 	animateOut = true,
 	...props
 }: PopoverPrimitive.Popup.Props &
 	Pick<
 		PopoverPrimitive.Positioner.Props,
-		"align" | "alignOffset" | "side" | "sideOffset"
+		"align" | "alignOffset" | "side" | "sideOffset" | "collisionAvoidance"
 	> & {
 		backdrop?: boolean;
 		/** When false, the popover closes without the fade/zoom out animation. Default true. */
@@ -43,7 +44,9 @@ function PopoverContent({
 				alignOffset={alignOffset}
 				side={side}
 				sideOffset={sideOffset}
+				collisionAvoidance={collisionAvoidance}
 				className="isolate z-50"
+				collisionPadding={8}
 			>
 				<PopoverPrimitive.Popup
 					data-slot="popover-content"

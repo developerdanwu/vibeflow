@@ -1,4 +1,4 @@
-import { Route } from "@/routes/_authenticated/calendar/index";
+import { useCalendarSearch } from "@/routes/_authenticated/calendar/index";
 import { YearViewMonth } from "@/routes/_authenticated/calendar/-components/calendar/components/year-view/year-view-month";
 import type { TEvent } from "@/routes/_authenticated/calendar/-components/calendar/core/interfaces";
 import { addMonths, startOfYear } from "date-fns";
@@ -9,7 +9,7 @@ interface IProps {
 }
 
 export function CalendarYearView({ allEvents }: IProps) {
-	const { date: selectedDate } = Route.useSearch();
+	const { date: selectedDate } = useCalendarSearch();
 
 	const months = useMemo(() => {
 		const yearStart = startOfYear(selectedDate);

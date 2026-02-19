@@ -32,22 +32,15 @@ import {
 import { useDisclosure } from "@/hooks/use-disclosure";
 import { getConvexErrorMessage } from "@/lib/convex-error";
 import { dialogStore } from "@/lib/dialog-store";
-import { EventFormBodySection } from "./event-form-body";
-import {
-	eventFormOptions,
-	getCreateDefaultValues,
-	type TEventFormData,
-} from "./form-options";
-import { RelatedTasksSection } from "./related-tasks-section";
 import { useCalendar } from "@/routes/_authenticated/calendar/-components/calendar/contexts/calendar-context";
-import { useCreateEventMutation } from "@/routes/_authenticated/calendar/-components/calendar/hooks/use-create-event-mutation";
-import { useDeleteEventMutation } from "@/routes/_authenticated/calendar/-components/calendar/hooks/use-delete-event-mutation";
-import { useUpdateEventMutation } from "@/routes/_authenticated/calendar/-components/calendar/hooks/use-update-event-mutation";
 import {
 	type TEvent,
 	ZEventSchema,
 } from "@/routes/_authenticated/calendar/-components/calendar/core/interfaces";
 import type { TEventColor } from "@/routes/_authenticated/calendar/-components/calendar/core/types";
+import { useCreateEventMutation } from "@/routes/_authenticated/calendar/-components/calendar/hooks/use-create-event-mutation";
+import { useDeleteEventMutation } from "@/routes/_authenticated/calendar/-components/calendar/hooks/use-delete-event-mutation";
+import { useUpdateEventMutation } from "@/routes/_authenticated/calendar/-components/calendar/hooks/use-update-event-mutation";
 import type { PopoverRootProps } from "@base-ui/react";
 import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
@@ -75,6 +68,13 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { EventFormBodySection } from "./event-form-body";
+import {
+	eventFormOptions,
+	getCreateDefaultValues,
+	type TEventFormData,
+} from "./form-options";
+import { RelatedTasksSection } from "./related-tasks-section";
 
 const colorNameToHex: Record<TEventColor, string> = {
 	blue: "#3B82F6",
@@ -175,7 +175,12 @@ export type EventPopoverContentHandle = {
 	runAfterClose: () => void;
 };
 
-interface EventPopoverContentProps {
+type PopoverPlacement = Pick<
+	React.ComponentProps<typeof PopoverContent>,
+	"side" | "align" | "sideOffset" | "alignOffset" | "collisionAvoidance"
+>;
+
+interface EventPopoverContentProps extends PopoverPlacement {
 	onClose: () => void;
 	initialValues: TEventFormData;
 	mode?: EventPopoverMode;
@@ -187,7 +192,18 @@ const EventPopoverContent = forwardRef<
 	EventPopoverContentHandle,
 	EventPopoverContentProps
 >(function EventPopoverContent(
-	{ onClose, initialValues, mode = "create", event, isLoadingRelatedTasks },
+	{
+		onClose,
+		initialValues,
+		mode = "create",
+		event,
+		isLoadingRelatedTasks,
+		side = "right",
+		align = "start",
+		sideOffset,
+		alignOffset,
+		collisionAvoidance,
+	},
 	ref,
 ) {
 	const formId = useId();
@@ -443,8 +459,11 @@ const EventPopoverContent = forwardRef<
 	return (
 		<PopoverContent
 			className="w-[480px] p-0"
-			side="right"
-			align="start"
+			side={side}
+			align={align}
+			sideOffset={sideOffset}
+			alignOffset={alignOffset}
+			collisionAvoidance={collisionAvoidance}
 			backdrop
 		>
 			<form
@@ -918,12 +937,17 @@ function EditEventPopoverContent({
 	onClose,
 	contentRef,
 	openId,
+	side,
+	align,
+	sideOffset,
+	alignOffset,
+	collisionAvoidance,
 }: {
 	event: TEvent;
 	onClose: () => void;
 	contentRef: React.RefObject<EventPopoverContentHandle | null>;
 	openId: number;
-}) {
+} & PopoverPlacement) {
 	const { data: linkedTasks, isLoading } = useQuery({
 		...convexQuery(api.eventTaskLinks.queries.getLinksByEventId, {
 			eventId: event.id as Id<"events">,
@@ -965,15 +989,25 @@ function EditEventPopoverContent({
 			isLoadingRelatedTasks={isLoading}
 			event={event}
 			onClose={onClose}
+			side={side}
+			align={align}
+			sideOffset={sideOffset}
+			alignOffset={alignOffset}
+			collisionAvoidance={collisionAvoidance}
 		/>
 	);
 }
 
 export function EventPopover({
 	handle,
+	side = "right",
+	align = "start",
+	sideOffset,
+	alignOffset,
+	collisionAvoidance,
 }: {
 	handle: NonNullable<PopoverRootProps["handle"]>;
-}) {
+} & Partial<PopoverPlacement>) {
 	const { isOpen, onOpen, onClose } = useDisclosure();
 	const contentRef = useRef<EventPopoverContentHandle | null>(null);
 	const prevIsOpenRef = useRef(false);
@@ -1023,6 +1057,11 @@ export function EventPopover({
 							onClose={handleClose}
 							contentRef={contentRef}
 							openId={openId}
+							side={side}
+							align={align}
+							sideOffset={sideOffset}
+							alignOffset={alignOffset}
+							collisionAvoidance={collisionAvoidance}
 						/>
 					);
 				}
@@ -1043,6 +1082,11 @@ export function EventPopover({
 						mode="create"
 						onClose={handleClose}
 						isLoadingRelatedTasks={false}
+						side={side}
+						align={align}
+						sideOffset={sideOffset}
+						alignOffset={alignOffset}
+						collisionAvoidance={collisionAvoidance}
 					/>
 				);
 			}}

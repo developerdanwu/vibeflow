@@ -4,6 +4,8 @@ import {
 	ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { useGlobalStore } from "@/lib/global-store";
+import { localStorageSearchMiddleware } from "@/lib/localStorageSearchMiddleware";
+import { sessionStorageSearchMiddleware } from "@/lib/sessionStorageSearchMiddleware";
 import { CalendarAgendaView } from "@/routes/_authenticated/calendar/-components/calendar/components/agenda-view/calendar-agenda-view";
 import {
 	DayWeekDndProvider,
@@ -29,26 +31,70 @@ import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useRouteContext } from "@tanstack/react-router";
+import { isValid, parse, startOfDay } from "date-fns";
 import { useMemo } from "react";
 import { z } from "zod";
 
 const dayRangeEnum = z.enum(["1", "2", "3", "4", "5", "6", "W", "M"]);
 
-const calendarSearchSchema = z
-	.object({
-		view: z.enum(["calendar", "agenda"]).default("calendar"),
-		date: z.coerce.date().optional(),
-		day: z.coerce.date().optional(),
-		dayRange: dayRangeEnum.default("M"),
-	})
-	.transform(({ view, date, day, dayRange }) => ({
-		view,
-		date: date ?? day ?? new Date(),
-		dayRange,
-	}));
+/**
+ * Coerce a string or Date to a local-midnight Date.
+ *
+ * `new Date("YYYY-MM-DD")` parses as UTC midnight, which can land on the
+ * wrong local day in timezones behind UTC.  This schema handles:
+ *   - "YYYY-MM-DD" from storage → parse(..., "yyyy-MM-dd", ...) → local midnight
+ *   - ISO string from URL         → new Date(str) → startOfDay (local)
+ *   - Date object from navigate   → startOfDay (local)
+ */
+const localDateSchema = z
+	.preprocess((val) => {
+		if (isValid(val)) {
+			return startOfDay(val);
+		}
+		if (typeof val === "string") {
+			const d = parse(val, "yyyy-MM-dd", new Date());
+			if (isValid(d)) {
+				return startOfDay(d);
+			}
+		}
+		return val;
+	}, z.coerce.date())
+	.transform((d) => {
+		console.log("dickk", d);
+		return startOfDay(d);
+	});
+
+const calendarSearchSchema = z.object({
+	view: z.enum(["calendar", "agenda"]).optional(),
+	date: localDateSchema.optional(),
+	dayRange: dayRangeEnum.optional(),
+});
+
+export function useCalendarSearch() {
+	return Route.useSearch() as Required<z.infer<typeof calendarSearchSchema>>;
+}
 
 export const Route = createFileRoute("/_authenticated/calendar/")({
 	validateSearch: calendarSearchSchema,
+	search: {
+		middlewares: [
+			localStorageSearchMiddleware<z.input<typeof calendarSearchSchema>>(
+				calendarSearchSchema,
+				{ view: "calendar", dayRange: "M" },
+				{
+					view: "calendar-search-view",
+					dayRange: "calendar-search-day-range",
+				},
+			),
+			sessionStorageSearchMiddleware<z.input<typeof calendarSearchSchema>>(
+				calendarSearchSchema,
+				{ date: startOfDay(new Date()) },
+				{
+					date: "calendar-search-date",
+				},
+			),
+		],
+	},
 	component: CalendarRoute,
 });
 
@@ -71,7 +117,7 @@ function CalendarRoute() {
 }
 
 function CalendarContent() {
-	const { view, date, dayRange } = Route.useSearch();
+	const { view, date, dayRange } = useCalendarSearch();
 	const { auth } = useRouteContext({ from: "__root__" });
 	const user = auth.user;
 

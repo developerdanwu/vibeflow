@@ -1,4 +1,4 @@
-import { Route } from "@/routes/_authenticated/calendar/index";
+import { useCalendarSearch } from "@/routes/_authenticated/calendar/index";
 import { EventPopover } from "@/routes/_authenticated/calendar/-components/event-popover/event-popover";
 import { DayCell } from "@/routes/_authenticated/calendar/-components/calendar/components/month-view/day-cell";
 import {
@@ -17,7 +17,7 @@ interface IProps {
 const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function CalendarMonthView({ singleDayEvents, multiDayEvents }: IProps) {
-	const { date: selectedDate } = Route.useSearch();
+	const { date: selectedDate } = useCalendarSearch();
 	const quickAddEventPopoverHandle = useMemo(
 		() => PopoverBase.createHandle(),
 		[],

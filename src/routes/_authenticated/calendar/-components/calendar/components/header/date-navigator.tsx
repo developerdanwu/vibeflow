@@ -1,4 +1,4 @@
-import { Route } from "@/routes/_authenticated/calendar/index";
+import { useCalendarSearch } from "@/routes/_authenticated/calendar/index";
 import { dayRangeToDayCount } from "@/routes/_authenticated/calendar/-components/calendar/core/helpers";
 import type { TEvent } from "@/routes/_authenticated/calendar/-components/calendar/core/interfaces";
 import type { TDayRange } from "@/routes/_authenticated/calendar/-components/calendar/core/types";
@@ -10,7 +10,7 @@ interface IProps {
 }
 
 export function DateNavigator({ dayRange, events: _events }: IProps) {
-	const { date: selectedDate } = Route.useSearch();
+	const { date: selectedDate } = useCalendarSearch();
 
 	const dayCount = dayRangeToDayCount(dayRange);
 	const label =
