@@ -4,10 +4,28 @@ import type { QueryClient } from "@tanstack/react-query";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
 import { AuthKitProvider, useAuth } from "@workos-inc/authkit-react";
-import { useMemo } from "react";
-import { FullPageLoader } from "./components/full-page-loader";
+import { useEffect, useMemo } from "react";
 import { selectPlatform } from "./lib/tauri";
-import { getRouter } from "./router";
+import { type AuthContext, getRouter } from "./router";
+
+const useAuthPromise = () => {
+	const auth = useAuth();
+	const authReady = useMemo(() => {
+		let resolve: (auth: AuthContext) => void;
+		const promise = new Promise<AuthContext>((r) => {
+			resolve = r;
+		});
+		return { promise, resolve: resolve! };
+	}, []);
+
+	useEffect(() => {
+		if (!auth.isLoading) {
+			authReady.resolve(auth);
+		}
+	}, [auth, authReady]);
+
+	return authReady.promise;
+};
 
 function InnerApp({
 	router,
@@ -16,16 +34,12 @@ function InnerApp({
 	router: ReturnType<typeof getRouter>["router"];
 	queryClient: QueryClient;
 }) {
-	const auth = useAuth();
+	const authPromise = useAuthPromise();
 	useDeepLinkListener(router);
-
-	if (auth.isLoading) {
-		return <FullPageLoader />;
-	}
 
 	return (
 		<QueryClientProvider client={queryClient}>
-			<RouterProvider router={router} context={{ auth }} />
+			<RouterProvider router={router} context={{ authPromise }} />
 		</QueryClientProvider>
 	);
 }
@@ -40,8 +54,8 @@ export function App() {
 		<AuthKitProvider
 			clientId={env.VITE_WORKOS_CLIENT_ID}
 			redirectUri={selectPlatform({
-				tauri: env.VITE_WORKOS_REDIRECT_URI,
-				web: env.VITE_WORKOS_REDIRECT_URI,
+				tauri: env.VITE_TAURI_WORKOS_REDIRECT_URI,
+				web: env.VITE_WEB_WORKOS_REDIRECT_URI,
 			})}
 			devMode
 		>

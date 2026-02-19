@@ -56,8 +56,8 @@ export function getRouter() {
 		context: {
 			convex,
 			queryClient,
-			auth: undefined as unknown as AuthContext,
 			env,
+			authPromise: undefined as unknown as Promise<AuthContext>,
 		},
 		Wrap: ({ children }) => (
 			<AuthBridge>

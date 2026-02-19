@@ -1,12 +1,21 @@
 import { selectPlatform } from "@/lib/tauri";
-import { createFileRoute, useRouteContext } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	redirect,
+	useRouteContext,
+} from "@tanstack/react-router";
 
 export const Route = createFileRoute("/login")({
 	component: LoginPage,
+	beforeLoad: async ({ context }) => {
+		if (context.auth.user) {
+			throw redirect({ to: "/calendar" });
+		}
+	},
 });
 
 function LoginPage() {
-	const { auth } = useRouteContext({ from: "__root__" });
+	const { auth } = useRouteContext({ from: "/login" });
 
 	const handleSignIn = async () => {
 		await selectPlatform({

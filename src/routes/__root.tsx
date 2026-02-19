@@ -9,13 +9,19 @@ import type { ConvexReactClient } from "convex/react";
 
 interface MyRouterContext {
 	queryClient: QueryClient;
-	auth: AuthContext;
 	convex: ConvexReactClient;
 	env: TEnv;
+	authPromise: Promise<AuthContext>;
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
 	component: RootComponent,
+	beforeLoad: async ({ context }) => {
+		const auth = await context.authPromise;
+		return {
+			auth,
+		};
+	},
 });
 
 function RootComponent() {

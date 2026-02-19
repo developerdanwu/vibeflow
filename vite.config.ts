@@ -16,6 +16,9 @@ export default defineConfig({
 			"@convex": fileURLToPath(new URL("./convex", import.meta.url)),
 		},
 	},
+	preview: {
+		port: 3000,
+	},
 	envPrefix: ["VITE_", "TAURI_ENV_"],
 	plugins: [
 		devtools(),

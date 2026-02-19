@@ -158,12 +158,9 @@ importers:
       '@tiptap/starter-kit':
         specifier: ^3.19.0
         version: 3.19.0
-      '@workos-inc/authkit-js':
-        specifier: ^0.19.0
-        version: 0.19.0
       '@workos-inc/authkit-react':
-        specifier: ^0.13.0
-        version: 0.13.0(react@19.2.3)
+        specifier: ^0.16.0
+        version: 0.16.0(react@19.2.3)
       '@xstate/store':
         specifier: ^3.15.0
         version: 3.15.0(react@19.2.3)(solid-js@1.9.11)
@@ -3758,6 +3755,11 @@ packages:
 
   '@workos-inc/authkit-react@0.13.0':
     resolution: {integrity: sha512-JhcPI9+I0MGOu7B33Gych76Xi7jKfKKfoZ4Mb6JPY9raeEqJQcnN4jMite2ynmMdmiZljIq7wkyf2WAsEU3SzQ==}
+    peerDependencies:
+      react: '>=17'
+
+  '@workos-inc/authkit-react@0.16.0':
+    resolution: {integrity: sha512-627CH9a8hqm1eHP0/8BOqUyTTqy3oPgB8+9dsU/SIRjfxQyCQAGjDmOiET/svBJgrkGW8cRfn8KECLV6b20Pqg==}
     peerDependencies:
       react: '>=17'
 
@@ -10043,6 +10045,11 @@ snapshots:
   '@workos-inc/authkit-react@0.13.0(react@19.2.3)':
     dependencies:
       '@workos-inc/authkit-js': 0.14.0
+      react: 19.2.3
+
+  '@workos-inc/authkit-react@0.16.0(react@19.2.3)':
+    dependencies:
+      '@workos-inc/authkit-js': 0.19.0
       react: 19.2.3
 
   '@workos-inc/node@7.82.0':

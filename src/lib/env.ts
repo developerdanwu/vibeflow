@@ -5,7 +5,8 @@ export const ZEnvSchema = z.object({
 	VITE_GOOGLE_CALENDAR_CLIENT_ID: z.string(),
 	VITE_LINEAR_CLIENT_ID: z.string(),
 	VITE_WORKOS_CLIENT_ID: z.string(),
-	VITE_WORKOS_REDIRECT_URI: z.string(),
+	VITE_WEB_WORKOS_REDIRECT_URI: z.string(),
+	VITE_TAURI_WORKOS_REDIRECT_URI: z.string(),
 });
 
 export type TEnv = z.infer<typeof ZEnvSchema>;

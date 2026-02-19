@@ -6,7 +6,7 @@ export const Route = createFileRoute("/")({
 		if (context.auth.user) {
 			throw redirect({ to: "/calendar" });
 		}
-		throw redirect({ to: "/login" });
+		throw redirect({ to: "/login", search: { redirect: location.pathname } });
 	},
 });
 

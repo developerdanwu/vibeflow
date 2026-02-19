@@ -1,5 +1,5 @@
-import type { getRouter } from "@/router";
 import { isTauri } from "@/lib/tauri";
+import type { getRouter } from "@/router";
 import { useEffect } from "react";
 
 const VIBEFLOW_SCHEME = "vibeflow://";
@@ -12,7 +12,7 @@ type AppRouter = ReturnType<typeof getRouter>["router"];
  * Pass the router instance (e.g. from App/InnerApp) so the listener can run outside RouterProvider.
  */
 export function useDeepLinkListener(router: AppRouter): void {
-
+	console.log("TESTING");
 	useEffect(() => {
 		if (!isTauri()) {
 			return;
@@ -50,4 +50,3 @@ export function useDeepLinkListener(router: AppRouter): void {
 		};
 	}, [router]);
 }
-
