@@ -19,7 +19,7 @@ export const getConnectionByUserId = internalQuery({
 export const getConnectionById = internalQuery({
 	args: { connectionId: v.id("taskConnections") },
 	handler: async (ctx, args) => {
-		return await ctx.db.get(args.connectionId);
+		return await ctx.db.get("taskConnections", args.connectionId);
 	},
 });
 

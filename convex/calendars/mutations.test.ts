@@ -1,7 +1,7 @@
 import { api } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
-import { describe, test } from "../testFixture.nobundle";
 import { addUserToTest, factories } from "../test.setup";
+import { describe, test } from "../testFixture.nobundle";
 
 describe("createCalendar", () => {
 	test("creates calendar for authenticated user", async ({
@@ -14,7 +14,9 @@ describe("createCalendar", () => {
 			api.calendars.mutations.createCalendar,
 			factories.calendar({ name: "Work" }),
 		);
-		const cal = await t.run(async (ctx: MutationCtx) => ctx.db.get(calId));
+		const cal = await t.run(async (ctx: MutationCtx) =>
+			ctx.db.get("calendars", calId),
+		);
 		expect(cal).toMatchObject({
 			name: "Work",
 			userId,
@@ -34,7 +36,7 @@ describe("createCalendar", () => {
 		auth,
 		expect,
 	}) => {
-		const { asUser, userId } = auth;
+		const { asUser } = auth;
 		const firstId = await asUser.mutation(
 			api.calendars.mutations.createCalendar,
 			factories.calendar({ name: "First", isDefault: true }),
@@ -43,9 +45,11 @@ describe("createCalendar", () => {
 			api.calendars.mutations.createCalendar,
 			factories.calendar({ name: "Second", isDefault: true }),
 		);
-		const first = await t.run(async (ctx: MutationCtx) => ctx.db.get(firstId));
+		const first = await t.run(async (ctx: MutationCtx) =>
+			ctx.db.get("calendars", firstId),
+		);
 		const second = await t.run(async (ctx: MutationCtx) =>
-			ctx.db.get(secondId),
+			ctx.db.get("calendars", secondId),
 		);
 		expect(first?.isDefault).toBe(false);
 		expect(second?.isDefault).toBe(true);
@@ -64,7 +68,9 @@ describe("updateCalendar", () => {
 			name: "Updated Name",
 			color: "red",
 		});
-		const cal = await t.run(async (ctx: MutationCtx) => ctx.db.get(calId));
+		const cal = await t.run(async (ctx: MutationCtx) =>
+			ctx.db.get("calendars", calId),
+		);
 		expect(cal?.name).toBe("Updated Name");
 		expect(cal?.color).toBe("red");
 	});
@@ -77,7 +83,7 @@ describe("updateCalendar", () => {
 				...factories.calendar(),
 				userId,
 			});
-			await ctx.db.delete(id);
+			await ctx.db.delete("calendars", id);
 			return id;
 		});
 		await expect(
@@ -125,8 +131,12 @@ describe("updateCalendar", () => {
 			id: cal2Id,
 			isDefault: true,
 		});
-		const cal1 = await t.run(async (ctx: MutationCtx) => ctx.db.get(cal1Id));
-		const cal2 = await t.run(async (ctx: MutationCtx) => ctx.db.get(cal2Id));
+		const cal1 = await t.run(async (ctx: MutationCtx) =>
+			ctx.db.get("calendars", cal1Id),
+		);
+		const cal2 = await t.run(async (ctx: MutationCtx) =>
+			ctx.db.get("calendars", cal2Id),
+		);
 		expect(cal1?.isDefault).toBe(false);
 		expect(cal2?.isDefault).toBe(true);
 	});
@@ -142,7 +152,9 @@ describe("deleteCalendar", () => {
 		await asUser.mutation(api.calendars.mutations.deleteCalendar, {
 			id: calId,
 		});
-		const cal = await t.run(async (ctx: MutationCtx) => ctx.db.get(calId));
+		const cal = await t.run(async (ctx: MutationCtx) =>
+			ctx.db.get("calendars", calId),
+		);
 		expect(cal).toBeNull();
 	});
 
@@ -154,7 +166,7 @@ describe("deleteCalendar", () => {
 				...factories.calendar(),
 				userId,
 			});
-			await ctx.db.delete(id);
+			await ctx.db.delete("calendars", id);
 			return id;
 		});
 		await expect(
@@ -209,7 +221,9 @@ describe("deleteCalendar", () => {
 		await asUser.mutation(api.calendars.mutations.deleteCalendar, {
 			id: calId,
 		});
-		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get(eventId));
+		const event = await t.run(async (ctx: MutationCtx) =>
+			ctx.db.get("events", eventId),
+		);
 		expect(event?.calendarId).toBeUndefined();
 	});
 });

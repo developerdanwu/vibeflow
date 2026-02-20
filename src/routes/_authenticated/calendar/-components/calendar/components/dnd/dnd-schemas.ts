@@ -18,10 +18,23 @@ export const ZEventResizeDragData = z.object({
 	edge: z.enum(["top", "bottom"]),
 });
 
-/** Active draggable payload: event move or event resize. */
+/** Drag data for a task item from the sidebar (schedule-on-drop). */
+export const ZTaskItemDragData = z.object({
+	type: z.literal("task"),
+	taskItem: z.object({
+		_id: z.string(),
+		externalTaskId: z.string(),
+		title: z.string(),
+		identifier: z.string().optional(),
+		url: z.string(),
+	}),
+});
+
+/** Active draggable payload: event move, event resize, or task item. */
 export const ZCalendarDragData = z.discriminatedUnion("type", [
 	ZEventDragData,
 	ZEventResizeDragData,
+	ZTaskItemDragData,
 ]);
 
 /** Over-data when dropped on a time block (day/week grid). */
@@ -45,6 +58,7 @@ export const ZDayCellOverData = z.object({
 
 export type EventDragData = z.infer<typeof ZEventDragData>;
 export type EventResizeDragData = z.infer<typeof ZEventResizeDragData>;
+export type TaskItemDragData = z.infer<typeof ZTaskItemDragData>;
 export type CalendarDragData = z.infer<typeof ZCalendarDragData>;
 export type TimeBlockOverData = z.infer<typeof ZTimeBlockOverData>;
 export type DayCellOverData = z.infer<typeof ZDayCellOverData>;

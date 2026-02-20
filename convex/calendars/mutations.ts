@@ -18,7 +18,9 @@ export const createCalendar = authMutation({
 				.first();
 
 			if (existingDefault) {
-				await ctx.db.patch(existingDefault._id, { isDefault: false });
+				await ctx.db.patch("calendars", existingDefault._id, {
+				isDefault: false,
+			});
 			}
 		}
 
@@ -38,7 +40,7 @@ export const updateCalendar = authMutation({
 	},
 	handler: async (ctx, args) => {
 		const { id, ...updates } = args;
-		const calendar = await ctx.db.get(id);
+		const calendar = await ctx.db.get("calendars", id);
 
 		if (!calendar) {
 			throwConvexError(ErrorCode.CALENDAR_NOT_FOUND, "Calendar not found");
@@ -59,7 +61,9 @@ export const updateCalendar = authMutation({
 				.first();
 
 			if (existingDefault && existingDefault._id !== id) {
-				await ctx.db.patch(existingDefault._id, { isDefault: false });
+				await ctx.db.patch("calendars", existingDefault._id, {
+				isDefault: false,
+			});
 			}
 		}
 
@@ -67,7 +71,7 @@ export const updateCalendar = authMutation({
 			Object.entries(updates).filter(([, val]) => val !== undefined),
 		);
 
-		return await ctx.db.patch(id, cleanUpdates);
+		return await ctx.db.patch("calendars", id, cleanUpdates);
 	},
 });
 
@@ -76,7 +80,7 @@ export const deleteCalendar = authMutation({
 		id: v.id("calendars"),
 	},
 	handler: async (ctx, args) => {
-		const calendar = await ctx.db.get(args.id);
+		const calendar = await ctx.db.get("calendars", args.id);
 
 		if (!calendar) {
 			throwConvexError(ErrorCode.CALENDAR_NOT_FOUND, "Calendar not found");
@@ -100,9 +104,11 @@ export const deleteCalendar = authMutation({
 			.collect();
 
 		for (const event of eventsInCalendar) {
-			await ctx.db.patch(event._id, { calendarId: undefined });
+			await ctx.db.patch("events", event._id, {
+			calendarId: undefined,
+		});
 		}
 
-		return await ctx.db.delete(args.id);
+		return await ctx.db.delete("calendars", args.id);
 	},
 });

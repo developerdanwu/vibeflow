@@ -68,7 +68,7 @@ describe("getLinksByEventId", () => {
 			factories.event(),
 		);
 		await t.run(async (ctx: MutationCtx) => {
-			await ctx.db.delete(eventId);
+			await ctx.db.delete("events", eventId);
 		});
 		const links = await asUser.query(
 			api.eventTaskLinks.queries.getLinksByEventId,

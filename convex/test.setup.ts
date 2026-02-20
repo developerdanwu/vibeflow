@@ -17,7 +17,7 @@ export async function clearAllTables(
 		for (const table of CONVEX_TABLE_NAMES) {
 			const docs = await ctx.db.query(table).collect();
 			for (const doc of docs) {
-				await ctx.db.delete(doc._id);
+				await ctx.db.delete(table, doc._id);
 			}
 		}
 	});

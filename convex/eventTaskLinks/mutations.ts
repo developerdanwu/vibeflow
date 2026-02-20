@@ -10,7 +10,7 @@ export const linkTaskToEvent = authMutation({
 		linkType: v.optional(v.union(v.literal("scheduled"), v.literal("related"))),
 	},
 	handler: async (ctx, args) => {
-		const event = await ctx.db.get(args.eventId);
+		const event = await ctx.db.get("events", args.eventId);
 		if (!event) {
 			throwConvexError(ErrorCode.EVENT_NOT_FOUND, "Event not found");
 		}
@@ -32,7 +32,9 @@ export const linkTaskToEvent = authMutation({
 
 		if (existing) {
 			if (effectiveLinkType !== existing.linkType) {
-				await ctx.db.patch(existing._id, { linkType: effectiveLinkType });
+				await ctx.db.patch("eventTaskLinks", existing._id, {
+				linkType: effectiveLinkType,
+			});
 			}
 			return existing._id;
 		}
@@ -53,7 +55,7 @@ export const unlinkTaskFromEvent = authMutation({
 		externalTaskId: v.string(),
 	},
 	handler: async (ctx, args) => {
-		const event = await ctx.db.get(args.eventId);
+		const event = await ctx.db.get("events", args.eventId);
 		if (!event) {
 			throwConvexError(ErrorCode.EVENT_NOT_FOUND, "Event not found");
 		}
@@ -72,7 +74,7 @@ export const unlinkTaskFromEvent = authMutation({
 			.unique();
 
 		if (link) {
-			await ctx.db.delete(link._id);
+			await ctx.db.delete("eventTaskLinks", link._id);
 		}
 	},
 });

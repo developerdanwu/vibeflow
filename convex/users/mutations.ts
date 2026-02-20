@@ -42,7 +42,7 @@ export const ensureUserExists = mutation({
 			updatedAt: Date.now(),
 		});
 
-		const user = await ctx.db.get(userId);
+		const user = await ctx.db.get("users", userId);
 
 		if (!user) {
 			throwConvexError(ErrorCode.USER_NOT_FOUND, "User not found");
@@ -67,7 +67,9 @@ export const updateUserPreferences = authMutation({
 			if (value === undefined) {
 				return;
 			}
-			await ctx.db.patch(existing._id, { calendarSyncFromMonths: value });
+			await ctx.db.patch("userPreferences", existing._id, {
+				calendarSyncFromMonths: value,
+			});
 			return;
 		}
 		if (value === undefined) {

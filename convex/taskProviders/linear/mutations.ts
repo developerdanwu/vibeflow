@@ -17,7 +17,7 @@ export const saveConnection = internalMutation({
 		providerMetadata: v.optional(v.any()),
 	},
 	handler: async (ctx, args) => {
-		const user = await ctx.db.get(args.userId);
+		const user = await ctx.db.get("users", args.userId);
 		if (!user) {
 			throwConvexError(ErrorCode.USER_NOT_FOUND, "User not found");
 		}
@@ -29,7 +29,7 @@ export const saveConnection = internalMutation({
 			)
 			.unique();
 		if (existing) {
-			await ctx.db.patch(existing._id, {
+			await ctx.db.patch("taskConnections", existing._id, {
 				accessToken: args.accessToken,
 				refreshToken: args.refreshToken,
 				accessTokenExpiresAt: args.accessTokenExpiresAt,
@@ -60,7 +60,7 @@ export const updateConnectionTokens = internalMutation({
 		accessTokenExpiresAt: v.number(),
 	},
 	handler: async (ctx, args) => {
-		await ctx.db.patch(args.connectionId, {
+		await ctx.db.patch("taskConnections", args.connectionId, {
 			accessToken: args.accessToken,
 			...(args.refreshToken !== undefined && {
 				refreshToken: args.refreshToken,
@@ -77,7 +77,7 @@ export const removeConnection = internalMutation({
 		connectionId: v.id("taskConnections"),
 	},
 	handler: async (ctx, args) => {
-		await ctx.db.delete(args.connectionId);
+		await ctx.db.delete("taskConnections", args.connectionId);
 	},
 });
 
@@ -127,7 +127,7 @@ export const upsertTaskItems = internalMutation({
 				updatedAt: now,
 			};
 			if (existing) {
-				await ctx.db.patch(existing._id, doc);
+				await ctx.db.patch("taskItems", existing._id, doc);
 			} else {
 				await ctx.db.insert("taskItems", doc);
 			}
@@ -141,7 +141,7 @@ export const upsertTaskItems = internalMutation({
 			.collect();
 		for (const row of allForConnection) {
 			if (!seenIds.has(row.externalTaskId)) {
-				await ctx.db.delete(row._id);
+				await ctx.db.delete("taskItems", row._id);
 			}
 		}
 	},
@@ -166,8 +166,8 @@ export const removeMyLinearConnection = authMutation({
 			)
 			.collect();
 		for (const item of items) {
-			await ctx.db.delete(item._id);
+			await ctx.db.delete("taskItems", item._id);
 		}
-		await ctx.db.delete(connection._id);
+		await ctx.db.delete("taskConnections", connection._id);
 	},
 });

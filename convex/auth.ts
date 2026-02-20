@@ -46,7 +46,7 @@ export const { authKitEvent } = authKit.events({
 			console.warn(`User not found: ${event.data.id}`);
 			return;
 		}
-		await ctx.db.patch(user._id, {
+		await ctx.db.patch("users", user._id, {
 			email: event.data.email,
 			firstName: event.data.firstName ?? undefined,
 			lastName: event.data.lastName ?? undefined,
@@ -66,7 +66,7 @@ export const { authKitEvent } = authKit.events({
 			console.warn(`User not found: ${event.data.id}`);
 			return;
 		}
-		await ctx.db.delete(user._id);
+		await ctx.db.delete("users", user._id);
 	},
 
 	// Session created - user creation handled by auth loader

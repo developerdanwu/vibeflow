@@ -1,5 +1,29 @@
 # Common Patterns
 
+## Database get, patch, replace, delete (table name required)
+
+**When this applies:** All Convex code and any Convex-related tests. In Convex: queries, mutations, and actions. In tests: any `ctx.db` usage inside `t.run(...)` (or similar) callbacks—the same API and conventions apply.
+
+Per current Convex conventions, these methods require the **table name as the first argument**.
+
+### Wrong
+
+```typescript
+const cal = await ctx.db.get(calId);
+await ctx.db.patch(id, { isDefault: false });
+await ctx.db.delete(id);
+```
+
+### Correct
+
+```typescript
+const cal = await ctx.db.get("calendars", calId);
+await ctx.db.patch("calendars", id, { isDefault: false });
+await ctx.db.delete("calendars", id);
+```
+
+**Why:** Convex’s API expects `(tableName, id, ...)` so the table is explicit and types stay correct.
+
 ## Query Pattern
 
 ```typescript

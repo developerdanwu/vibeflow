@@ -1,11 +1,11 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import * as React from "react";
-import type { DayPickerSingleProps } from "react-day-picker";
-import { DayPicker } from "react-day-picker";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import * as React from "react";
+import type { PropsBase, PropsSingle } from "react-day-picker";
+import { DayPicker } from "react-day-picker";
 
 function SingleCalendar({
 	className,
@@ -13,7 +13,7 @@ function SingleCalendar({
 	showOutsideDays = true,
 	selected,
 	...props
-}: DayPickerSingleProps) {
+}: PropsBase & PropsSingle) {
 	const [currentMonth, setCurrentMonth] = React.useState<Date | undefined>(
 		selected instanceof Date ? selected : undefined,
 	);
@@ -72,6 +72,7 @@ function SingleCalendar({
 				),
 			}}
 			{...props}
+			mode="single"
 		/>
 	);
 }

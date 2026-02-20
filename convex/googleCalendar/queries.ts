@@ -91,7 +91,10 @@ export const getConnectionAndExternalCalendar = internalQuery({
 		externalCalendarId: v.string(),
 	},
 	handler: async (ctx, args) => {
-		const connection = await ctx.db.get(args.connectionId);
+		const connection = await ctx.db.get(
+			"calendarConnections",
+			args.connectionId,
+		);
 		if (!connection) return null;
 		const ext = await ctx.db
 			.query("externalCalendars")
@@ -129,7 +132,10 @@ export const getByChannelId = internalQuery({
 			.withIndex("by_channel", (q) => q.eq("channelId", args.channelId))
 			.unique();
 		if (!ext) return null;
-		const connection = await ctx.db.get(ext.connectionId);
+		const connection = await ctx.db.get(
+			"calendarConnections",
+			ext.connectionId,
+		);
 		if (!connection) return null;
 		return {
 			connectionId: ext.connectionId,

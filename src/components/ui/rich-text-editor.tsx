@@ -200,7 +200,7 @@ function RichTextEditor({
 			<div
 				ref={editorWrapperRef}
 				className={cn(richTextEditorVariants({ variant }), "flex-1")}
-				onClick={(e) => {
+				onClick={() => {
 					// Focus editor when clicking on empty space
 					// TipTap will handle cursor placement automatically
 					if (editor && !editor.isFocused) {

@@ -1,31 +1,27 @@
 import { createStoreHook } from "@xstate/store-react";
 
-const initialTaskPanelOpen = localStorage.getItem("task-panel-open")
-	? localStorage.getItem("task-panel-open") === "true"
-	: true;
-
 export const useGlobalStore = createStoreHook({
 	context: {
-		taskPanelOpen: initialTaskPanelOpen,
+		taskPanelOpen: false,
+	},
+	emits: {
+		openTaskPanel: () => {},
+		closeTaskPanel: () => {},
 	},
 	on: {
-		openTaskPanel: (context, _: null, enqueue) => {
-			enqueue.effect(() => {
-				localStorage.setItem("task-panel-open", "true");
-			});
+		syncTaskPanelOpen: (context, event: { taskPanelOpen: boolean }) => {
 			return {
 				...context,
-				taskPanelOpen: true,
+				taskPanelOpen: event.taskPanelOpen,
 			};
 		},
-		closeTaskPanel: (context, _: null, enqueue) => {
-			enqueue.effect(() => {
-				localStorage.setItem("task-panel-open", "false");
-			});
-			return {
-				...context,
-				taskPanelOpen: false,
-			};
+		openTaskPanel: (context, _: Record<string, any>, enqueue) => {
+			enqueue.emit.openTaskPanel();
+			return context;
+		},
+		closeTaskPanel: (context, _: Record<string, any>, enqueue) => {
+			enqueue.emit.closeTaskPanel();
+			return context;
 		},
 	},
 });

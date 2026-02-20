@@ -190,7 +190,7 @@ export const updateEvent = authMutation({
 			relatedTaskLinks,
 			...updates
 		} = args;
-		const event = await ctx.db.get(id);
+		const event = await ctx.db.get("events", id);
 
 		if (!event) {
 			throwConvexError(ErrorCode.EVENT_NOT_FOUND, "Event not found");
@@ -299,7 +299,7 @@ export const updateEvent = authMutation({
 					.collect();
 				for (const link of existing) {
 					if (link.linkType === "scheduled") {
-						await ctx.db.delete(link._id);
+						await ctx.db.delete("eventTaskLinks", link._id);
 					}
 				}
 				const seen = new Set<string>();
@@ -322,7 +322,7 @@ export const updateEvent = authMutation({
 					.collect();
 				for (const link of existing) {
 					if (link.linkType === "related") {
-						await ctx.db.delete(link._id);
+						await ctx.db.delete("eventTaskLinks", link._id);
 					}
 				}
 				const seen = new Set<string>();
@@ -368,7 +368,7 @@ export const updateEvent = authMutation({
 				externalEventId: undefined,
 			});
 			await applyTaskLinkUpdates();
-			return await ctx.db.patch(id, cleanUpdates);
+			return await ctx.db.patch("events", id, cleanUpdates);
 		}
 
 		const willSyncToGoogle =
@@ -430,7 +430,7 @@ export const updateEvent = authMutation({
 		}
 
 		await applyTaskLinkUpdates();
-		return await ctx.db.patch(id, cleanUpdates);
+		return await ctx.db.patch("events", id, cleanUpdates);
 	},
 });
 
@@ -439,7 +439,7 @@ export const deleteEvent = authMutation({
 		id: v.id("events"),
 	},
 	handler: async (ctx, args) => {
-		const event = await ctx.db.get(args.id);
+		const event = await ctx.db.get("events", args.id);
 
 		if (!event) {
 			throwConvexError(ErrorCode.EVENT_NOT_FOUND, "Event not found");
@@ -460,10 +460,10 @@ export const deleteEvent = authMutation({
 			.withIndex("by_event", (q) => q.eq("eventId", args.id))
 			.collect();
 		for (const link of links) {
-			await ctx.db.delete(link._id);
+			await ctx.db.delete("eventTaskLinks", link._id);
 		}
 
-		await ctx.db.delete(args.id);
+		await ctx.db.delete("events", args.id);
 
 		if (
 			externalProvider === "google" &&

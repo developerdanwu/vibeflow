@@ -93,7 +93,7 @@ describe("getEventById", () => {
 				busy: "free",
 				visibility: "public",
 			});
-			await ctx.db.delete(id);
+			await ctx.db.delete("events", id);
 			return id;
 		});
 		const event = await asUser.query(api.events.queries.getEventById, {

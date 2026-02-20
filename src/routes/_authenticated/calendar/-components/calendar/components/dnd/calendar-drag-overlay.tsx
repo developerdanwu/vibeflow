@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import type { TaskItemDragData } from "@/routes/_authenticated/calendar/-components/calendar/components/dnd/dnd-schemas";
 import { ZCalendarDragData } from "@/routes/_authenticated/calendar/-components/calendar/components/dnd/dnd-schemas";
 import { eventBadgeVariants } from "@/routes/_authenticated/calendar/-components/calendar/components/month-view/month-event-badge";
 import { calendarWeekEventCardVariants } from "@/routes/_authenticated/calendar/-components/calendar/components/week-and-day-view/event-block";
@@ -29,6 +30,21 @@ function ResizeLine() {
 
 /** Min height = one 15-min slot. Hour slot is 96px. Matches event-block.tsx. */
 const MIN_EVENT_HEIGHT_PX = (15 / 60) * 96;
+
+/** Drag overlay preview for a task item from the sidebar. */
+function TaskItemPreview({ taskItem }: { taskItem: TaskItemDragData["taskItem"] }) {
+	return (
+		<div
+			className="pointer-events-none flex max-w-[200px] flex-col gap-1 rounded-md border bg-background px-2 py-1.5 shadow-md"
+			style={{ minHeight: 40 }}
+		>
+			<span className="font-mono text-muted-foreground text-xs">
+				{taskItem.identifier ?? taskItem.externalTaskId}
+			</span>
+			<span className="line-clamp-2 font-medium text-sm">{taskItem.title}</span>
+		</div>
+	);
+}
 
 /** Drag overlay preview that matches the in-place month event badge UI (rounded pill, same colors/layout). */
 function MonthEventBadgePreview({
@@ -186,6 +202,9 @@ export function CalendarDragOverlayContent() {
 		}
 		if (data.type === "event-resize") {
 			return <ResizeLine />;
+		}
+		if (data.type === "task") {
+			return <TaskItemPreview taskItem={data.taskItem} />;
 		}
 		if (data.type === "event" && data.event) {
 			const w = activeNodeRect?.width ?? 120;

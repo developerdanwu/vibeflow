@@ -322,7 +322,10 @@ export function DayViewColumn({
 							style = { ...style, width: "100%", left: "0%" };
 						}
 						const isResizingThis = resizingEventId === event.id;
-						const isThisTheActiveEvent = activeData?.event?.id === event.id;
+						const isThisTheActiveEvent =
+							activeData &&
+							"event" in activeData &&
+							activeData.event.id === event.id;
 						const isOtherBeingDraggedOrResized =
 							active != null && !isThisTheActiveEvent;
 						const startMs = parseISO(event.startDate).getTime();

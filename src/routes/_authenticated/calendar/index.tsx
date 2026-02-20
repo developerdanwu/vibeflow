@@ -6,10 +6,7 @@ import {
 import { useGlobalStore } from "@/lib/global-store";
 import { localStorageSearchMiddleware } from "@/lib/localStorageSearchMiddleware";
 import { CalendarAgendaView } from "@/routes/_authenticated/calendar/-components/calendar/components/agenda-view/calendar-agenda-view";
-import {
-	DayWeekDndProvider,
-	MonthDndProvider,
-} from "@/routes/_authenticated/calendar/-components/calendar/components/dnd/dnd-provider";
+import { CalendarAndTasksDndProvider } from "@/routes/_authenticated/calendar/-components/calendar/components/dnd/dnd-provider";
 import { CalendarHeader } from "@/routes/_authenticated/calendar/-components/calendar/components/header/calendar-header";
 import { CalendarMonthView } from "@/routes/_authenticated/calendar/-components/calendar/components/month-view/calendar-month-view";
 import { CalendarMultiDayView } from "@/routes/_authenticated/calendar/-components/calendar/components/week-and-day-view/calendar-multi-day-view";
@@ -31,7 +28,8 @@ import { api } from "@convex/_generated/api";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useRouteContext } from "@tanstack/react-router";
 import { format, parse, startOfDay } from "date-fns";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
+import { useDefaultLayout, usePanelRef } from "react-resizable-panels";
 import { z } from "zod";
 
 const dayRangeEnum = z.enum(["1", "2", "3", "4", "5", "6", "W", "M"]);
@@ -106,6 +104,7 @@ function CalendarContent() {
 	const { view, date, dayRange } = useCalendarSearch();
 	const { auth } = useRouteContext({ from: "__root__" });
 	const user = auth.user;
+	const [_, store] = useGlobalStore();
 
 	const currentUser: TUser | null = user
 		? {
@@ -185,56 +184,87 @@ function CalendarContent() {
 	}, [events]);
 
 	const isLoading = convexEvents === undefined;
-	const [taskPanelOpen] = useGlobalStore((s) => s.context.taskPanelOpen);
+	const taskPanelRef = usePanelRef();
+
+	const { defaultLayout, onLayoutChanged } = useDefaultLayout({
+		id: "calendar-page",
+		storage: localStorage,
+	});
+
+	useEffect(() => {
+		const openTaskPanel = store.on("openTaskPanel", () => {
+			console.log("openTaskPanel", taskPanelRef.current?.expand());
+			taskPanelRef.current?.expand();
+		});
+
+		const closeTaskPanel = store.on("closeTaskPanel", () => {
+			console.log("closeTaskPanel");
+			taskPanelRef.current?.collapse();
+		});
+
+		return () => {
+			openTaskPanel.unsubscribe();
+			closeTaskPanel.unsubscribe();
+		};
+	}, [store, taskPanelRef.current]);
+
 	return (
 		<div className="calendar-container flex min-h-0 flex-1 flex-col bg-background">
-			<ResizablePanelGroup
-				className="h-full min-h-0 min-w-0 flex-1"
-				orientation="horizontal"
-			>
-				{taskPanelOpen ? (
-					<>
-						<ResizablePanel
-							defaultSize="25%"
-							maxSize={400}
-							minSize={240}
-							className="flex min-h-0 min-w-0 flex-1 flex-col"
-						>
-							<TaskSidebar />
-						</ResizablePanel>
-						<ResizableHandle withHandle={false} />
-					</>
-				) : null}
-				<ResizablePanel
-					defaultSize="75%"
-					minSize="30%"
-					className="flex min-h-0 min-w-0 flex-1 flex-col"
+			<CalendarAndTasksDndProvider view={view} dayRange={dayRange}>
+				<ResizablePanelGroup
+					defaultLayout={defaultLayout}
+					className="h-full min-h-0 min-w-0 flex-1"
+					onLayoutChanged={(layout) => {
+						if (taskPanelRef.current) {
+							store.send({
+								type: "syncTaskPanelOpen",
+								taskPanelOpen: !taskPanelRef.current?.isCollapsed(),
+							});
+						}
+
+						onLayoutChanged(layout);
+					}}
+					orientation="horizontal"
 				>
-					<div className="flex shrink-0 items-center gap-1">
-						<CalendarHeader dayRange={dayRange} events={events} />
-					</div>
-					<div className="flex min-h-0 flex-1 flex-col">
-						{isLoading ? (
-							<div className="flex h-full items-center justify-center">
-								<div className="flex flex-col items-center gap-4">
-									<div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-									<p className="text-muted-foreground">Loading events...</p>
+					<ResizablePanel
+						collapsible
+						id="task-panel"
+						defaultSize="25%"
+						collapsedSize={0}
+						maxSize={400}
+						minSize={240}
+						panelRef={taskPanelRef}
+						className="flex min-h-0 min-w-0 flex-1 flex-col"
+					>
+						<TaskSidebar />
+					</ResizablePanel>
+					<ResizableHandle withHandle={false} />
+					<ResizablePanel
+						id="calendar-panel"
+						defaultSize="75%"
+						minSize="30%"
+						className="flex min-h-0 min-w-0 flex-1 flex-col"
+					>
+						<div className="flex shrink-0 items-center gap-1">
+							<CalendarHeader dayRange={dayRange} events={events} />
+						</div>
+						<div className="flex min-h-0 flex-1 flex-col">
+							{isLoading ? (
+								<div className="flex h-full items-center justify-center">
+									<div className="flex flex-col items-center gap-4">
+										<div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+										<p className="text-muted-foreground">Loading events...</p>
+									</div>
 								</div>
-							</div>
-						) : (
-							<>
-								{view === "calendar" && dayRange === "M" ? (
-									<MonthDndProvider>
+							) : (
+								<>
+									{view === "calendar" && dayRange === "M" ? (
 										<CalendarMonthView
 											singleDayEvents={singleDayEvents}
 											multiDayEvents={multiDayEvents}
 										/>
-									</MonthDndProvider>
-								) : null}
-								{view === "calendar" && dayRange !== "M" ? (
-									<DayWeekDndProvider
-										view={dayRangeToDayCount(dayRange) === 1 ? "day" : "2day"}
-									>
+									) : null}
+									{view === "calendar" && dayRange !== "M" ? (
 										<CalendarMultiDayView
 											dayCount={
 												dayRangeToDayCount(dayRange) as
@@ -249,19 +279,19 @@ function CalendarContent() {
 											singleDayEvents={singleDayEvents}
 											multiDayEvents={multiDayEvents}
 										/>
-									</DayWeekDndProvider>
-								) : null}
-								{view === "agenda" ? (
-									<CalendarAgendaView
-										singleDayEvents={singleDayEvents}
-										multiDayEvents={multiDayEvents}
-									/>
-								) : null}
-							</>
-						)}
-					</div>
-				</ResizablePanel>
-			</ResizablePanelGroup>
+									) : null}
+									{view === "agenda" ? (
+										<CalendarAgendaView
+											singleDayEvents={singleDayEvents}
+											multiDayEvents={multiDayEvents}
+										/>
+									) : null}
+								</>
+							)}
+						</div>
+					</ResizablePanel>
+				</ResizablePanelGroup>
+			</CalendarAndTasksDndProvider>
 		</div>
 	);
 }

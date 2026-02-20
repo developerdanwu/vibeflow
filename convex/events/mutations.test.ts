@@ -13,7 +13,7 @@ describe("createEvent", () => {
 			eventData,
 		);
 
-		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get(eventId));
+		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get("events", eventId));
 		expect(event).toMatchObject({
 			title: "Test Event",
 			userId,
@@ -58,7 +58,7 @@ describe("createEvent", () => {
 				endTimestamp: undefined,
 			}),
 		);
-		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get(eventId));
+		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get("events", eventId));
 		expect(event).toMatchObject({
 			title: "Test Event",
 			userId,
@@ -101,7 +101,7 @@ describe("createEvent", () => {
 				},
 			],
 		});
-		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get(eventId));
+		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get("events", eventId));
 		expect(event).toMatchObject({
 			title: "Test Event",
 			userId,
@@ -141,7 +141,7 @@ describe("createEvent", () => {
 				},
 			],
 		});
-		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get(eventId));
+		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get("events", eventId));
 		expect(event).toMatchObject({
 			userId,
 			eventKind: "task",
@@ -188,7 +188,7 @@ describe("createEvent", () => {
 				},
 			],
 		});
-		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get(eventId));
+		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get("events", eventId));
 		expect(event).toMatchObject({ userId });
 		const links = await t.run(async (ctx: MutationCtx) =>
 			ctx.db
@@ -223,7 +223,7 @@ describe("createEvent", () => {
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
-		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get(eventId));
+		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get("events", eventId));
 		expect(event?.eventKind).toBe("event");
 	});
 });
@@ -239,7 +239,7 @@ describe("updateEvent", () => {
 			id: eventId,
 			title: "Updated Title",
 		});
-		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get(eventId));
+		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get("events", eventId));
 		expect(event?.title).toBe("Updated Title");
 		expect(event?.userId).toEqual(userId);
 	});
@@ -273,7 +273,7 @@ describe("updateEvent", () => {
 				busy: "free",
 				visibility: "public",
 			});
-			await ctx.db.delete(id);
+			await ctx.db.delete("events", id);
 			return id;
 		});
 		await expect(
@@ -318,7 +318,7 @@ describe("updateEvent", () => {
 			id: eventId,
 			eventKind: "task",
 		});
-		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get(eventId));
+		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get("events", eventId));
 		expect(event?.eventKind).toBe("task");
 	});
 
@@ -343,7 +343,7 @@ describe("updateEvent", () => {
 			id: eventId,
 			eventKind: "task",
 		});
-		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get(eventId));
+		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get("events", eventId));
 		expect(event?.eventKind).toBe("task");
 		expect(event?.busy).toBe("busy");
 		expect(event?.externalProvider).toBeUndefined();
@@ -422,7 +422,7 @@ describe("deleteEvent", () => {
 		await asUser.mutation(api.events.mutations.deleteEvent, {
 			id: eventId,
 		});
-		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get(eventId));
+		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get("events", eventId));
 		expect(event).toBeNull();
 	});
 
@@ -452,7 +452,7 @@ describe("deleteEvent", () => {
 				busy: "free",
 				visibility: "public",
 			});
-			await ctx.db.delete(id);
+			await ctx.db.delete("events", id);
 			return id;
 		});
 		await expect(

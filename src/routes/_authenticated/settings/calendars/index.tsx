@@ -32,11 +32,7 @@ import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import {
-	createFileRoute,
-	useLocation,
-	useRouteContext,
-} from "@tanstack/react-router";
+import { createFileRoute, useRouteContext } from "@tanstack/react-router";
 import { useAction } from "convex/react";
 import { Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -71,7 +67,6 @@ const GOOGLE_SCOPES =
 
 function CalendarsSettings() {
 	const { env, user } = useRouteContext({ from: "/_authenticated" });
-	const location = useLocation();
 	const { data: calendars, isLoading } = useQuery(
 		convexQuery(api.calendars.queries.getUserCalendars),
 	);
@@ -96,14 +91,14 @@ function CalendarsSettings() {
 
 	const [syncLoading, setSyncLoading] = useState(false);
 	const clientId = env.VITE_GOOGLE_CALENDAR_CLIENT_ID;
-	const redirectUri = `${location.url.origin}/oauth/google-callback`;
+	const redirectUri = `${env.VITE_WEB_ORIGIN}/oauth/google-callback`;
 	const encodedState = btoa(
 		JSON.stringify({
 			redirectUri,
 			userId: user._id,
 			returnTo: selectPlatform({
-				web: `${location.url.origin}/settings/calendars`,
-				tauri: "vibeflow://settings/calendars",
+				web: `${env.VITE_WEB_ORIGIN}/settings/calendars`,
+				tauri: `${env.VITE_TAURI_ORIGIN}/settings/calendars`,
 			}),
 		}),
 	);

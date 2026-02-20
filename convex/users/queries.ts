@@ -3,23 +3,6 @@ import type { Doc } from "../_generated/dataModel";
 import { internalQuery, query } from "../_generated/server";
 import { authQuery } from "../helpers";
 
-export const getCurrentUserId = query({
-	args: {},
-	handler: async (ctx) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			return null;
-		}
-
-		const user = await ctx.db
-			.query("users")
-			.withIndex("authId", (q) => q.eq("authId", identity.subject))
-			.unique();
-
-		return user?._id ?? null;
-	},
-});
-
 export const getUserByAuthId = query({
 	args: { authId: v.string() },
 	handler: async (ctx, args): Promise<Doc<"users"> | null> => {
@@ -34,7 +17,7 @@ export const getUserByAuthId = query({
 export const getUserById = internalQuery({
 	args: { userId: v.id("users") },
 	handler: async (ctx, args) => {
-		return await ctx.db.get(args.userId);
+		return await ctx.db.get("users", args.userId);
 	},
 });
 

@@ -59,7 +59,7 @@ Convex best practices (detailed):
 - [docs/custom-functions.md](docs/custom-functions.md)
 - [docs/error-handling.md](docs/error-handling.md) (ConvexError, shared errors.ts, one helper)
 - [docs/schema.md](docs/schema.md)
-- [docs/patterns.md](docs/patterns.md)
+- [docs/patterns.md](docs/patterns.md) (query/mutation/action patterns, index usage, **db.get/patch/replace/delete require table name**)
 - [docs/testing.md](docs/testing.md)
 - [docs/debugging.md](docs/debugging.md)
 - [docs/google-calendar-setup.md](docs/google-calendar-setup.md)

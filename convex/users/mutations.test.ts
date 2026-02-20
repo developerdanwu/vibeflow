@@ -1,5 +1,4 @@
 import { api } from "../_generated/api";
-import type { MutationCtx } from "../_generated/server";
 import { describe, test } from "../testFixture.nobundle";
 
 describe("ensureUserExists", () => {

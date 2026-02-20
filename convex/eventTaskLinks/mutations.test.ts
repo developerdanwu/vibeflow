@@ -18,7 +18,9 @@ describe("linkTaskToEvent", () => {
 				url: "https://linear.app/org/issue/1",
 			},
 		);
-		const link = await t.run(async (ctx: MutationCtx) => ctx.db.get(linkId));
+		const link = await t.run(async (ctx: MutationCtx) =>
+			ctx.db.get("eventTaskLinks", linkId),
+		);
 		expect(link).toMatchObject({
 			eventId,
 			externalTaskId: "linear-issue-1",

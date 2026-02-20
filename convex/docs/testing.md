@@ -40,7 +40,7 @@ describe("createEvent", () => {
   test("creates event when authenticated", async ({ t, auth, expect }) => {
     const { asUser, userId } = auth;
     const eventId = await asUser.mutation(api.events.mutations.createEvent, factories.event());
-    const event = await t.run((ctx: MutationCtx) => ctx.db.get(eventId));
+    const event = await t.run((ctx: MutationCtx) => ctx.db.get("events", eventId));
     expect(event?.userId).toEqual(userId);
   });
 
@@ -83,6 +83,10 @@ const result = await t.run(async (ctx: MutationCtx) => {
   return await ctx.db.query("events").collect();
 });
 ```
+
+### DB operations in tests: table name required
+
+Inside `t.run` (or any test code that uses `ctx.db`), use the same Convex DB API as in production: **`db.get`, `db.patch`, `db.replace`, and `db.delete` require the table name as the first argument.** See [patterns.md](patterns.md#database-get-patch-replace-delete-table-name-required).
 
 ### Multi-user tests: one backend, two users
 

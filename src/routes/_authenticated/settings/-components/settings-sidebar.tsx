@@ -1,14 +1,6 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
 	Sidebar,
 	SidebarContent,
-	SidebarFooter,
 	SidebarGroup,
 	SidebarGroupContent,
 	SidebarHeader,
@@ -16,12 +8,7 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import {
-	Link,
-	useNavigate,
-	useRouteContext,
-	useRouterState,
-} from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { ArrowLeft, Calendar, Plug, User } from "lucide-react";
 
 const navItems = [
@@ -31,10 +18,7 @@ const navItems = [
 ] as const;
 
 export function SettingsSidebar() {
-	const { auth } = useRouteContext({ from: "__root__" });
-	const user = auth.user;
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
-	const navigate = useNavigate();
 
 	return (
 		<Sidebar variant="expanded">
@@ -70,30 +54,6 @@ export function SettingsSidebar() {
 					</SidebarGroupContent>
 				</SidebarGroup>
 			</SidebarContent>
-
-			<SidebarFooter>
-				{user ? (
-					<DropdownMenu>
-						<DropdownMenuTrigger className="rounded-full outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-							<Avatar className="size-8">
-								<AvatarImage
-									src={user.profilePictureUrl ?? undefined}
-									alt={`${user.firstName} ${user.lastName}`}
-								/>
-								<AvatarFallback>
-									{user.firstName?.[0]}
-									{user.lastName?.[0]}
-								</AvatarFallback>
-							</Avatar>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent side="right" align="end">
-							<DropdownMenuItem onClick={() => navigate({ to: "/settings" })}>
-								Settings
-							</DropdownMenuItem>
-						</DropdownMenuContent>
-					</DropdownMenu>
-				) : null}
-			</SidebarFooter>
 		</Sidebar>
 	);
 }

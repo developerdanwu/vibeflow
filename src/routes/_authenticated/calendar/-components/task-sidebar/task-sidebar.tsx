@@ -1,9 +1,9 @@
-"use client";
-
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import type { TaskItemDragData } from "@/routes/_authenticated/calendar/-components/calendar/components/dnd/dnd-schemas";
 import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
+import { useDraggable } from "@dnd-kit/core";
 import { useQuery } from "@tanstack/react-query";
 import { useAction } from "convex/react";
 import { CalendarPlus, Loader2, RefreshCw } from "lucide-react";
@@ -22,6 +22,67 @@ type TaskItemRow = {
 	projectName?: string;
 	url: string;
 };
+
+function DraggableTaskRow({
+	item,
+	onSchedule,
+}: {
+	item: TaskItemRow;
+	onSchedule: (item: TaskItemRow) => void;
+}) {
+	const id = `task-${item._id}`;
+	const { attributes, isDragging, listeners, setNodeRef } = useDraggable({
+		id,
+		data: {
+			type: "task",
+			taskItem: {
+				_id: item._id,
+				externalTaskId: item.externalTaskId,
+				title: item.title,
+				identifier: item.identifier,
+				url: item.url,
+			},
+		} satisfies TaskItemDragData,
+	});
+	return (
+		<div
+			ref={setNodeRef}
+			className={`flex cursor-grab flex-col gap-1 rounded-md border bg-background p-2 text-sm active:cursor-grabbing ${isDragging ? "opacity-50" : ""}`}
+			{...listeners}
+			{...attributes}
+		>
+			<div className="flex items-start justify-between gap-1">
+				<span className="font-mono text-muted-foreground text-xs">
+					{item.identifier ?? item.externalTaskId}
+				</span>
+				<Button
+					variant="ghost"
+					size="icon-sm"
+					className="shrink-0"
+					onClick={(e) => {
+						e.stopPropagation();
+						onSchedule(item);
+					}}
+					title="Schedule on calendar"
+				>
+					<CalendarPlus className="size-4" />
+				</Button>
+			</div>
+			<span className="line-clamp-2 font-medium">{item.title}</span>
+			{(item.state ?? item.dueDate ?? item.projectName) && (
+				<div className="flex flex-wrap gap-x-2 gap-y-0.5 text-muted-foreground text-xs">
+					{item.state && (
+						<span className="rounded bg-muted px-1.5 py-0.5">{item.state}</span>
+					)}
+					{item.dueDate && <span>Due {item.dueDate}</span>}
+					{item.projectName && (
+						<span className="truncate">{item.projectName}</span>
+					)}
+				</div>
+			)}
+		</div>
+	);
+}
 
 export function TaskSidebar() {
 	const { data: taskItems, isLoading } = useQuery(
@@ -87,39 +148,11 @@ export function TaskSidebar() {
 							</p>
 						) : (
 							taskItems.map((item: TaskItemRow) => (
-								<div
+								<DraggableTaskRow
 									key={item._id}
-									className="flex flex-col gap-1 rounded-md border bg-background p-2 text-sm"
-								>
-									<div className="flex items-start justify-between gap-1">
-										<span className="font-mono text-muted-foreground text-xs">
-											{item.identifier ?? item.externalTaskId}
-										</span>
-										<Button
-											variant="ghost"
-											size="icon-sm"
-											className="shrink-0"
-											onClick={() => handleSchedule(item)}
-											title="Schedule on calendar"
-										>
-											<CalendarPlus className="size-4" />
-										</Button>
-									</div>
-									<span className="line-clamp-2 font-medium">{item.title}</span>
-									{(item.state ?? item.dueDate ?? item.projectName) && (
-										<div className="flex flex-wrap gap-x-2 gap-y-0.5 text-muted-foreground text-xs">
-											{item.state && (
-												<span className="rounded bg-muted px-1.5 py-0.5">
-													{item.state}
-												</span>
-											)}
-											{item.dueDate && <span>Due {item.dueDate}</span>}
-											{item.projectName && (
-												<span className="truncate">{item.projectName}</span>
-											)}
-										</div>
-									)}
-								</div>
+									item={item}
+									onSchedule={handleSchedule}
+								/>
 							))
 						)}
 					</div>

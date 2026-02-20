@@ -1,8 +1,5 @@
 import { isTauri } from "@/lib/tauri";
 
-/** Base URL for Tauri dev (Vite dev server). Used when a provider only accepts http(s) redirects. */
-const TAURI_DEV_ORIGIN = "http://localhost:3000";
-
 /**
  * Returns the OAuth redirect URI for the given path.
  * In Tauri: uses vibeflow:// scheme so the OS routes back to the app.

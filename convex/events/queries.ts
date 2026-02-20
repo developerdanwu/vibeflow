@@ -39,7 +39,7 @@ export const getEventById = authQuery({
 		id: v.id("events"),
 	},
 	handler: async (ctx, args) => {
-		const event = await ctx.db.get(args.id);
+		const event = await ctx.db.get("events", args.id);
 
 		if (!event) {
 			return null;
@@ -59,6 +59,6 @@ export const getEventById = authQuery({
 export const getEventByIdInternal = internalQuery({
 	args: { id: v.id("events") },
 	handler: async (ctx, args) => {
-		return await ctx.db.get(args.id);
+		return await ctx.db.get("events", args.id);
 	},
 });

@@ -23,7 +23,7 @@ export const saveConnection = internalMutation({
 		...connectionTokensValidator,
 	},
 	handler: async (ctx, args) => {
-		const user = await ctx.db.get(args.userId);
+		const user = await ctx.db.get("users", args.userId);
 		if (!user) {
 			throwConvexError(ErrorCode.USER_NOT_FOUND, "User not found");
 		}
@@ -48,7 +48,7 @@ export const updateConnectionTokens = internalMutation({
 		accessTokenExpiresAt: v.number(),
 	},
 	handler: async (ctx, args) => {
-		await ctx.db.patch(args.connectionId, {
+		await ctx.db.patch("calendarConnections", args.connectionId, {
 			accessToken: args.accessToken,
 			accessTokenExpiresAt: args.accessTokenExpiresAt,
 			updatedAt: Date.now(),
@@ -66,7 +66,10 @@ export const addExternalCalendar = internalMutation({
 		color: v.string(),
 	},
 	handler: async (ctx, args) => {
-		const connection = await ctx.db.get(args.connectionId);
+		const connection = await ctx.db.get(
+			"calendarConnections",
+			args.connectionId,
+		);
 		if (!connection || connection.userId === undefined) {
 			throwConvexError(ErrorCode.CONNECTION_NOT_FOUND, "Connection not found");
 		}
@@ -159,7 +162,7 @@ export const upsertEventFromExternal = internalMutation({
 			visibility: payload.visibility ?? "public",
 		};
 		if (existing) {
-			await ctx.db.patch(existing._id, doc);
+			await ctx.db.patch("events", existing._id, doc);
 			return existing._id;
 		}
 		return await ctx.db.insert("events", doc);
@@ -184,7 +187,7 @@ export const deleteEventByExternalId = internalMutation({
 			)
 			.unique();
 		if (event) {
-			await ctx.db.delete(event._id);
+			await ctx.db.delete("events", event._id);
 		}
 	},
 });
@@ -212,7 +215,7 @@ export const deleteEventsByExternalIdBatch = internalMutation({
 				)
 				.unique();
 			if (event) {
-				await ctx.db.delete(event._id);
+				await ctx.db.delete("events", event._id);
 			}
 		}
 	},
@@ -251,7 +254,7 @@ export const upsertEventsFromExternalBatch = internalMutation({
 				visibility: payload.visibility ?? "public",
 			};
 			if (existing) {
-				await ctx.db.patch(existing._id, doc);
+				await ctx.db.patch("events", existing._id, doc);
 			} else {
 				await ctx.db.insert("events", doc);
 			}
@@ -276,7 +279,9 @@ export const updateExternalCalendarSyncToken = internalMutation({
 			)
 			.unique();
 		if (ext) {
-			await ctx.db.patch(ext._id, { syncToken: args.syncToken });
+			await ctx.db.patch("externalCalendars", ext._id, {
+				syncToken: args.syncToken,
+			});
 		}
 	},
 });
@@ -300,7 +305,7 @@ export const updateExternalCalendarChannel = internalMutation({
 			)
 			.unique();
 		if (ext) {
-			await ctx.db.patch(ext._id, {
+			await ctx.db.patch("externalCalendars", ext._id, {
 				channelId: args.channelId,
 				resourceId: args.resourceId,
 				expiration: args.expiration,
@@ -319,7 +324,7 @@ export const patchEventExternalFields = internalMutation({
 		isEditable: v.boolean(),
 	},
 	handler: async (ctx, args) => {
-		await ctx.db.patch(args.eventId, {
+		await ctx.db.patch("events", args.eventId, {
 			externalProvider: args.externalProvider,
 			externalCalendarId: args.externalCalendarId,
 			externalEventId: args.externalEventId,

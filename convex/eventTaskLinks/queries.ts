@@ -11,7 +11,7 @@ export const getLinksByEventId = authQuery({
 			return [];
 		}
 		const eventId = args.eventId;
-		const event = await ctx.db.get(eventId);
+		const event = await ctx.db.get("events", eventId);
 		if (!event) {
 			return [];
 		}
@@ -44,7 +44,7 @@ export const getScheduledLinksByEventId = authQuery({
 			return [];
 		}
 		const eventId = args.eventId;
-		const event = await ctx.db.get(eventId);
+		const event = await ctx.db.get("events", eventId);
 		if (!event) {
 			return [];
 		}

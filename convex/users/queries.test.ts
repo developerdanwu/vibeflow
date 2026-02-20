@@ -1,22 +1,6 @@
 import { api } from "../_generated/api";
 import { describe, test } from "../testFixture.nobundle";
 
-describe("getCurrentUserId", () => {
-	test("returns null when not authenticated", async ({ t, expect }) => {
-		const userId = await t.query(api.users.queries.getCurrentUserId);
-		expect(userId).toBeNull();
-	});
-
-	test("returns user id when authenticated and user exists in DB", async ({
-		auth,
-		expect,
-	}) => {
-		const { asUser, userId } = auth;
-		const currentId = await asUser.query(api.users.queries.getCurrentUserId);
-		expect(currentId).toEqual(userId);
-	});
-});
-
 describe("getUserByAuthId", () => {
 	test("returns null for unknown authId", async ({ t, expect }) => {
 		const user = await t.query(api.users.queries.getUserByAuthId, {
