@@ -21,6 +21,7 @@ import {
 	ZEventSchema,
 } from "@/routes/_authenticated/calendar/-components/calendar/core/interfaces";
 import type { TEventColor } from "@/routes/_authenticated/calendar/-components/calendar/core/types";
+import { InboxSidebar } from "@/routes/_authenticated/calendar/-components/task-sidebar/inbox-sidebar";
 import { TaskSidebar } from "@/routes/_authenticated/calendar/-components/task-sidebar/task-sidebar";
 import "@/styles/calendar.css";
 import { convexQuery } from "@convex-dev/react-query";
@@ -105,7 +106,8 @@ function CalendarContent() {
 	const { auth } = useRouteContext({ from: "__root__" });
 	const user = auth.user;
 	const [_, store] = useGlobalStore();
-
+	const [taskPanelOpen] = useGlobalStore((s) => s.context.taskPanelOpen);
+	const [taskPanelId] = useGlobalStore((s) => s.context.taskPanelId);
 	const currentUser: TUser | null = user
 		? {
 				id: user.id,
@@ -236,7 +238,11 @@ function CalendarContent() {
 						panelRef={taskPanelRef}
 						className="flex min-h-0 min-w-0 flex-1 flex-col"
 					>
-						<TaskSidebar />
+						{taskPanelOpen && taskPanelId === "inbox" ? (
+							<InboxSidebar />
+						) : taskPanelOpen && taskPanelId === "all-tasks" ? (
+							<TaskSidebar />
+						) : null}
 					</ResizablePanel>
 					<ResizableHandle withHandle={false} />
 					<ResizablePanel

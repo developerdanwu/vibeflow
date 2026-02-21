@@ -14,20 +14,15 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import {
-	Link,
-	useNavigate,
-	useRouteContext,
-	useRouterState,
-} from "@tanstack/react-router";
-import { Calendar } from "lucide-react";
+import { useGlobalStore } from "@/lib/global-store";
+import { Link, useRouteContext } from "@tanstack/react-router";
+import { Calendar, Columns3, Inbox, Rows2 } from "lucide-react";
 
 export function CalendarSidebar() {
 	const { auth } = useRouteContext({ from: "__root__" });
 	const user = auth.user;
-	const pathname = useRouterState({ select: (s) => s.location.pathname });
-	const isCalendarActive = pathname === "/calendar";
-	const navigate = useNavigate();
+	const [taskPanelOpen, store] = useGlobalStore((s) => s.context.taskPanelOpen);
+	const [taskPanelId] = useGlobalStore((s) => s.context.taskPanelId);
 
 	return (
 		<Sidebar>
@@ -35,11 +30,46 @@ export function CalendarSidebar() {
 				<SidebarMenu>
 					<SidebarMenuItem>
 						<SidebarMenuButton
-							onClick={() => navigate({ to: "/calendar" })}
-							isActive={isCalendarActive}
-							tooltip="Home"
+							onClick={() => {
+								store.send({ type: "openTaskPanel", taskPanelId: "inbox" });
+							}}
+							isActive={taskPanelOpen && taskPanelId === "inbox"}
+							tooltip="Inbox"
 						>
-							<Calendar className="size-4" />
+							<Inbox />
+						</SidebarMenuButton>
+					</SidebarMenuItem>
+					<SidebarMenuItem>
+						<SidebarMenuButton
+							onClick={() => {
+								store.send({ type: "openTaskPanel", taskPanelId: "today" });
+							}}
+							isActive={taskPanelOpen && taskPanelId === "today"}
+							tooltip="Today"
+						>
+							<Calendar />
+						</SidebarMenuButton>
+					</SidebarMenuItem>
+					<SidebarMenuItem>
+						<SidebarMenuButton
+							onClick={() => {
+								store.send({ type: "openTaskPanel", taskPanelId: "upcoming" });
+							}}
+							isActive={taskPanelOpen && taskPanelId === "upcoming"}
+							tooltip="Upcoming"
+						>
+							<Columns3 />
+						</SidebarMenuButton>
+					</SidebarMenuItem>
+					<SidebarMenuItem>
+						<SidebarMenuButton
+							onClick={() => {
+								store.send({ type: "openTaskPanel", taskPanelId: "all-tasks" });
+							}}
+							isActive={taskPanelOpen && taskPanelId === "all-tasks"}
+							tooltip="All tasks"
+						>
+							<Rows2 />
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 				</SidebarMenu>

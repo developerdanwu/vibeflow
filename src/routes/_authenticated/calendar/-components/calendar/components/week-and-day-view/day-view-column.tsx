@@ -1,4 +1,5 @@
 import { PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import {
 	ZCalendarDragData,
@@ -6,8 +7,6 @@ import {
 } from "@/routes/_authenticated/calendar/-components/calendar/components/dnd/dnd-schemas";
 import { DropRangeRing } from "@/routes/_authenticated/calendar/-components/calendar/components/dnd/drop-range-ring";
 import { DroppableTimeBlock } from "@/routes/_authenticated/calendar/-components/calendar/components/dnd/droppable-time-block";
-import type { TEventPopoverFormData } from "@/routes/_authenticated/calendar/-components/event-popover/event-popover";
-import { ZEventPopoverForm } from "@/routes/_authenticated/calendar/-components/event-popover/event-popover";
 import { eventBadgeVariants } from "@/routes/_authenticated/calendar/-components/calendar/components/month-view/month-event-badge";
 import { CalendarTimeline } from "@/routes/_authenticated/calendar/-components/calendar/components/week-and-day-view/calendar-time-line";
 import { EventBlock } from "@/routes/_authenticated/calendar/-components/calendar/components/week-and-day-view/event-block";
@@ -16,8 +15,12 @@ import {
 	getEventBlockStyle,
 	isWorkingHour,
 } from "@/routes/_authenticated/calendar/-components/calendar/core/helpers";
-import { useDragToCreate } from "@/routes/_authenticated/calendar/-components/calendar/hooks/use-drag-to-create";
 import type { TEvent } from "@/routes/_authenticated/calendar/-components/calendar/core/interfaces";
+import { useDragToCreate } from "@/routes/_authenticated/calendar/-components/calendar/hooks/use-drag-to-create";
+import type { TEventPopoverFormData } from "@/routes/_authenticated/calendar/-components/event-popover/event-popover";
+import { ZEventPopoverForm } from "@/routes/_authenticated/calendar/-components/event-popover/event-popover";
+import type { TaskItemRow } from "@/routes/_authenticated/calendar/-components/task-sidebar/draggable-task-row";
+import { DraggableTaskRow } from "@/routes/_authenticated/calendar/-components/task-sidebar/draggable-task-row";
 import type { Popover as PopoverBase } from "@base-ui/react";
 import { mergeProps } from "@base-ui/react";
 import { useDndContext } from "@dnd-kit/core";
@@ -40,6 +43,10 @@ export interface DayViewColumnProps {
 	earliestEventHour: number;
 	latestEventHour: number;
 	groupedEvents: TEvent[][];
+	/** Tasks linked to events on this day (for collapsible content). */
+	tasksForDay?: TaskItemRow[];
+	/** Shared height for collapsible content (from parent). */
+	collapsibleContentHeight: number;
 }
 
 export function DayViewColumn({
@@ -51,6 +58,8 @@ export function DayViewColumn({
 	earliestEventHour,
 	latestEventHour,
 	groupedEvents,
+	tasksForDay = [],
+	collapsibleContentHeight,
 }: DayViewColumnProps) {
 	const { active, over } = useDndContext();
 	const activeResult = ZCalendarDragData.safeParse(active?.data.current);
@@ -70,7 +79,9 @@ export function DayViewColumn({
 		(s) => s.context.newEventDescription,
 	);
 	const [newEventStartTime] = useCalendar((s) => s.context.newEventStartTime);
-	const [, calendarStore] = useCalendar();
+	const [dayViewTasksCollapsibleOpen, calendarStore] = useCalendar(
+		(s) => s.context.dayViewTasksCollapsibleOpen,
+	);
 	const [newEventEndTime] = useCalendar((s) => s.context.newEventEndTime);
 
 	const activeTriggerId =
@@ -354,6 +365,28 @@ export function DayViewColumn({
 					}),
 				)}
 			</div>
+			{/* Collapsible content only (trigger is in time column); same height for all columns */}
+			{dayViewTasksCollapsibleOpen && (
+				<div className="sticky right-0 bottom-0 left-0 z-50 w-full shrink-0 border-t bg-background">
+					<ScrollArea
+						className="w-full"
+						style={{ height: collapsibleContentHeight }}
+					>
+						<div className="flex flex-col gap-1 p-2">
+							{tasksForDay.length === 0 ? (
+								<p className="py-4 text-center text-muted-foreground text-sm">
+									No tasks linked to events this day
+								</p>
+							) : (
+								tasksForDay.map((item) => (
+									<DraggableTaskRow key={item._id} item={item} />
+								))
+							)}
+						</div>
+					</ScrollArea>
+				</div>
+			)}
+
 			{isToday(day) && (
 				<CalendarTimeline
 					firstVisibleHour={earliestEventHour}

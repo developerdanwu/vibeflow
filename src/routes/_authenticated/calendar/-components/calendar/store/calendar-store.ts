@@ -22,6 +22,9 @@ const VISIBLE_HOURS: TVisibleHours = { from: 7, to: 18 };
 export const useCalendar = createStoreHook({
 	context: {
 		sidebarOpen: false,
+		/** Shared open state for the task collapsible in each day-view column (week/day view). */
+		dayViewTasksCollapsibleOpen:
+			localStorage.getItem("calendar-dayViewTasksCollapsibleOpen") === "true",
 		visibleHours: VISIBLE_HOURS,
 		newEventTitle: "",
 		newEventDescription: "",
@@ -41,6 +44,16 @@ export const useCalendar = createStoreHook({
 			...context,
 			sidebarOpen: false,
 		}),
+		setDayViewTasksCollapsibleOpen: (context, event: { open: boolean }) => {
+			localStorage.setItem(
+				"calendar-dayViewTasksCollapsibleOpen",
+				event.open.toString(),
+			);
+			return {
+				...context,
+				dayViewTasksCollapsibleOpen: event.open,
+			};
+		},
 		resetNewEvent: (context) => ({
 			...context,
 			newEventTitle: "",

@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { DroppableDayCell } from "@/routes/_authenticated/calendar/-components/calendar/components/dnd/droppable-day-cell";
@@ -10,8 +11,13 @@ import type { TEvent } from "@/routes/_authenticated/calendar/-components/calend
 import { EventPopover } from "@/routes/_authenticated/calendar/-components/event-popover/event-popover";
 import { useCalendarSearch } from "@/routes/_authenticated/calendar/index";
 import { Popover as PopoverBase } from "@base-ui/react";
+import { convexQuery } from "@convex-dev/react-query";
+import { api } from "@convex/_generated/api";
+import { useQuery } from "@tanstack/react-query";
 import { addDays, format, isToday, parseISO, startOfDay } from "date-fns";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useMemo } from "react";
+import type { TaskItemRow } from "@/routes/_authenticated/calendar/-components/task-sidebar/draggable-task-row";
 import { DayViewColumn } from "./day-view-column";
 import { DayViewMultiDayEventsRow } from "./day-view-multi-day-events-row";
 
@@ -37,7 +43,9 @@ export function CalendarMultiDayView({
 	const quickEventPopoverHandle = useMemo(() => PopoverBase.createHandle(), []);
 	const { date: selectedDate } = useCalendarSearch();
 	const [workingHours] = useCalendar((s) => s.context.workingHours);
-
+	const [dayViewTasksCollapsibleOpen, store] = useCalendar(
+		(s) => s.context.dayViewTasksCollapsibleOpen,
+	);
 	const days = useMemo(
 		() =>
 			[...Array(dayCount)].map((_, i) => startOfDay(addDays(selectedDate, i))),
@@ -68,6 +76,35 @@ export function CalendarMultiDayView({
 		() => eventsPerDay.map((dayEvents) => groupEvents(dayEvents)),
 		[eventsPerDay],
 	);
+
+	const dateStrings = useMemo(
+		() => days.map((day) => format(day, "yyyy-MM-dd")),
+		[days],
+	);
+	const { data: tasksPerDayRaw } = useQuery(
+		convexQuery(api.eventTaskLinks.queries.getTaskItemsLinkedToEventsOnDays, {
+			dateStrings,
+		}),
+	);
+	/** Tasks per day: scheduled + related tasks linked to events on that day. */
+	const tasksPerDay = useMemo(
+		() => (tasksPerDayRaw ?? dateStrings.map(() => [])) as TaskItemRow[][],
+		[tasksPerDayRaw, dateStrings],
+	);
+
+	/** Task count per day. */
+	const taskCountPerDay = useMemo(
+		() => tasksPerDay.map((tasks) => tasks.length),
+		[tasksPerDay],
+	);
+
+	/** Shared height for all day columns' collapsible content (based on column with most tasks). */
+	const collapsibleContentHeight = useMemo(() => {
+		const maxCount = Math.max(0, ...taskCountPerDay);
+		const rowHeight = 52;
+		const padding = 72;
+		return Math.min(280, padding + maxCount * rowHeight);
+	}, [taskCountPerDay]);
 
 	const renderHeader = () => {
 		return (
@@ -124,6 +161,24 @@ export function CalendarMultiDayView({
 									</div>
 								</div>
 							))}
+							{/* Single collapsible trigger in time column: chevron down when open, chevron up when closed */}
+							<div className="sticky bottom-0 flex items-center justify-center border-t bg-background py-1">
+								<Button
+									onClick={() =>
+										store.trigger.setDayViewTasksCollapsibleOpen({
+											open: !dayViewTasksCollapsibleOpen,
+										})
+									}
+									size="icon-sm"
+									variant="ghost"
+								>
+									{dayViewTasksCollapsibleOpen ? (
+										<ChevronDown />
+									) : (
+										<ChevronUp />
+									)}
+								</Button>
+							</div>
 						</div>
 						{days.map((day, i) => (
 							<DayViewColumn
@@ -136,6 +191,8 @@ export function CalendarMultiDayView({
 								earliestEventHour={earliestEventHour}
 								latestEventHour={latestEventHour}
 								groupedEvents={groupedPerDay[i] ?? []}
+								tasksForDay={tasksPerDay[i] ?? []}
+								collapsibleContentHeight={collapsibleContentHeight}
 							/>
 						))}
 					</div>

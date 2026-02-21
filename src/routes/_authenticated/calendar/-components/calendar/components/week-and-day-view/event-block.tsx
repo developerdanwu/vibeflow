@@ -205,7 +205,9 @@ export function EventBlock({
 									)}
 								</div>
 								{!event.allDay && (
-									<span className="shrink-0 text-xs opacity-90">{timeStr}</span>
+									<span className="shrink-0 text-left text-xs opacity-90">
+										{timeStr}
+									</span>
 								)}
 							</div>
 						) : (
@@ -233,7 +235,9 @@ export function EventBlock({
 										/>
 									)}
 								</div>
-								{!event.allDay && durationInMinutes > 25 && <p>{timeStr}</p>}
+								{!event.allDay && durationInMinutes > 25 && (
+									<p className="text-left">{timeStr}</p>
+								)}
 							</>
 						)}
 					</div>

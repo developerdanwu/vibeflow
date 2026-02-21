@@ -232,3 +232,99 @@ describe("getScheduledLinksByEventId", () => {
 		expect(scheduled).toEqual([]);
 	});
 });
+
+describe("getScheduledExternalTaskIdsForCurrentUser", () => {
+	test("returns empty array when user has no scheduled links", async ({
+		auth,
+		expect,
+	}) => {
+		const { asUser } = auth;
+		const ids = await asUser.query(
+			api.eventTaskLinks.queries.getScheduledExternalTaskIdsForCurrentUser,
+			{},
+		);
+		expect(ids).toEqual([]);
+	});
+
+	test("returns scheduled external task IDs for current user events", async ({
+		auth,
+		expect,
+	}) => {
+		const { asUser } = auth;
+		const eventId = await asUser.mutation(
+			api.events.mutations.createEvent,
+			factories.event(),
+		);
+		await asUser.mutation(api.eventTaskLinks.mutations.linkTaskToEvent, {
+			eventId,
+			externalTaskId: "linear-scheduled-a",
+			url: "https://linear.app/org/issue/a",
+			linkType: "scheduled",
+		});
+		await asUser.mutation(api.eventTaskLinks.mutations.linkTaskToEvent, {
+			eventId,
+			externalTaskId: "linear-scheduled-b",
+			url: "https://linear.app/org/issue/b",
+			linkType: "scheduled",
+		});
+		const ids = await asUser.query(
+			api.eventTaskLinks.queries.getScheduledExternalTaskIdsForCurrentUser,
+			{},
+		);
+		expect(ids).toHaveLength(2);
+		expect(ids).toEqual(
+			expect.arrayContaining(["linear-scheduled-a", "linear-scheduled-b"]),
+		);
+	});
+
+	test("excludes related-only links", async ({ auth, expect }) => {
+		const { asUser } = auth;
+		const eventId = await asUser.mutation(
+			api.events.mutations.createEvent,
+			factories.event(),
+		);
+		await asUser.mutation(api.eventTaskLinks.mutations.linkTaskToEvent, {
+			eventId,
+			externalTaskId: "linear-related-only",
+			url: "https://linear.app/org/issue/related",
+			linkType: "related",
+		});
+		const ids = await asUser.query(
+			api.eventTaskLinks.queries.getScheduledExternalTaskIdsForCurrentUser,
+			{},
+		);
+		expect(ids).toEqual([]);
+	});
+
+	test("returns unique IDs across multiple events", async ({
+		auth,
+		expect,
+	}) => {
+		const { asUser } = auth;
+		const e1 = await asUser.mutation(
+			api.events.mutations.createEvent,
+			factories.event(),
+		);
+		const e2 = await asUser.mutation(
+			api.events.mutations.createEvent,
+			factories.event(),
+		);
+		await asUser.mutation(api.eventTaskLinks.mutations.linkTaskToEvent, {
+			eventId: e1,
+			externalTaskId: "linear-same",
+			url: "https://linear.app/org/issue/same",
+			linkType: "scheduled",
+		});
+		await asUser.mutation(api.eventTaskLinks.mutations.linkTaskToEvent, {
+			eventId: e2,
+			externalTaskId: "linear-same",
+			url: "https://linear.app/org/issue/same",
+			linkType: "scheduled",
+		});
+		const ids = await asUser.query(
+			api.eventTaskLinks.queries.getScheduledExternalTaskIdsForCurrentUser,
+			{},
+		);
+		expect(ids).toEqual(["linear-same"]);
+	});
+});
