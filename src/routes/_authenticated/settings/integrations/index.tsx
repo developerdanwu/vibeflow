@@ -10,11 +10,7 @@ import { selectPlatform } from "@/lib/tauri";
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import {
-	createFileRoute,
-	useLocation,
-	useRouteContext,
-} from "@tanstack/react-router";
+import { createFileRoute, useRouteContext } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/settings/integrations/")({
@@ -25,12 +21,10 @@ function IntegrationsSettings() {
 	const { env, user } = useRouteContext({
 		from: "/_authenticated",
 	});
-	const test = useLocation();
-	console.log("ORIGIN", test);
 
 	const clientId = env.VITE_LINEAR_CLIENT_ID;
 	// Linear only accepts http(s) callback URLs; public route so system-browser flow works
-	const redirectUri = `http://localhost:3000/oauth/linear-callback`;
+	const redirectUri = `${env.VITE_WEB_ORIGIN}/oauth/linear-callback`;
 	const encodedState = btoa(
 		JSON.stringify({
 			redirectUri,
