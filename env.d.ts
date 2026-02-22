@@ -14,7 +14,5 @@ interface ImportMetaEnv {
 	readonly VITE_CONVEX_SITE_URL: string;
 	readonly CONVEX_DEPLOYMENT: string;
 	readonly WORKOS_API_KEY: string;
-	readonly WORKOS_COOKIE_PASSWORD: string;
-	readonly WORKOS_REDIRECT_URI: string;
 	readonly WORKOS_CLIENT_ID: string;
 }

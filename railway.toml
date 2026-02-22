@@ -6,6 +6,7 @@ builder = "RAILPACK"
 buildCommand = "pnpm install && pnpm run build"
 
 [deploy]
-preDeployCommand = ["pnpm exec convex deploy"]
+# Sync Railway env to Convex, then deploy (script runs convex env set for listed vars, then convex deploy)
+preDeployCommand = ["node scripts/sync-convex-env.js"]
 startCommand = "pnpm exec serve dist -s -l $PORT"
 healthcheckPath = "/"

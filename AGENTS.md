@@ -69,7 +69,7 @@ pnpm tauri:build    # Build static frontend + Tauri app (same vite.config.ts, ou
 
 ### Deploy on Railway
 
-VibeFlow can be deployed to [Railway](https://railway.com) using the config-as-code file `railway.toml`. Each deploy builds the frontend, runs `convex deploy`, then serves the static app.
+VibeFlow can be deployed to [Railway](https://railway.com) using the config-as-code file `railway.toml`. Each deploy builds the frontend, runs preDeploy (syncs Convex env from Railway, then `convex deploy`), then serves the static app.
 
 **One-time setup**
 1. Create a project and service on Railway, connect the repo.
