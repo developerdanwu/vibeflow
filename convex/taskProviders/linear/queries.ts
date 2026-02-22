@@ -1,7 +1,9 @@
+import type { WorkflowId } from "@convex-dev/workflow";
 import { v } from "convex/values";
 import { z } from "zod";
 import { internalQuery } from "../../_generated/server";
 import { authQuery } from "../../helpers";
+import { workflow } from "../../workflow";
 
 /** Internal: get connection with tokens for actions (e.g. token refresh, API calls). */
 export const getConnectionByUserId = internalQuery({
@@ -38,7 +40,24 @@ export const getMyLinearConnection = authQuery({
 		return {
 			connectionId: connection._id,
 			providerMetadata: connection.providerMetadata,
+			latestSyncWorkflowRunId: connection.latestSyncWorkflowRunId,
+			lastSyncErrorMessage: connection.lastSyncErrorMessage,
 		};
+	},
+});
+
+/** Auth: get sync workflow run status (only for current user's Linear connection run). */
+export const getLinearSyncWorkflowStatus = authQuery({
+	args: z.object({ workflowId: z.string() }),
+	handler: async (ctx, args) => {
+		const conn = await ctx.db
+			.query("taskConnections")
+			.withIndex("by_latestSyncWorkflowRunId", (q) =>
+				q.eq("latestSyncWorkflowRunId", args.workflowId),
+			)
+			.first();
+		if (!conn || conn.userId !== ctx.user._id) return null;
+		return await workflow.status(ctx, args.workflowId as WorkflowId);
 	},
 });
 

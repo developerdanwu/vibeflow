@@ -28,8 +28,8 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 		const unregisterGlobalTauriShortcut = await registerGlobalTauriShortcuts();
 		const auth = await context.authPromise;
 		return {
-			unregisterGlobalTauriShortcut,
 			auth,
+			unregisterGlobalTauriShortcut,
 		};
 	},
 });

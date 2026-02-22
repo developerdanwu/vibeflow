@@ -4,7 +4,7 @@ import { calendar, type calendar_v3 } from "@googleapis/calendar";
 import { v } from "convex/values";
 import { z } from "zod";
 import { OAuth2Client } from "google-auth-library";
-import { internal } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { action, internalAction } from "../_generated/server";
 import { ErrorCode, throwConvexError } from "../errors";
@@ -261,7 +261,7 @@ export const exchangeCode = action({
 	},
 });
 
-/** Internal: sync one Google calendar (used by syncMyCalendars and webhook/cron). */
+/** Internal: sync one Google calendar. Only invoked from sync workflow step; callers should start the workflow (syncWorkflow.startSyncWorkflowInternal) instead. */
 export const syncCalendar = internalAction({
 	args: {
 		connectionId: v.id("calendarConnections"),
@@ -634,10 +634,13 @@ export const runFallbackSync = internalAction({
 		);
 		for (const { connectionId, externalCalendarId } of list) {
 			try {
-				await ctx.runAction(internal.googleCalendar.actionsNode.syncCalendar, {
-					connectionId,
-					externalCalendarId,
-				});
+				await ctx.runMutation(
+					internal.googleCalendar.syncWorkflow.startSyncWorkflowInternal,
+					{
+						connectionId,
+						externalCalendarId,
+					},
+				);
 			} catch (e) {
 				console.warn(
 					"runFallbackSync failed",
@@ -963,22 +966,10 @@ export const deleteEventFromGoogle = internalAction({
 	},
 });
 
-/** Public: sync all Google calendars for the current user (e.g. "Sync now" button). */
+/** Public: sync all (Google calendars + Linear tasks) for the current user (e.g. "Sync now" button). Delegates to one mutation to avoid connection loss. */
 export const syncMyCalendars = authAction({
 	args: z.object({}),
 	handler: async (ctx) => {
-		const data = await ctx.runQuery(
-			internal.googleCalendar.queries.getConnectionByUserId,
-			{ userId: ctx.user._id },
-		);
-		if (!data) {
-			return; // No Google connection
-		}
-		for (const externalCalendarId of data.externalCalendarIds) {
-			await ctx.runAction(internal.googleCalendar.actionsNode.syncCalendar, {
-				connectionId: data.connectionId,
-				externalCalendarId,
-			});
-		}
+		await ctx.runMutation(api.syncWorkflow.startAllSyncs, {});
 	},
 });

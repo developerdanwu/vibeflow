@@ -288,6 +288,31 @@ export const updateExternalCalendarSyncToken = internalMutation({
 	},
 });
 
+/** Internal: set latest sync workflow run id (and clear last error) when starting a sync. */
+export const setLatestSyncWorkflowRunId = internalMutation({
+	args: {
+		connectionId: v.id("calendarConnections"),
+		externalCalendarId: v.string(),
+		workflowRunId: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const ext = await ctx.db
+			.query("externalCalendars")
+			.withIndex("by_connection_and_external_id", (q) =>
+				q
+					.eq("connectionId", args.connectionId)
+					.eq("externalCalendarId", args.externalCalendarId),
+			)
+			.unique();
+		if (ext) {
+			await ctx.db.patch("externalCalendars", ext._id, {
+				latestSyncWorkflowRunId: args.workflowRunId,
+				lastSyncErrorMessage: undefined,
+			});
+		}
+	},
+});
+
 /** Internal: update watch channel info (Google push). */
 export const updateExternalCalendarChannel = internalMutation({
 	args: {

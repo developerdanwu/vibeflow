@@ -85,6 +85,8 @@ export default defineSchema({
 		resourceId: v.optional(v.string()),
 		expiration: v.optional(v.number()),
 		subscriptionId: v.optional(v.string()),
+		latestSyncWorkflowRunId: v.optional(v.string()),
+		lastSyncErrorMessage: v.optional(v.string()),
 	})
 		.index("by_connection", ["connectionId"])
 		.index("by_connection_and_external_id", [
@@ -96,7 +98,8 @@ export default defineSchema({
 		.index("by_provider_and_external_id", [
 			"provider",
 			"externalCalendarId",
-		]),
+		])
+		.index("by_latestSyncWorkflowRunId", ["latestSyncWorkflowRunId"]),
 
 	userPreferences: defineTable({
 		userId: v.id("users"),
@@ -123,7 +126,11 @@ export default defineSchema({
 		providerMetadata: v.optional(v.any()),
 		createdAt: v.number(),
 		updatedAt: v.number(),
-	}).index("by_user_and_provider", ["userId", "provider"]),
+		latestSyncWorkflowRunId: v.optional(v.string()),
+		lastSyncErrorMessage: v.optional(v.string()),
+	})
+		.index("by_user_and_provider", ["userId", "provider"])
+		.index("by_latestSyncWorkflowRunId", ["latestSyncWorkflowRunId"]),
 	taskItems: defineTable({
 		userId: v.id("users"),
 		connectionId: v.id("taskConnections"),

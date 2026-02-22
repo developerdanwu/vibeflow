@@ -7,7 +7,7 @@ import { z } from "zod";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import type { ActionCtx } from "../../_generated/server";
-import { action } from "../../_generated/server";
+import { action, internalAction } from "../../_generated/server";
 import { ErrorCode, throwConvexError } from "../../errors";
 import { authAction } from "../../helpers";
 
@@ -234,18 +234,22 @@ export async function getLinearClient(
 	};
 }
 
-/** Fetch current user's assigned Linear issues (non-completed) and cache in taskItems. */
-export const fetchMyIssues = authAction({
-	args: z.object({}),
-	handler: async (ctx): Promise<{ count: number }> => {
+/** Internal: sync Linear issues for one connection (used by sync workflow step). */
+export const syncLinearIssues = internalAction({
+	args: { connectionId: v.id("taskConnections") },
+	handler: async (ctx, args) => {
 		const connection = await ctx.runQuery(
-			internal.taskProviders.linear.queries.getConnectionByUserId,
-			{ userId: ctx.user._id },
+			internal.taskProviders.linear.queries.getConnectionById,
+			{ connectionId: args.connectionId },
 		);
-		if (!connection) {
-			throwConvexError(ErrorCode.LINEAR_NOT_CONNECTED, "Linear not connected");
+		if (!connection || typeof connection !== "object" || !("userId" in connection)) {
+			throwConvexError(
+				ErrorCode.LINEAR_CONNECTION_NOT_FOUND,
+				"Linear connection not found",
+			);
 		}
-		const { client } = await getLinearClient(ctx, connection._id);
+		const userId = (connection as { userId: Id<"users"> }).userId;
+		const { client } = await getLinearClient(ctx, args.connectionId);
 		const viewer = await client.viewer;
 		if (!viewer) {
 			throwConvexError(
@@ -279,11 +283,29 @@ export const fetchMyIssues = authAction({
 		await ctx.runMutation(
 			internal.taskProviders.linear.mutations.upsertTaskItems,
 			{
-				userId: ctx.user._id,
-				connectionId: connection._id,
+				userId,
+				connectionId: args.connectionId,
 				items,
 			},
 		);
-		return { count: items.length };
+	},
+});
+
+/** Start Linear issues sync workflow (thin entry point; status via getMyLinearConnection + getLinearSyncWorkflowStatus). */
+export const fetchMyIssues = authAction({
+	args: z.object({}),
+	handler: async (ctx): Promise<{ started: boolean }> => {
+		const connection = await ctx.runQuery(
+			internal.taskProviders.linear.queries.getConnectionByUserId,
+			{ userId: ctx.user._id },
+		);
+		if (!connection) {
+			throwConvexError(ErrorCode.LINEAR_NOT_CONNECTED, "Linear not connected");
+		}
+		await ctx.runMutation(
+			internal.taskProviders.linear.syncWorkflow.startSyncWorkflowInternal,
+			{ connectionId: connection._id },
+		);
+		return { started: true };
 	},
 });

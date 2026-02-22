@@ -72,6 +72,23 @@ export const updateConnectionTokens = internalMutation({
 	},
 });
 
+/** Internal: set latest sync workflow run id (and clear last error) when starting a sync. */
+export const setLatestSyncWorkflowRunId = internalMutation({
+	args: {
+		connectionId: v.id("taskConnections"),
+		workflowRunId: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const conn = await ctx.db.get("taskConnections", args.connectionId);
+		if (conn) {
+			await ctx.db.patch("taskConnections", args.connectionId, {
+				latestSyncWorkflowRunId: args.workflowRunId,
+				lastSyncErrorMessage: undefined,
+			});
+		}
+	},
+});
+
 /** Internal: delete task connection (disconnect). */
 export const removeConnection = internalMutation({
 	args: {

@@ -1,7 +1,9 @@
+import type { WorkflowId } from "@convex-dev/workflow";
 import { v } from "convex/values";
 import { z } from "zod";
 import { internalQuery } from "../_generated/server";
 import { authQuery } from "../helpers";
+import { workflow } from "../workflow";
 import { providerValidator } from "./mutations";
 
 /** Auth: get current user's Google connection and calendars for UI. */
@@ -27,8 +29,30 @@ export const getMyGoogleConnection = authQuery({
 				calendarId: ext.calendarId,
 				name: ext.name,
 				color: ext.color,
+				latestSyncWorkflowRunId: ext.latestSyncWorkflowRunId,
+				lastSyncErrorMessage: ext.lastSyncErrorMessage,
 			})),
 		};
+	},
+});
+
+/** Auth: get sync workflow run status (only for current user's calendar runs). */
+export const getSyncWorkflowStatus = authQuery({
+	args: z.object({ workflowId: z.string() }),
+	handler: async (ctx, args) => {
+		const ext = await ctx.db
+			.query("externalCalendars")
+			.withIndex("by_latestSyncWorkflowRunId", (q) =>
+				q.eq("latestSyncWorkflowRunId", args.workflowId),
+			)
+			.first();
+		if (!ext) return null;
+		const connection = await ctx.db.get(
+			"calendarConnections",
+			ext.connectionId,
+		);
+		if (!connection || connection.userId !== ctx.user._id) return null;
+		return await workflow.status(ctx, args.workflowId as WorkflowId);
 	},
 });
 

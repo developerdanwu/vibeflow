@@ -16,7 +16,7 @@ export const googleCalendarWebhook = httpAction(async (ctx, request) => {
 	if (data) {
 		await ctx.scheduler.runAfter(
 			0,
-			internal.googleCalendar.actionsNode.syncCalendar,
+			internal.googleCalendar.syncWorkflow.startSyncWorkflowInternal,
 			{
 				connectionId: data.connectionId,
 				externalCalendarId: data.externalCalendarId,

@@ -20,6 +20,7 @@ import {
 	type TUser,
 	ZEventSchema,
 } from "@/routes/_authenticated/calendar/-components/calendar/core/interfaces";
+import type { TDayRange } from "@/routes/_authenticated/calendar/-components/calendar/core/types";
 import { InboxSidebar } from "@/routes/_authenticated/calendar/-components/task-sidebar/inbox-sidebar";
 import { TaskSidebar } from "@/routes/_authenticated/calendar/-components/task-sidebar/task-sidebar";
 import "@/styles/calendar.css";
@@ -27,7 +28,15 @@ import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useRouteContext } from "@tanstack/react-router";
-import { format, parse, startOfDay } from "date-fns";
+import {
+	addDays,
+	addMonths,
+	format,
+	parse,
+	startOfDay,
+	subDays,
+	subMonths,
+} from "date-fns";
 import { useEffect, useMemo } from "react";
 import { useDefaultLayout, usePanelRef } from "react-resizable-panels";
 import { z } from "zod";
@@ -78,6 +87,43 @@ export const Route = createFileRoute("/_authenticated/calendar/")({
 				},
 			),
 		],
+	},
+	loaderDeps: ({ search }) => ({
+		date: search.date,
+		view: search.view,
+		dayRange: search.dayRange,
+	}),
+	loader: async ({ context, deps }) => {
+		const dateStr =
+			deps.date ?? format(startOfDay(new Date()), "yyyy-MM-dd");
+		const view = (deps.view ?? "calendar") as "calendar" | "agenda";
+		const dayRange = (deps.dayRange ?? "M") as TDayRange;
+		const date = parse(dateStr, "yyyy-MM-dd", new Date());
+		const stepDays = dayRangeToDayCount(dayRange);
+		const stepByDays = stepDays !== null;
+		const prevDate = stepByDays
+			? subDays(date, stepDays)
+			: subMonths(date, 1);
+		const nextDate = stepByDays
+			? addDays(date, stepDays)
+			: addMonths(date, 1);
+		const prevRange = getCalendarVisibleRange(view, prevDate, dayRange);
+		const nextRange = getCalendarVisibleRange(view, nextDate, dayRange);
+		const queryClient = context.queryClient;
+		await Promise.all([
+			queryClient.prefetchQuery(
+				convexQuery(api.events.queries.getEventsByDateRange, {
+					startTimestamp: prevRange.startTimestamp,
+					endTimestamp: prevRange.endTimestamp,
+				}),
+			),
+			queryClient.prefetchQuery(
+				convexQuery(api.events.queries.getEventsByDateRange, {
+					startTimestamp: nextRange.startTimestamp,
+					endTimestamp: nextRange.endTimestamp,
+				}),
+			),
+		]);
 	},
 	component: CalendarRoute,
 });
@@ -178,7 +224,6 @@ function CalendarContent() {
 		});
 	}, [events]);
 
-	const isLoading = convexEvents === undefined;
 	const taskPanelRef = usePanelRef();
 
 	const { defaultLayout, onLayoutChanged } = useDefaultLayout({
@@ -248,45 +293,27 @@ function CalendarContent() {
 							<CalendarHeader dayRange={dayRange} events={events} />
 						</div>
 						<div className="flex min-h-0 flex-1 flex-col">
-							{isLoading ? (
-								<div className="flex h-full items-center justify-center">
-									<div className="flex flex-col items-center gap-4">
-										<div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-										<p className="text-muted-foreground">Loading events...</p>
-									</div>
-								</div>
-							) : (
-								<>
-									{view === "calendar" && dayRange === "M" ? (
-										<CalendarMonthView
-											singleDayEvents={singleDayEvents}
-											multiDayEvents={multiDayEvents}
-										/>
-									) : null}
-									{view === "calendar" && dayRange !== "M" ? (
-										<CalendarMultiDayView
-											dayCount={
-												dayRangeToDayCount(dayRange) as
-													| 1
-													| 2
-													| 3
-													| 4
-													| 5
-													| 6
-													| 7
-											}
-											singleDayEvents={singleDayEvents}
-											multiDayEvents={multiDayEvents}
-										/>
-									) : null}
-									{view === "agenda" ? (
-										<CalendarAgendaView
-											singleDayEvents={singleDayEvents}
-											multiDayEvents={multiDayEvents}
-										/>
-									) : null}
-								</>
-							)}
+							{view === "calendar" && dayRange === "M" ? (
+								<CalendarMonthView
+									singleDayEvents={singleDayEvents}
+									multiDayEvents={multiDayEvents}
+								/>
+							) : null}
+							{view === "calendar" && dayRange !== "M" ? (
+								<CalendarMultiDayView
+									dayCount={
+										dayRangeToDayCount(dayRange) as 1 | 2 | 3 | 4 | 5 | 6 | 7
+									}
+									singleDayEvents={singleDayEvents}
+									multiDayEvents={multiDayEvents}
+								/>
+							) : null}
+							{view === "agenda" ? (
+								<CalendarAgendaView
+									singleDayEvents={singleDayEvents}
+									multiDayEvents={multiDayEvents}
+								/>
+							) : null}
 						</div>
 					</ResizablePanel>
 				</ResizablePanelGroup>

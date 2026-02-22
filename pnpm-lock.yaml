@@ -14,6 +14,9 @@ importers:
       '@convex-dev/react-query':
         specifier: 0.1.0
         version: 0.1.0(@tanstack/react-query@5.90.20(react@19.2.3))(convex@1.31.6(react@19.2.3))
+      '@convex-dev/workflow':
+        specifier: ^0.3.4
+        version: 0.3.4(@convex-dev/workpool@0.2.19(convex-helpers@0.1.113(@standard-schema/spec@1.1.0)(convex@1.31.6(react@19.2.3))(react@19.2.3)(typescript@5.9.3)(zod@4.3.6))(convex@1.31.6(react@19.2.3)))(convex-helpers@0.1.113(@standard-schema/spec@1.1.0)(convex@1.31.6(react@19.2.3))(react@19.2.3)(typescript@5.9.3)(zod@4.3.6))(convex@1.31.6(react@19.2.3))
       '@convex-dev/workos':
         specifier: ^0.0.1
         version: 0.0.1(@edge-runtime/vm@5.0.0)(@types/debug@4.1.12)(@types/node@22.19.7)(convex@1.31.6(react@19.2.3))(jiti@2.6.1)(jsdom@27.4.0)(lightningcss@1.30.2)(react@19.2.3)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
@@ -557,6 +560,13 @@ packages:
     peerDependencies:
       '@tanstack/react-query': ^5.0.0
       convex: ^1.29.3
+
+  '@convex-dev/workflow@0.3.4':
+    resolution: {integrity: sha512-uX9qhEbgkgt+touvgLnyKztussT3m5q4c2XH/iBNQxzk8TlL29F1+UeoCxXA6WibWEpOQLeuFA6/QMVP4tEX1w==}
+    peerDependencies:
+      '@convex-dev/workpool': ^0.3.0
+      convex: ^1.24.8
+      convex-helpers: ^0.1.99
 
   '@convex-dev/workos-authkit@0.1.5':
     resolution: {integrity: sha512-G6KD1JfHQ66JOrOyJkgRETAauIoI4tro062WHoy1dJBla7UFrggD6b9MI/rsHI1kebl5rwsHYsWhd+mc44RpAA==}
@@ -3867,6 +3877,9 @@ packages:
     resolution: {integrity: sha512-6t10qk83GOG8p0vKmaCr8eiilZwO171AvbROMtvvNiwrTly62t+7XkA8RdIIVbpMhCASAsxgAzdRSwh6nw/5Dg==}
     engines: {node: '>=4'}
 
+  async-channel@0.2.0:
+    resolution: {integrity: sha512-BJyjI/sfKlyijaBt2hbOSxT28xGNtLR0QLzAKO1Hlnv5BULY7sAoYoTPW3lfr1ZIC7y+FxabxO9T8GXpyoofGg==}
+
   babel-dead-code-elimination@1.0.12:
     resolution: {integrity: sha512-GERT7L2TiYcYDtYk1IpD+ASAYXjKbLTDPhBtYj7X1NuRMDTMtAx9kyBenub1Ev41lo91OHCKdmP+egTDmfQ7Ig==}
 
@@ -6460,6 +6473,13 @@ snapshots:
     dependencies:
       '@tanstack/react-query': 5.90.20(react@19.2.3)
       convex: 1.31.6(react@19.2.3)
+
+  '@convex-dev/workflow@0.3.4(@convex-dev/workpool@0.2.19(convex-helpers@0.1.113(@standard-schema/spec@1.1.0)(convex@1.31.6(react@19.2.3))(react@19.2.3)(typescript@5.9.3)(zod@4.3.6))(convex@1.31.6(react@19.2.3)))(convex-helpers@0.1.113(@standard-schema/spec@1.1.0)(convex@1.31.6(react@19.2.3))(react@19.2.3)(typescript@5.9.3)(zod@4.3.6))(convex@1.31.6(react@19.2.3))':
+    dependencies:
+      '@convex-dev/workpool': 0.2.19(convex-helpers@0.1.113(@standard-schema/spec@1.1.0)(convex@1.31.6(react@19.2.3))(react@19.2.3)(typescript@5.9.3)(zod@4.3.6))(convex@1.31.6(react@19.2.3))
+      async-channel: 0.2.0
+      convex: 1.31.6(react@19.2.3)
+      convex-helpers: 0.1.113(@standard-schema/spec@1.1.0)(convex@1.31.6(react@19.2.3))(react@19.2.3)(typescript@5.9.3)(zod@4.3.6)
 
   '@convex-dev/workos-authkit@0.1.5(@edge-runtime/vm@5.0.0)(@standard-schema/spec@1.1.0)(@types/debug@4.1.12)(@types/node@22.19.7)(convex@1.31.6(react@19.2.3))(jiti@2.6.1)(jsdom@27.4.0)(lightningcss@1.30.2)(react@19.2.3)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)(zod@4.3.6)':
     dependencies:
@@ -10161,6 +10181,8 @@ snapshots:
   ast-types@0.16.1:
     dependencies:
       tslib: 2.8.1
+
+  async-channel@0.2.0: {}
 
   babel-dead-code-elimination@1.0.12:
     dependencies:
