@@ -1,0 +1,11 @@
+# Railway config-as-code for VibeFlow
+# https://docs.railway.com/config-as-code/reference
+
+[build]
+builder = "RAILPACK"
+buildCommand = "pnpm install && pnpm run build"
+
+[deploy]
+preDeployCommand = ["pnpm exec convex deploy"]
+startCommand = "pnpm exec serve dist -s -l $PORT"
+healthcheckPath = "/"

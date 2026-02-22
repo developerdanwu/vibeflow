@@ -67,6 +67,32 @@ pnpm tauri:build    # Build static frontend + Tauri app (same vite.config.ts, ou
 - **Port Conflicts:** Dev server runs on port 3000 by default
 - **Node Version:** Requires Node.js 18+
 
+### Deploy on Railway
+
+VibeFlow can be deployed to [Railway](https://railway.com) using the config-as-code file `railway.toml`. Each deploy builds the frontend, runs `convex deploy`, then serves the static app.
+
+**One-time setup**
+1. Create a project and service on Railway, connect the repo.
+2. In Convex Dashboard, create a [production deploy key](https://docs.convex.dev/cli/deploy-key-types) and add it to Railway as `CONVEX_DEPLOY_KEY`.
+3. Set all required environment variables in the Railway service (see table below).
+4. After the first deploy, set `VITE_WEB_ORIGIN` and `VITE_WEB_WORKOS_REDIRECT_URI` to your Railway URL (e.g. `https://<your-app>.up.railway.app`) and add that redirect URI in the WorkOS Dashboard.
+
+**Required environment variables** (set in Railway dashboard or CLI):
+
+| Variable | Purpose |
+| -------- | ------- |
+| `CONVEX_DEPLOY_KEY` | Convex production deploy key; used by preDeployCommand to run `convex deploy` non-interactively. |
+| `VITE_CONVEX_URL` | Convex deployment URL (must match the deployment the deploy key targets). |
+| `VITE_GOOGLE_CALENDAR_CLIENT_ID` | Google OAuth |
+| `VITE_LINEAR_CLIENT_ID` | Linear OAuth |
+| `VITE_WORKOS_CLIENT_ID` | WorkOS AuthKit |
+| `VITE_WEB_WORKOS_REDIRECT_URI` | WorkOS redirect (must match Railway URL). |
+| `VITE_TAURI_WORKOS_REDIRECT_URI` | Tauri desktop redirect (e.g. `tauri://localhost/oauth/workos-callback`) |
+| `VITE_WEB_ORIGIN` | Web app origin (e.g. Railway URL or custom domain) |
+| `VITE_TAURI_ORIGIN` | Tauri origin (e.g. `tauri://localhost`) |
+
+**Deploys:** Push to the connected branch or use Railway CLI. Build runs per `railway.toml`; then `preDeployCommand` runs `convex deploy`; then the static server starts. Each deploy updates both the frontend and the Convex backend. WorkOS redirect URIs must include your Railway (or custom) domain.
+
 ---
 
 ## Code Structure and Important Paths

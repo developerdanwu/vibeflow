@@ -17,6 +17,14 @@ To build this application for production:
 pnpm build
 ```
 
+## Deploy on Railway
+
+VibeFlow can be deployed to [Railway](https://railway.com) using the `railway.toml` config-as-code file. Each deploy builds the frontend, runs `convex deploy`, then serves the static app.
+
+**One-time setup:** Create a Railway project and service, connect the repo, then set environment variables in the Railway dashboard (see [AGENTS.md](./AGENTS.md#deploy-on-railway) for the full list). You need a Convex production deploy key as `CONVEX_DEPLOY_KEY` and all `VITE_*` variables. After the first deploy, set `VITE_WEB_ORIGIN` and `VITE_WEB_WORKOS_REDIRECT_URI` to your Railway URL and add that redirect URI in the WorkOS Dashboard.
+
+**Deploys:** Push to the connected branch (or use Railway CLI). Each deploy updates both the frontend and the Convex backend.
+
 ## Testing
 
 This project uses [Vitest](https://vitest.dev/) for testing. You can run the tests with:
