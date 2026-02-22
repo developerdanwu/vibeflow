@@ -27,7 +27,7 @@ Google Calendar sync uses the **workflow component** (`@convex-dev/workflow`) so
 - **Workflow:** `convex/taskProviders/linear/syncWorkflow.ts` defines `syncLinearIssuesWorkflow` (one step = `syncLinearIssues` internal action), `startSyncWorkflow` (auth), `startSyncWorkflowInternal` (internal), and `handleSyncWorkflowOnComplete` to set `lastSyncErrorMessage` on failure.
 - **Entry point:** `fetchMyIssues` (auth action) starts the workflow via `startSyncWorkflowInternal` and returns; it no longer runs the sync inline.
 - **No webhook or cron** for Linear; FE (title bar, task sidebar, inbox sidebar) calls `fetchMyIssues()` to start a sync.
-- **FE status:** `getMyLinearConnection` returns `latestSyncWorkflowRunId` and `lastSyncErrorMessage`; `getLinearSyncWorkflowStatus(workflowId)` (auth) returns workflow status for the current user’s connection. Title bar tooltip shows Tasks (Linear) status (Syncing… / Synced / Failed).
+- **FE status:** `getMyLinearConnections` returns an array of connections with `latestSyncWorkflowRunId` and `lastSyncErrorMessage`; `getLinearSyncWorkflowStatus(workflowId)` (auth) returns workflow status. Title bar tooltip shows one row per Linear workspace (Syncing… / Synced / Failed).
 
 ## Best practices
 

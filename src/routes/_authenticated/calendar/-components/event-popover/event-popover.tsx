@@ -71,6 +71,7 @@ import { EventFormBodySection } from "./event-form-body";
 import {
 	eventFormOptions,
 	getCreateDefaultValues,
+	type GetCreateDefaultValuesInput,
 	type TEventFormData,
 } from "./form-options";
 import { buildRecurrenceRruleStrings } from "./recurrence-rrule";
@@ -295,11 +296,12 @@ const EventPopoverContent = forwardRef<
 					? values.color
 					: "#3B82F6";
 
-			const taskLinks = values.relatedTaskLinks ?? [];
+			const scheduledTaskLinks = values.scheduledTaskLinks ?? [];
+			const relatedTaskLinks = values.relatedTaskLinks ?? [];
 			const taskLinkUpdates =
 				values.eventKind === "task"
-					? { scheduledTaskLinks: taskLinks, relatedTaskLinks: [] }
-					: { scheduledTaskLinks: [], relatedTaskLinks: taskLinks };
+					? { scheduledTaskLinks, relatedTaskLinks }
+					: { scheduledTaskLinks: [], relatedTaskLinks };
 			const dateTime = buildDateTimePayload(values);
 
 			if (mode === "edit" && event?.convexId) {
@@ -352,8 +354,8 @@ const EventPopoverContent = forwardRef<
 					visibility: values.visibility,
 					eventKind: values.eventKind,
 					...(values.eventKind === "task"
-						? { scheduledTaskLinks: taskLinks, relatedTaskLinks: [] }
-						: { relatedTaskLinks: taskLinks }),
+						? { scheduledTaskLinks, relatedTaskLinks }
+						: { scheduledTaskLinks: [], relatedTaskLinks }),
 					...dateTime,
 					...(recurrence.length > 0 ? { recurrence } : {}),
 				});
@@ -465,9 +467,48 @@ const EventPopoverContent = forwardRef<
 								value={eventKind ? [eventKind] : []}
 								onValueChange={(v: string[]) => {
 									const first = v?.[0];
-									if (first != null) {
-										field.handleChange(first as "event" | "task");
+									if (first == null) return;
+									if (first === "event" && eventKind === "task") {
+										const scheduled = (form.getFieldValue(
+											"scheduledTaskLinks",
+										) ?? []) as Array<{
+											externalTaskId: string;
+											url: string;
+										}>;
+										if (scheduled.length > 0) {
+											dialogStore.send({
+												type: "openConfirmDialog",
+												title: "Convert to event?",
+												description:
+													"You have scheduled tasks. Converting to an event will treat them as related tasks. Are you sure?",
+												confirmText: "Convert",
+												cancelText: "Cancel",
+												onConfirm: () => {
+													const related = (form.getFieldValue(
+														"relatedTaskLinks",
+													) ?? []) as Array<{
+														externalTaskId: string;
+														url: string;
+													}>;
+													const byId = new Map(
+														related.map((l) => [l.externalTaskId, l]),
+													);
+													for (const link of scheduled) {
+														if (!byId.has(link.externalTaskId)) {
+															byId.set(link.externalTaskId, link);
+														}
+													}
+													form.setFieldValue("relatedTaskLinks", [
+														...byId.values(),
+													]);
+													form.setFieldValue("scheduledTaskLinks", []);
+													form.setFieldValue("eventKind", "event");
+												},
+											});
+											return;
+										}
 									}
+									field.handleChange(first as "event" | "task");
 								}}
 								className="absolute -top-9 left-0"
 								variant="outline"
@@ -757,7 +798,7 @@ const EventPopoverContent = forwardRef<
 					</form.AppField>
 				</div>
 				<Separator />
-				<div className="flex flex-wrap items-center gap-2 px-2 py-1">
+				<div className="flex items-center px-2 py-1">
 					<form.Subscribe
 						selector={(state) => ({
 							color: state.values.color,
@@ -775,39 +816,27 @@ const EventPopoverContent = forwardRef<
 							return (
 								<form.AppField name="color">
 									{(field) => (
-										<>
-											<ColorPickerCompact
-												value={displayColor}
-												onChange={(hex) => {
-													if (mode === "create") {
-														refs.current.userHasSetColor = true;
-													}
-													field.handleChange(hex);
-												}}
-											/>
-											{(mode === "edit" ||
-												(mode === "create" && selectedCalendar)) && (
-												<Button
-													type="button"
-													variant="link"
-													size="xs"
-													className="shrink-0 text-muted-foreground text-xs"
-													onClick={() => {
-														if (mode === "create") {
-															refs.current.userHasSetColor = false;
+										<ColorPickerCompact
+											value={displayColor}
+											onChange={(hex) => {
+												if (mode === "create") {
+													refs.current.userHasSetColor = true;
+												}
+												field.handleChange(hex);
+											}}
+											onClear={
+												mode === "edit" ||
+												(mode === "create" && selectedCalendar)
+													? () => {
+															if (mode === "create") {
+																refs.current.userHasSetColor = false;
+															}
+															field.handleChange(USE_CALENDAR_COLOR_SENTINEL);
 														}
-														field.handleChange(USE_CALENDAR_COLOR_SENTINEL);
-													}}
-												>
-													Use calendar color
-													{selectedCalendar && (
-														<span className="ml-1">
-															({selectedCalendar.color})
-														</span>
-													)}
-												</Button>
-											)}
-										</>
+													: undefined
+											}
+											clearSelected={color === USE_CALENDAR_COLOR_SENTINEL}
+										/>
 									)}
 								</form.AppField>
 							);
@@ -871,7 +900,15 @@ const EventPopoverContent = forwardRef<
 									<RelatedTasksSection
 										form={form}
 										eventIdForLinks={eventIdForLinks}
-										variant="task"
+										fieldName="scheduledTaskLinks"
+										isLoadingRelatedTasks={isLoadingRelatedTasks}
+									/>
+									<Separator />
+
+									<RelatedTasksSection
+										form={form}
+										eventIdForLinks={eventIdForLinks}
+										fieldName="relatedTaskLinks"
 										isLoadingRelatedTasks={isLoadingRelatedTasks}
 									/>
 								</>
@@ -1067,11 +1104,12 @@ function EditEventPopoverContent({
 	const endDate = event.allDay ? subDays(rawEndDate, 1) : rawEndDate;
 	const { startTime, endTime } = getTimes(event, startDate, rawEndDate);
 
+	const isTask = event.eventKind === "task";
+	const scheduledTaskLinks = (linkedTasks ?? [])
+		.filter((l) => l.linkType === "scheduled")
+		.map((l) => ({ externalTaskId: l.externalTaskId, url: l.url }));
 	const relatedTaskLinks = (linkedTasks ?? [])
-		.filter(
-			(l) =>
-				l.linkType === (event.eventKind === "task" ? "scheduled" : "related"),
-		)
+		.filter((l) => l.linkType === "related")
 		.map((l) => ({ externalTaskId: l.externalTaskId, url: l.url }));
 	const initialValues = getCreateDefaultValues({
 		startDate,
@@ -1084,11 +1122,12 @@ function EditEventPopoverContent({
 		color:
 			event.color && /^#[0-9A-Fa-f]{6}$/.test(event.color)
 				? event.color
-				: "#3B82F6",
+				: (USE_CALENDAR_COLOR_SENTINEL as GetCreateDefaultValuesInput["color"]),
 		calendarId: event.calendarId as Id<"calendars"> | undefined,
 		busy: event.busy,
 		visibility: event.visibility,
 		eventKind: event.eventKind ?? "event",
+		scheduledTaskLinks: isTask ? scheduledTaskLinks : [],
 		relatedTaskLinks,
 	});
 	return (

@@ -5,8 +5,8 @@ import { internalQuery } from "../../_generated/server";
 import { authQuery } from "../../helpers";
 import { workflow } from "../../workflow";
 
-/** Internal: get connection with tokens for actions (e.g. token refresh, API calls). */
-export const getConnectionByUserId = internalQuery({
+/** Internal: get all Linear connections for a user (for actions that sync all workspaces). */
+export const getConnectionsByUserId = internalQuery({
 	args: { userId: v.id("users") },
 	handler: async (ctx, args) => {
 		return await ctx.db
@@ -14,7 +14,7 @@ export const getConnectionByUserId = internalQuery({
 			.withIndex("by_user_and_provider", (q) =>
 				q.eq("userId", args.userId).eq("provider", "linear"),
 			)
-			.unique();
+			.collect();
 	},
 });
 
@@ -26,27 +26,26 @@ export const getConnectionById = internalQuery({
 	},
 });
 
-/** Auth: get current user's Linear connection status (no tokens). */
-export const getMyLinearConnection = authQuery({
+/** Auth: get current user's Linear connections (no tokens). One per workspace. */
+export const getMyLinearConnections = authQuery({
 	args: z.object({}),
 	handler: async (ctx) => {
-		const connection = await ctx.db
+		const connections = await ctx.db
 			.query("taskConnections")
 			.withIndex("by_user_and_provider", (q) =>
 				q.eq("userId", ctx.user._id).eq("provider", "linear"),
 			)
-			.unique();
-		if (!connection) return null;
-		return {
-			connectionId: connection._id,
-			providerMetadata: connection.providerMetadata,
-			latestSyncWorkflowRunId: connection.latestSyncWorkflowRunId,
-			lastSyncErrorMessage: connection.lastSyncErrorMessage,
-		};
+			.collect();
+		return connections.map((c) => ({
+			connectionId: c._id,
+			providerMetadata: c.providerMetadata,
+			latestSyncWorkflowRunId: c.latestSyncWorkflowRunId,
+			lastSyncErrorMessage: c.lastSyncErrorMessage,
+		}));
 	},
 });
 
-/** Auth: get sync workflow run status (only for current user's Linear connection run). */
+/** Auth: get sync workflow run status (only for current user's Linear connection run). Safe for multiple Linear connections: workflowId is unique per run so at most one connection matches. */
 export const getLinearSyncWorkflowStatus = authQuery({
 	args: z.object({ workflowId: z.string() }),
 	handler: async (ctx, args) => {
@@ -56,7 +55,9 @@ export const getLinearSyncWorkflowStatus = authQuery({
 				q.eq("latestSyncWorkflowRunId", args.workflowId),
 			)
 			.first();
-		if (!conn || conn.userId !== ctx.user._id) return null;
+		if (!conn || conn.userId !== ctx.user._id) {
+			return null;
+		}
 		return await workflow.status(ctx, args.workflowId as WorkflowId);
 	},
 });

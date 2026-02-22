@@ -22,7 +22,7 @@ const workflowResultValidator = v.any();
 
 /**
  * Durable workflow: runs Linear issues sync for one connection.
- * Run ID is set when starting; status via getMyLinearConnection + getLinearSyncWorkflowStatus.
+ * Run ID is set when starting; status via getMyLinearConnections + getLinearSyncWorkflowStatus.
  */
 export const syncLinearIssuesWorkflow = workflow.define({
 	args: syncWorkflowArgs,

@@ -205,6 +205,95 @@ describe("createEvent", () => {
 		);
 	});
 
+	test("creates task event with both scheduledTaskLinks and relatedTaskLinks", async ({
+		t,
+		auth,
+		expect,
+	}) => {
+		const { asUser, userId } = auth;
+		const created = await asUser.mutation(api.events.mutations.createEvent, {
+			...factories.event(),
+			eventKind: "task",
+			scheduledTaskLinks: [
+				{
+					externalTaskId: "linear-scheduled",
+					url: "https://linear.app/org/issue/scheduled",
+				},
+			],
+			relatedTaskLinks: [
+				{
+					externalTaskId: "linear-related",
+					url: "https://linear.app/org/issue/related",
+				},
+			],
+		});
+		const eventId = created._id;
+		const event = await t.run(async (ctx: MutationCtx) =>
+			ctx.db.get("events", eventId),
+		);
+		expect(event).toMatchObject({
+			userId,
+			eventKind: "task",
+		});
+		const links = await t.run(async (ctx: MutationCtx) =>
+			ctx.db
+				.query("eventTaskLinks")
+				.withIndex("by_event", (q) => q.eq("eventId", eventId))
+				.collect(),
+		);
+		expect(links).toHaveLength(2);
+		expect(links).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					externalTaskId: "linear-scheduled",
+					url: "https://linear.app/org/issue/scheduled",
+					linkType: "scheduled",
+				}),
+				expect.objectContaining({
+					externalTaskId: "linear-related",
+					url: "https://linear.app/org/issue/related",
+					linkType: "related",
+				}),
+			]),
+		);
+	});
+
+	test("creates task event with same externalTaskId in scheduled and related dedupes to scheduled only", async ({
+		t,
+		auth,
+		expect,
+	}) => {
+		const { asUser } = auth;
+		const created = await asUser.mutation(api.events.mutations.createEvent, {
+			...factories.event(),
+			eventKind: "task",
+			scheduledTaskLinks: [
+				{
+					externalTaskId: "linear-same",
+					url: "https://linear.app/org/issue/same",
+				},
+			],
+			relatedTaskLinks: [
+				{
+					externalTaskId: "linear-same",
+					url: "https://linear.app/org/issue/same",
+				},
+			],
+		});
+		const eventId = created._id;
+		const links = await t.run(async (ctx: MutationCtx) =>
+			ctx.db
+				.query("eventTaskLinks")
+				.withIndex("by_event", (q) => q.eq("eventId", eventId))
+				.collect(),
+		);
+		expect(links).toHaveLength(1);
+		expect(links[0]).toMatchObject({
+			externalTaskId: "linear-same",
+			linkType: "scheduled",
+		});
+	});
+
 	test("creates event with relatedTaskLinks and inserts eventTaskLinks", async ({
 		t,
 		auth,

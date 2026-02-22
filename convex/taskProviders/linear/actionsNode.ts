@@ -291,21 +291,23 @@ export const syncLinearIssues = internalAction({
 	},
 });
 
-/** Start Linear issues sync workflow (thin entry point; status via getMyLinearConnection + getLinearSyncWorkflowStatus). */
+/** Start Linear issues sync for all workspaces (status via getMyLinearConnections + getLinearSyncWorkflowStatus). */
 export const fetchMyIssues = authAction({
 	args: z.object({}),
 	handler: async (ctx): Promise<{ started: boolean }> => {
-		const connection = await ctx.runQuery(
-			internal.taskProviders.linear.queries.getConnectionByUserId,
+		const connections = await ctx.runQuery(
+			internal.taskProviders.linear.queries.getConnectionsByUserId,
 			{ userId: ctx.user._id },
 		);
-		if (!connection) {
+		if (connections.length === 0) {
 			throwConvexError(ErrorCode.LINEAR_NOT_CONNECTED, "Linear not connected");
 		}
-		await ctx.runMutation(
-			internal.taskProviders.linear.syncWorkflow.startSyncWorkflowInternal,
-			{ connectionId: connection._id },
-		);
+		for (const connection of connections) {
+			await ctx.runMutation(
+				internal.taskProviders.linear.syncWorkflow.startSyncWorkflowInternal,
+				{ connectionId: connection._id },
+			);
+		}
 		return { started: true };
 	},
 });

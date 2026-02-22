@@ -38,23 +38,28 @@ export type LinkedTaskLink = {
 	linkType?: string;
 };
 
+export type TaskLinksFieldName = "relatedTaskLinks" | "scheduledTaskLinks";
+
+function sectionLabelForFieldName(fieldName: TaskLinksFieldName): string {
+	return fieldName === "scheduledTaskLinks" ? "Scheduled tasks" : "Related tasks";
+}
+
 /**
- * Related Linear tasks: always stored in form field relatedTaskLinks (array).
+ * Linear task links: stored in form field (relatedTaskLinks or scheduledTaskLinks).
  * Uses withForm so the parent passes the same form instance (no context).
- * Create: form is source of truth; submit passes relatedTaskLinks to createEvent.
- * Edit: seed form from Convex when links load; submit passes task links via updateEvent.
- * Uses TanStack Form array field (mode="array") for relatedTaskLinks.
+ * For task events, render two instances (fieldName="scheduledTaskLinks" and "relatedTaskLinks").
+ * For event kind, render one instance (fieldName="relatedTaskLinks").
  */
 export const RelatedTasksSection = withForm({
 	...eventFormOptions,
 	props: {
 		eventIdForLinks: undefined as Id<"events"> | undefined,
-		variant: "task" as "event" | "task",
+		fieldName: "relatedTaskLinks" as TaskLinksFieldName,
 		isLoadingRelatedTasks: false,
 	},
 	render: function RelatedTasksSectionRender({
 		form,
-		variant,
+		fieldName,
 		isLoadingRelatedTasks,
 	}) {
 		const { data: taskItems = [], isLoading: isTaskItemsLoading } = useQuery({
@@ -62,8 +67,7 @@ export const RelatedTasksSection = withForm({
 			enabled: true,
 		});
 
-		const sectionLabel =
-			variant === "task" ? "Scheduled tasks" : "Related tasks";
+		const sectionLabel = sectionLabelForFieldName(fieldName);
 
 		return (
 			<div className="space-y-2 bg-muted/30 px-2 py-2">
@@ -74,7 +78,7 @@ export const RelatedTasksSection = withForm({
 				{isLoadingRelatedTasks ? (
 					<Skeleton className="h-10 w-full" />
 				) : (
-					<form.AppField name="relatedTaskLinks" mode="array">
+					<form.AppField name={fieldName} mode="array">
 						{(field) => {
 							const links = (field.state.value ?? []) as Array<{
 								externalTaskId: string;

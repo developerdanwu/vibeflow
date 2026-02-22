@@ -1,10 +1,43 @@
-import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
+import {
+	Popover as PopoverPrimitive,
+	type PopoverRoot,
+} from "@base-ui/react/popover";
 import type * as React from "react";
+import { useCallback } from "react";
 
 import { cn } from "@/lib/utils";
 
-function Popover({ ...props }: PopoverPrimitive.Root.Props) {
-	return <PopoverPrimitive.Root data-slot="popover" {...props} />;
+/** Elements with this attribute prevent the popover from closing when clicked (e.g. Dialog overlay/content). See src/docs/ui.md. */
+const RETAIN_OPEN_SELECTOR = "[data-retain-open-on-click]";
+
+function isClickRetainOpen(target: EventTarget | null): boolean {
+	return (
+		target instanceof Element && Boolean(target.closest(RETAIN_OPEN_SELECTOR))
+	);
+}
+
+function Popover({ onOpenChange, ...props }: PopoverPrimitive.Root.Props) {
+	const wrappedOnOpenChange = useCallback(
+		(open: boolean, eventDetails: PopoverRoot.ChangeEventDetails) => {
+			if (
+				!open &&
+				eventDetails?.event &&
+				isClickRetainOpen(eventDetails.event.target)
+			) {
+				eventDetails.cancel();
+				return;
+			}
+			onOpenChange?.(open, eventDetails);
+		},
+		[onOpenChange],
+	);
+	return (
+		<PopoverPrimitive.Root
+			data-slot="popover"
+			onOpenChange={wrappedOnOpenChange}
+			{...props}
+		/>
+	);
 }
 
 function PopoverTrigger({ ...props }: PopoverPrimitive.Trigger.Props) {

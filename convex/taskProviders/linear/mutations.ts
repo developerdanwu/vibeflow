@@ -1,3 +1,4 @@
+import { zid } from "convex-helpers/server/zod4";
 import { v } from "convex/values";
 import { z } from "zod";
 import { internalMutation } from "../../_generated/server";
@@ -165,22 +166,25 @@ export const upsertTaskItems = internalMutation({
 	},
 });
 
-/** Auth: disconnect current user's Linear connection (and delete cached task items). */
+/** Auth: disconnect one or all Linear connections. Pass connectionId to remove one workspace; omit to remove the first (single-connection UX). */
 export const removeMyLinearConnection = authMutation({
-	args: z.object({}),
-	handler: async (ctx) => {
-		const connection = await ctx.db
-			.query("taskConnections")
-			.withIndex("by_user_and_provider", (q) =>
-				q.eq("userId", ctx.user._id).eq("provider", "linear"),
-			)
-			.unique();
-		if (!connection) return;
-		// Delete cached task items for this connection
+	args: z.object({
+		connectionId: zid("taskConnections").optional(),
+	}),
+	handler: async (ctx, args) => {
+		const connection = args.connectionId
+			? await ctx.db.get("taskConnections", args.connectionId)
+			: await ctx.db
+					.query("taskConnections")
+					.withIndex("by_user_and_provider", (q) =>
+						q.eq("userId", ctx.user._id).eq("provider", "linear"),
+					)
+					.first();
+		if (!connection || connection.userId !== ctx.user._id) return;
 		const items = await ctx.db
 			.query("taskItems")
-			.withIndex("by_user_and_provider", (q) =>
-				q.eq("userId", ctx.user._id).eq("provider", "linear"),
+			.withIndex("by_connection", (q) =>
+				q.eq("connectionId", connection._id),
 			)
 			.collect();
 		for (const item of items) {

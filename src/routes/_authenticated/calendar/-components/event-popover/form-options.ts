@@ -25,6 +25,14 @@ export const eventFormSchema = z
 		busy: z.enum(["busy", "free", "tentative", "outOfOffice"]).optional(),
 		visibility: z.enum(["public", "private"]).optional(),
 		eventKind: z.enum(["event", "task"]),
+		scheduledTaskLinks: z
+			.array(
+				z.object({
+					externalTaskId: z.string(),
+					url: z.string(),
+				}),
+			)
+			.default([]),
 		relatedTaskLinks: z
 			.array(
 				z.object({
@@ -90,11 +98,13 @@ export type GetCreateDefaultValuesInput = {
 	title?: string;
 	description?: string;
 	allDay?: boolean;
-	color?: string;
+	/** Hex string or null for "use calendar color". */
+	color?: string | null;
 	calendarId?: Id<"calendars">;
 	busy?: "busy" | "free" | "tentative" | "outOfOffice";
 	visibility?: "public" | "private";
 	eventKind?: "event" | "task";
+	scheduledTaskLinks?: Array<{ externalTaskId: string; url: string }>;
 	relatedTaskLinks?: Array<{ externalTaskId: string; url: string }>;
 	recurrenceRule?: RecurrenceRuleType;
 	recurrenceEnd?: RecurrenceEndType;
@@ -118,6 +128,7 @@ export function getCreateDefaultValues(
 		busy = "free",
 		visibility = "public",
 		eventKind = "event",
+		scheduledTaskLinks = [],
 		relatedTaskLinks = [],
 		recurrenceRule = "none",
 		recurrenceEnd = "never",
@@ -137,6 +148,7 @@ export function getCreateDefaultValues(
 		busy,
 		visibility,
 		eventKind,
+		scheduledTaskLinks,
 		relatedTaskLinks,
 		recurrenceRule,
 		recurrenceEnd,

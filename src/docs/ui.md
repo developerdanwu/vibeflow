@@ -33,6 +33,15 @@
 </PopoverTrigger>
 ```
 
+### Popover and overlays (retain open on click)
+
+When the user clicks outside the popover, it closes. Clicks on some overlays (e.g. a Dialog opened from the popover) should not close the popover. The Popover component treats any click inside an element with **`data-retain-open-on-click`** as "retain open" and cancels the close.
+
+- **Dialog:** Our `DialogOverlay` and `DialogContent` already set `data-retain-open-on-click`, so opening a dialog from a popover does not close the popover.
+- **Other overlays:** To get the same behavior (e.g. a custom modal or color picker panel that should not close a parent popover), add `data-retain-open-on-click` to the overlay/panel root element.
+
+**Why:** The close decision happens in Popover's `onOpenChange`; only the popover can cancel it. Using a single attribute keeps Popover generic and lets any component opt in without changing Popover code.
+
 ## Tooltip (Base UI)
 
 Base UI's TooltipTrigger does **not** support `asChild`. Use the **`render` prop** instead: it replaces the default trigger element (similar to asChild). You can pass either a **React element** or a **function** to `render`.

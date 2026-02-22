@@ -147,6 +147,7 @@ export default defineSchema({
 		updatedAt: v.number(),
 	})
 		.index("by_user_and_provider", ["userId", "provider"])
+		.index("by_connection", ["connectionId"])
 		.index("by_external_task", ["provider", "externalTaskId"]),
 	eventTaskLinks: defineTable({
 		eventId: v.id("events"),

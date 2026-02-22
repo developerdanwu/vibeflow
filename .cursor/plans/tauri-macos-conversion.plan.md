@@ -61,7 +61,7 @@ isProject: false
 ### Sub-task C: Auth branching for Tauri (desktop OAuth flow)
 
 - **Owner:** Frontend-ui
-- **Scope:** [src/routes/_authenticated.tsx](src/routes/_authenticated.tsx) (when in Tauri, do not use server `getAuth()`/`getSignInUrl()` in loader; use client-side guard and redirect to Tauri sign-in). [src/routes/callback.tsx](src/routes/callback.tsx) (when in Tauri and no server, render client component that reads `code` from URL, calls Convex action from Sub-task A to exchange, then stores session and redirects). Add Tauri sign-in entry (e.g. open system browser to WorkOS with custom redirect URI `vibeflow://auth/callback`). [src/router.tsx](src/router.tsx): ensure Tauri session (from code exchange) feeds same `useAuthFromWorkOS` / `AuthKitProvider` contract so Convex auth works. Add runtime Tauri detection (`window.__TAURI_INTERNALS__` or `import.meta.env.VITE_TAURI`). WorkOS Dashboard: add redirect URI for desktop app (manual step; document in handoff).
+- **Scope:** [src/routes/_authenticated.tsx](src/routes/_authenticated.tsx) (when in Tauri, do not use server `getAuth()`/`getSignInUrl()` in loader; use client-side guard and redirect to Tauri sign-in). [src/routes/callback.tsx](src/routes/callback.tsx) (when in Tauri and no server, render client component that reads `code` from URL, calls Convex action from Sub-task A to exchange, then stores session and redirects). Add Tauri sign-in entry (e.g. open system browser to WorkOS with custom redirect URI `vibeflow://auth/callback`). [src/router.tsx](src/router.tsx): ensure Tauri session (from code exchange) feeds same `useAuthFromWorkOS` / `AuthKitProvider` contract so Convex auth works. Add runtime Tauri detection (`window.__TAURI_INTERNALS`__ or `import.meta.env.VITE_TAURI`). WorkOS Dashboard: add redirect URI for desktop app (manual step; document in handoff).
 - **Depends on:** Sub-task A (Convex action to call), Sub-task B (Tauri build to test in)
 - **Handoff:** In Tauri production build, unauthenticated users go to WorkOS via browser; callback handled in client; code exchanged via Convex action; protected routes and Convex work. Web and `tauri dev` (localhost) keep existing server auth.
 - **Verification:** In Tauri window (production build or dev with desktop flow), sign in via browser → callback → session; open protected route and confirm Convex data. In browser, confirm existing web auth and callback still work. `pnpm check` passes.
@@ -71,7 +71,7 @@ isProject: false
 - **Owner:** Frontend-ui
 - **Scope:** Any place that uses `@tauri-apps/api` (e.g. opening URLs): guard with `window.__TAURI_INTERNALS__ != null` or dynamic import so it never runs in browser or during SSR. [AGENTS.md](AGENTS.md) (or a short `src/docs/tauri.md`): how to run Tauri dev vs web dev; production Tauri uses static build + desktop auth; Tauri API usage must be guarded outside webview.
 - **Depends on:** Sub-task B
-- **Handoff:** No `__TAURI_INTERNALS__` errors when opening app in browser; docs describe Tauri vs web workflow.
+- **Handoff:** No `__TAURI_INTERNALS`__ errors when opening app in browser; docs describe Tauri vs web workflow.
 - **Verification:** `pnpm check`; open web app in browser and confirm no Tauri errors; AGENTS.md or tauri.md updated.
 
 ### Sub-task E: Remove unused server function for SPA build

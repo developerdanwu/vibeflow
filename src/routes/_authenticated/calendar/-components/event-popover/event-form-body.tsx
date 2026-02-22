@@ -86,7 +86,7 @@ export const EventFormBodySection = withForm({
 				<RelatedTasksSection
 					form={form}
 					eventIdForLinks={eventIdForLinks}
-					variant="event"
+					fieldName="relatedTaskLinks"
 					isLoadingRelatedTasks={isLoadingRelatedTasks}
 				/>
 			</>

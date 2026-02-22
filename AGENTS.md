@@ -316,7 +316,7 @@ import { useUser } from "../../hooks/useUser";
 - **Product Requirements:** Refer to `SPEC.md` for feature details
 - **UI/UX Design:** Refer to `UI_SPEC.md` for visual design and component specifications
 - **UI Components:** Check `components.json` for shadcn configuration
-- **Forms and popover patterns:** See [src/docs/ui.md](src/docs/ui.md) for TanStack Form, withForm for breaking big forms into smaller pieces, async initial values (no useEffect), form-components, shared Popover handle, submit-dirty-form-on-close/unmount, clearing external store on unmount, Base UI Combobox value handling, and Button/Toggle component icon sizing.
+- **Forms and popover patterns:** See [src/docs/ui.md](src/docs/ui.md) for TanStack Form, withForm for breaking big forms into smaller pieces, async initial values (no useEffect), form-components, shared Popover handle, submit-dirty-form-on-close/unmount, clearing external store on unmount, Base UI Combobox value handling, Button/Toggle component icon sizing, and the Popover `data-retain-open-on-click` contract for overlays (e.g. Dialog).
 - **State (XState Store):** See [src/docs/state.md](src/docs/state.md) for sending events and context handler return shape.
 - **Calendar events:** See [src/docs/calendar-events.md](src/docs/calendar-events.md) for event time display patterns and timezone handling.
 - **Drag and Drop:** See [src/docs/dnd-handling.md](src/docs/dnd-handling.md) for locked event handling, distinguishing clicks from drags, and preventing visual drag movement.

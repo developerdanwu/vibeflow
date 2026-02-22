@@ -6,7 +6,7 @@ import {
 	PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { ChevronDown, Plus } from "lucide-react";
+import { ChevronDown, Plus, X } from "lucide-react";
 import { useState } from "react";
 import { HexColorPicker } from "react-colorful";
 
@@ -14,6 +14,10 @@ interface ColorPickerCompactProps {
 	value: string;
 	onChange: (value: string) => void;
 	className?: string;
+	/** When set, shows a "clear" swatch as the first option; when clicked calls onClear and closes. */
+	onClear?: () => void;
+	/** When true, the clear swatch appears selected (e.g. when using calendar/default color). */
+	clearSelected?: boolean;
 }
 
 const PRESET_COLORS = [
@@ -30,11 +34,18 @@ export default function ColorPickerCompact({
 	value,
 	onChange,
 	className,
+	onClear,
+	clearSelected = false,
 }: ColorPickerCompactProps) {
 	const [isOpen, setIsOpen] = useState(false);
 
 	const handlePresetClick = (hex: string) => {
 		onChange(hex);
+		setIsOpen(false);
+	};
+
+	const handleClearClick = () => {
+		onClear?.();
 		setIsOpen(false);
 	};
 
@@ -61,6 +72,20 @@ export default function ColorPickerCompact({
 			</PopoverTrigger>
 			<PopoverContent className="w-auto p-2" align="start">
 				<div className="flex items-center gap-1.5">
+					{onClear != null && (
+						<button
+							type="button"
+							onClick={handleClearClick}
+							className={cn(
+								"flex size-5 items-center justify-center rounded-full border border-border bg-muted/50 transition-all hover:scale-110 hover:bg-muted",
+								clearSelected &&
+									"ring-2 ring-foreground ring-offset-1 ring-offset-background",
+							)}
+							title="Clear (use calendar color)"
+						>
+							<X className="size-3 text-muted-foreground" />
+						</button>
+					)}
 					{PRESET_COLORS.map((color) => (
 						<button
 							type="button"

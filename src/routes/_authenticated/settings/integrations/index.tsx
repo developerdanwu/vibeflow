@@ -42,8 +42,8 @@ function IntegrationsSettings() {
 		}),
 	);
 	const linearAuthUrl = `https://linear.app/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=read&state=${encodeURIComponent(encodedState)}`;
-	const { data: linearConnection } = useQuery(
-		convexQuery(api.taskProviders.linear.queries.getMyLinearConnection),
+	const { data: linearConnections } = useQuery(
+		convexQuery(api.taskProviders.linear.queries.getMyLinearConnections),
 	);
 	const removeConnection = useConvexMutation(
 		api.taskProviders.linear.mutations.removeMyLinearConnection,
@@ -77,25 +77,52 @@ function IntegrationsSettings() {
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
-					{linearConnection ? (
+					{(linearConnections?.length ?? 0) > 0 ? (
 						<div className="flex flex-col gap-3">
-							<div className="flex items-center gap-2">
-								<span className="text-muted-foreground text-sm">
-									Connected
-									{linearConnection.providerMetadata &&
-										typeof linearConnection.providerMetadata === "object" &&
-										"organizationName" in linearConnection.providerMetadata &&
-										linearConnection.providerMetadata.organizationName &&
-										` to ${String(linearConnection.providerMetadata.organizationName)}`}
-								</span>
-							</div>
+							{linearConnections?.map((conn) => {
+								const label =
+									conn.providerMetadata &&
+									typeof conn.providerMetadata === "object" &&
+									"organizationName" in conn.providerMetadata &&
+									conn.providerMetadata.organizationName
+										? String(conn.providerMetadata.organizationName)
+										: "Linear workspace";
+								return (
+									<div
+										key={conn.connectionId}
+										className="flex items-center justify-between gap-2 rounded-md border p-3"
+									>
+										<span className="text-muted-foreground text-sm">
+											Connected to {label}
+										</span>
+										<Button
+											variant="outline"
+											size="sm"
+											onClick={() =>
+												disconnectLinear({ connectionId: conn.connectionId })
+											}
+											disabled={isDisconnecting}
+										>
+											Disconnect
+										</Button>
+									</div>
+								);
+							})}
 							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => disconnectLinear({})}
-								disabled={isDisconnecting}
+								onClick={selectPlatform({
+									tauri: async () => {
+										const { openUrl } = await import(
+											"@tauri-apps/plugin-opener"
+										);
+										await openUrl(linearAuthUrl);
+									},
+									web: () => {
+										window.location.href = linearAuthUrl;
+									},
+								})}
+								disabled={!linearAuthUrl}
 							>
-								Disconnect
+								Connect another workspace
 							</Button>
 						</div>
 					) : (

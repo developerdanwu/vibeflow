@@ -93,21 +93,20 @@ export const createEvent = authMutation({
 			});
 		}
 
-		if (eventKind !== "task") {
-			const relatedTaskLinks = args.relatedTaskLinks ?? [];
-			const seenExternalIds = new Set<string>();
-			for (const link of relatedTaskLinks) {
-				if (seenExternalIds.has(link.externalTaskId)) continue;
-				seenExternalIds.add(link.externalTaskId);
-				await ctx.db.insert("eventTaskLinks", {
-					eventId,
-					userId: ctx.user._id,
-					externalTaskId: link.externalTaskId,
-					provider: "linear",
-					url: link.url,
-					linkType: "related",
-				});
-			}
+		const relatedTaskLinks = args.relatedTaskLinks ?? [];
+		const seenRelated = new Set<string>();
+		for (const link of relatedTaskLinks) {
+			if (seenRelated.has(link.externalTaskId)) continue;
+			if (seenScheduled.has(link.externalTaskId)) continue;
+			seenRelated.add(link.externalTaskId);
+			await ctx.db.insert("eventTaskLinks", {
+				eventId,
+				userId: ctx.user._id,
+				externalTaskId: link.externalTaskId,
+				provider: "linear",
+				url: link.url,
+				linkType: "related",
+			});
 		}
 
 		if (args.calendarId) {
