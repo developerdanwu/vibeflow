@@ -1,5 +1,6 @@
 import { GlobalDialog } from "@/components/dialogs/global-dialog";
 import { Toaster } from "@/components/ui/sonner";
+import { registerGlobalTauriShortcuts } from "@/hooks/use-register-shortcuts.tauri";
 import { DialogStoreProvider } from "@/lib/dialog-store";
 import type { TEnv } from "@/lib/env";
 import type { AuthContext } from "@/router";
@@ -15,13 +16,19 @@ interface MyRouterContext {
 	convex: ConvexReactClient;
 	env: TEnv;
 	authPromise: Promise<AuthContext>;
+	unregisterGlobalTauriShortcut?: () => Promise<void>;
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
 	component: RootComponent,
+	onLeave: async ({ context }) => {
+		await context.unregisterGlobalTauriShortcut?.();
+	},
 	beforeLoad: async ({ context }) => {
+		const unregisterGlobalTauriShortcut = await registerGlobalTauriShortcuts();
 		const auth = await context.authPromise;
 		return {
+			unregisterGlobalTauriShortcut,
 			auth,
 		};
 	},

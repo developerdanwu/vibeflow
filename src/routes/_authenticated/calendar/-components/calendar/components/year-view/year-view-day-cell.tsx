@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { getEventDotClassOrStyle } from "@/routes/_authenticated/calendar/-components/calendar/core/event-color";
 import type { TEvent } from "@/routes/_authenticated/calendar/-components/calendar/core/interfaces";
 import { useNavigate } from "@tanstack/react-router";
 import { format, isToday } from "date-fns";
@@ -43,34 +44,37 @@ export function YearViewDayCell({ day, date, events }: IProps) {
 			{eventCount > 0 && (
 				<div className="mt-0.5 flex gap-0.5">
 					{eventCount <= maxIndicators ? (
-						events.map((event) => (
-							<div
-								key={event.id}
-								className={cn(
-									"size-1.5 rounded-full",
-									event.color === "blue" && "bg-blue-600",
-									event.color === "green" && "bg-green-600",
-									event.color === "red" && "bg-red-600",
-									event.color === "yellow" && "bg-yellow-600",
-									event.color === "purple" && "bg-purple-600",
-									event.color === "orange" && "bg-orange-600",
-									event.color === "gray" && "bg-neutral-600",
-								)}
-							/>
-						))
+						events.map((event) => {
+							const hex =
+								event.color && /^#[0-9A-Fa-f]{6}$/.test(event.color)
+									? event.color
+									: "#3B82F6";
+							const { className: dotClass, style: dotStyle } =
+								getEventDotClassOrStyle(hex);
+							return (
+								<div
+									key={event.id}
+									className={cn("size-1.5 rounded-full", dotClass)}
+									style={dotStyle}
+								/>
+							);
+						})
 					) : (
 						<>
-							<div
-								className={cn(
-									"size-1.5 rounded-full",
-									events[0].color === "blue" && "bg-blue-600",
-									events[0].color === "green" && "bg-green-600",
-									events[0].color === "red" && "bg-red-600",
-									events[0].color === "yellow" && "bg-yellow-600",
-									events[0].color === "purple" && "bg-purple-600",
-									events[0].color === "orange" && "bg-orange-600",
-								)}
-							/>
+							{(() => {
+								const hex =
+									events[0].color && /^#[0-9A-Fa-f]{6}$/.test(events[0].color)
+										? events[0].color
+										: "#3B82F6";
+								const { className: dotClass, style: dotStyle } =
+									getEventDotClassOrStyle(hex);
+								return (
+									<div
+										className={cn("size-1.5 rounded-full", dotClass)}
+										style={dotStyle}
+									/>
+								);
+							})()}
 							<span className="text-[7px] text-muted-foreground">
 								+{eventCount - 1}
 							</span>

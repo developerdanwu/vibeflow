@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import ColorPickerCompact from "@/components/ui/color-picker-compact";
 import {
 	Card,
 	CardContent,
@@ -16,18 +17,19 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
+	Combobox,
+	ComboboxContent,
+	ComboboxEmpty,
+	ComboboxInput,
+	ComboboxItem,
+	ComboboxList,
+	ComboboxTrigger,
+} from "@/components/ui/combobox";
+import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { getConvexErrorMessage } from "@/lib/convex-error";
 import { selectPlatform } from "@/lib/tauri";
-import { cn } from "@/lib/utils";
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
@@ -42,25 +44,42 @@ export const Route = createFileRoute("/_authenticated/settings/calendars/")({
 	component: CalendarsSettings,
 });
 
-const CALENDAR_COLORS = [
-	"blue",
-	"red",
-	"green",
-	"yellow",
-	"purple",
-	"orange",
-	"gray",
-] as const;
+const DEFAULT_CALENDAR_HEX = "#3B82F6";
 
-const colorSwatchClass: Record<(typeof CALENDAR_COLORS)[number], string> = {
-	blue: "bg-blue-500",
-	red: "bg-red-500",
-	green: "bg-green-500",
-	yellow: "bg-yellow-500",
-	purple: "bg-purple-500",
-	orange: "bg-orange-500",
-	gray: "bg-neutral-500",
+const SYNC_FROM_OPTIONS: Array<{ value: string; label: string }> = [
+	{ value: "1", label: "Last month" },
+	{ value: "3", label: "Last 3 months" },
+	{ value: "6", label: "Last 6 months" },
+	{ value: "12", label: "Last year" },
+	{ value: "24", label: "Last 2 years" },
+];
+
+function getSyncFromOption(
+	value: number | undefined | null,
+): { value: string; label: string } {
+	const n = value ?? 1;
+	return (
+		SYNC_FROM_OPTIONS.find((o) => o.value === String(n)) ?? SYNC_FROM_OPTIONS[0]
+	);
+}
+
+/** Legacy name → hex for backward compatibility when loading calendar for edit. */
+const LEGACY_NAME_TO_HEX: Record<string, string> = {
+	blue: "#3B82F6",
+	green: "#22C55E",
+	red: "#EF4444",
+	yellow: "#EAB308",
+	purple: "#A855F7",
+	orange: "#F97316",
+	gray: "#6B7280",
 };
+
+function calendarColorToHex(value: string): string {
+	if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+		return value;
+	}
+	return LEGACY_NAME_TO_HEX[value.toLowerCase()] ?? DEFAULT_CALENDAR_HEX;
+}
 
 const GOOGLE_SCOPES =
 	"https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly";
@@ -142,7 +161,7 @@ function CalendarsSettings() {
 			toast.success("Calendar created");
 			setAddOpen(false);
 			setAddName("");
-			setAddColor("blue");
+			setAddColor(DEFAULT_CALENDAR_HEX);
 			setAddDefault(false);
 		},
 		onError: (err) => {
@@ -180,32 +199,48 @@ function CalendarsSettings() {
 		},
 	});
 
+	const removeMyGoogleConnectionFn = useConvexMutation(
+		api.googleCalendar.mutations.removeMyGoogleConnection,
+	);
+	const { mutate: disconnectGoogle, isPending: isDisconnecting } = useMutation({
+		mutationFn: removeMyGoogleConnectionFn,
+		onSuccess: () => {
+			toast.success("Google Calendar disconnected");
+			setDisconnectOpen(false);
+			setRemoveSyncedEvents(false);
+			setRemoveLinkedCalendars(false);
+		},
+		onError: (err) => {
+			toast.error(
+				getConvexErrorMessage(err, "Failed to disconnect Google Calendar"),
+			);
+		},
+	});
+
 	const [addOpen, setAddOpen] = useState(false);
 	const [addName, setAddName] = useState("");
-	const [addColor, setAddColor] =
-		useState<(typeof CALENDAR_COLORS)[number]>("blue");
+	const [addColor, setAddColor] = useState(DEFAULT_CALENDAR_HEX);
 	const [addDefault, setAddDefault] = useState(false);
 
 	const [editOpen, setEditOpen] = useState(false);
 	const [editingId, setEditingId] = useState<Id<"calendars"> | null>(null);
 	const [editName, setEditName] = useState("");
-	const [editColor, setEditColor] =
-		useState<(typeof CALENDAR_COLORS)[number]>("blue");
+	const [editColor, setEditColor] = useState(DEFAULT_CALENDAR_HEX);
 	const [editDefault, setEditDefault] = useState(false);
 
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [deletingId, setDeletingId] = useState<Id<"calendars"> | null>(null);
+
+	const [disconnectOpen, setDisconnectOpen] = useState(false);
+	const [removeSyncedEvents, setRemoveSyncedEvents] = useState(false);
+	const [removeLinkedCalendars, setRemoveLinkedCalendars] = useState(false);
 
 	const openEdit = (id: Id<"calendars">) => {
 		const cal = calendars?.find((c) => c._id === id);
 		if (!cal) return;
 		setEditingId(id);
 		setEditName(cal.name);
-		setEditColor(
-			CALENDAR_COLORS.includes(cal.color as (typeof CALENDAR_COLORS)[number])
-				? (cal.color as (typeof CALENDAR_COLORS)[number])
-				: "blue",
-		);
+		setEditColor(calendarColorToHex(cal.color));
 		setEditDefault(cal.isDefault);
 		setEditOpen(true);
 	};
@@ -280,28 +315,62 @@ function CalendarsSettings() {
 								>
 									{syncLoading ? "Syncing…" : "Sync now"}
 								</Button>
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => setDisconnectOpen(true)}
+									disabled={isDisconnecting}
+								>
+									Disconnect
+								</Button>
 							</div>
 							<div className="grid gap-2">
 								<Label>Sync events from</Label>
-								<Select
-									value={String(userPreferences?.calendarSyncFromMonths ?? 1)}
-									onValueChange={(v) => {
-										updateSyncFromMonths({
-											calendarSyncFromMonths: Number(v) as 1 | 3 | 6 | 12 | 24,
-										});
+								<Combobox
+									items={[...SYNC_FROM_OPTIONS]}
+									value={getSyncFromOption(
+										userPreferences?.calendarSyncFromMonths,
+									)}
+									onValueChange={(option) => {
+										if (option) {
+											updateSyncFromMonths({
+												calendarSyncFromMonths: Number(option.value) as
+													1 | 3 | 6 | 12 | 24,
+											});
+										}
 									}}
+									itemToStringValue={(item) => item.value}
+									itemToStringLabel={(item) => item.label}
+									isItemEqualToValue={(a, b) => a.value === b.value}
 								>
-									<SelectTrigger className="w-[180px]">
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="1">Last month</SelectItem>
-										<SelectItem value="3">Last 3 months</SelectItem>
-										<SelectItem value="6">Last 6 months</SelectItem>
-										<SelectItem value="12">Last year</SelectItem>
-										<SelectItem value="24">Last 2 years</SelectItem>
-									</SelectContent>
-								</Select>
+									<ComboboxTrigger
+										render={
+											<Button variant="outline" size="sm" className="w-[180px]">
+												{getSyncFromOption(
+													userPreferences?.calendarSyncFromMonths,
+												).label}
+											</Button>
+										}
+									/>
+									<ComboboxContent width="min" className="min-w-[180px]">
+										<ComboboxInput
+											showFocusRing={false}
+											placeholder="Sync range"
+											showTrigger={false}
+										/>
+										<ComboboxEmpty>No option found</ComboboxEmpty>
+										<ComboboxList>
+											{(option) => (
+												<ComboboxItem
+													key={option.value}
+													value={option}
+												>
+													{option.label}
+												</ComboboxItem>
+											)}
+										</ComboboxList>
+									</ComboboxContent>
+								</Combobox>
 								<p className="text-muted-foreground text-xs">
 									Only affects the next full sync; incremental syncs stay in
 									sync automatically.
@@ -315,16 +384,12 @@ function CalendarsSettings() {
 											className="flex min-w-0 items-center gap-3 rounded-lg border bg-card px-4 py-3"
 										>
 											<div
-												className={cn(
-													"size-4 shrink-0 rounded-full",
-													CALENDAR_COLORS.includes(
-														gc.color as (typeof CALENDAR_COLORS)[number],
-													)
-														? colorSwatchClass[
-																gc.color as (typeof CALENDAR_COLORS)[number]
-															]
-														: "bg-neutral-500",
-												)}
+												className="size-4 shrink-0 rounded-full"
+												style={{
+													backgroundColor: calendarColorToHex(
+														gc.color ?? DEFAULT_CALENDAR_HEX,
+													),
+												}}
 											/>
 											<span className="truncate font-medium">{gc.name}</span>
 										</li>
@@ -383,16 +448,10 @@ function CalendarsSettings() {
 								>
 									<div className="flex min-w-0 items-center gap-3">
 										<div
-											className={cn(
-												"size-4 shrink-0 rounded-full",
-												colorSwatchClass[
-													CALENDAR_COLORS.includes(
-														cal.color as (typeof CALENDAR_COLORS)[number],
-													)
-														? (cal.color as (typeof CALENDAR_COLORS)[number])
-														: "blue"
-												],
-											)}
+											className="size-4 shrink-0 rounded-full"
+											style={{
+												backgroundColor: calendarColorToHex(cal.color),
+											}}
 										/>
 										<span className="truncate font-medium">{cal.name}</span>
 										{cal.isDefault && (
@@ -454,23 +513,10 @@ function CalendarsSettings() {
 						</div>
 						<div className="grid gap-2">
 							<Label>Color</Label>
-							<Select
+							<ColorPickerCompact
 								value={addColor}
-								onValueChange={(v) =>
-									setAddColor(v as (typeof CALENDAR_COLORS)[number])
-								}
-							>
-								<SelectTrigger>
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									{CALENDAR_COLORS.map((c) => (
-										<SelectItem key={c} value={c}>
-											<span className="capitalize">{c}</span>
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
+								onChange={setAddColor}
+							/>
 						</div>
 						<div className="flex items-center gap-2">
 							<Switch checked={addDefault} onCheckedChange={setAddDefault} />
@@ -506,23 +552,10 @@ function CalendarsSettings() {
 						</div>
 						<div className="grid gap-2">
 							<Label>Color</Label>
-							<Select
+							<ColorPickerCompact
 								value={editColor}
-								onValueChange={(v) =>
-									setEditColor(v as (typeof CALENDAR_COLORS)[number])
-								}
-							>
-								<SelectTrigger>
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									{CALENDAR_COLORS.map((c) => (
-										<SelectItem key={c} value={c}>
-											<span className="capitalize">{c}</span>
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
+								onChange={setEditColor}
+							/>
 						</div>
 						<div className="flex items-center gap-2">
 							<Switch checked={editDefault} onCheckedChange={setEditDefault} />
@@ -554,6 +587,62 @@ function CalendarsSettings() {
 							disabled={isDeleting}
 						>
 							{isDeleting ? "Deleting…" : "Delete"}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			{/* Disconnect Google Calendar confirm dialog */}
+			<Dialog open={disconnectOpen} onOpenChange={setDisconnectOpen}>
+				<DialogContent className="sm:max-w-md">
+					<DialogHeader>
+						<DialogTitle>Disconnect Google Calendar</DialogTitle>
+						<DialogDescription>
+							Stop syncing with this Google account. Your calendars and events
+							will remain unless you choose to remove synced events below.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="flex flex-col gap-3 py-2">
+						<div className="flex items-center gap-2">
+							<Switch
+								id="remove-synced-events"
+								checked={removeSyncedEvents}
+								onCheckedChange={setRemoveSyncedEvents}
+							/>
+							<Label htmlFor="remove-synced-events" className="cursor-pointer">
+								Also remove all events synced from this Google account
+							</Label>
+						</div>
+						<div className="flex items-center gap-2">
+							<Switch
+								id="remove-linked-calendars"
+								checked={removeLinkedCalendars}
+								onCheckedChange={setRemoveLinkedCalendars}
+							/>
+							<Label
+								htmlFor="remove-linked-calendars"
+								className="cursor-pointer"
+							>
+								Also remove calendars linked to this Google account
+							</Label>
+						</div>
+					</div>
+					<DialogFooter showCloseButton>
+						<Button
+							variant={
+								removeSyncedEvents || removeLinkedCalendars
+									? "destructive"
+									: "default"
+							}
+							onClick={() =>
+								disconnectGoogle({
+									removeSyncedEvents: removeSyncedEvents || undefined,
+									removeLinkedCalendars: removeLinkedCalendars || undefined,
+								})
+							}
+							disabled={isDisconnecting}
+						>
+							{isDisconnecting ? "Disconnecting…" : "Disconnect"}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

@@ -6,10 +6,11 @@ import { addUserToTest, factories } from "../test.setup";
 describe("getLinksByEventId", () => {
 	test("returns links for event", async ({ auth, expect }) => {
 		const { asUser } = auth;
-		const eventId = await asUser.mutation(
+		const created = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const eventId = created._id;
 		await asUser.mutation(api.eventTaskLinks.mutations.linkTaskToEvent, {
 			eventId,
 			externalTaskId: "linear-issue-1",
@@ -46,10 +47,11 @@ describe("getLinksByEventId", () => {
 		expect,
 	}) => {
 		const { asUser } = auth;
-		const eventId = await asUser.mutation(
+		const created = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const eventId = created._id;
 		const links = await asUser.query(
 			api.eventTaskLinks.queries.getLinksByEventId,
 			{ eventId },
@@ -63,10 +65,11 @@ describe("getLinksByEventId", () => {
 		expect,
 	}) => {
 		const { asUser } = auth;
-		const eventId = await asUser.mutation(
+		const created = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const eventId = created._id;
 		await t.run(async (ctx: MutationCtx) => {
 			await ctx.db.delete("events", eventId);
 		});
@@ -79,10 +82,11 @@ describe("getLinksByEventId", () => {
 
 	test("requires auth", async ({ t, auth, expect }) => {
 		const { asUser } = auth;
-		const eventId = await asUser.mutation(
+		const created = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const eventId = created._id;
 		await expect(
 			t.query(api.eventTaskLinks.queries.getLinksByEventId, {
 				eventId,
@@ -97,10 +101,11 @@ describe("getLinksByEventId", () => {
 	}) => {
 		const { asUser: asAlice } = auth;
 		const { asUser: asBob } = await addUserToTest(t, { firstName: "Bob" });
-		const eventId = await asAlice.mutation(
+		const created = await asAlice.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const eventId = created._id;
 		await expect(
 			asBob.query(api.eventTaskLinks.queries.getLinksByEventId, {
 				eventId,
@@ -124,10 +129,11 @@ describe("getLinksByEventId", () => {
 describe("getScheduledLinksByEventId", () => {
 	test("returns scheduled links when they exist", async ({ auth, expect }) => {
 		const { asUser } = auth;
-		const eventId = await asUser.mutation(
+		const created = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const eventId = created._id;
 		await asUser.mutation(api.eventTaskLinks.mutations.linkTaskToEvent, {
 			eventId,
 			externalTaskId: "linear-scheduled-1",
@@ -148,10 +154,11 @@ describe("getScheduledLinksByEventId", () => {
 
 	test("returns multiple scheduled links", async ({ auth, expect }) => {
 		const { asUser } = auth;
-		const eventId = await asUser.mutation(
+		const created = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const eventId = created._id;
 		await asUser.mutation(api.eventTaskLinks.mutations.linkTaskToEvent, {
 			eventId,
 			externalTaskId: "linear-scheduled-1",
@@ -188,10 +195,11 @@ describe("getScheduledLinksByEventId", () => {
 		expect,
 	}) => {
 		const { asUser } = auth;
-		const eventId = await asUser.mutation(
+		const created = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const eventId = created._id;
 		const scheduled = await asUser.query(
 			api.eventTaskLinks.queries.getScheduledLinksByEventId,
 			{ eventId },
@@ -204,10 +212,11 @@ describe("getScheduledLinksByEventId", () => {
 		expect,
 	}) => {
 		const { asUser } = auth;
-		const eventId = await asUser.mutation(
+		const created = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const eventId = created._id;
 		await asUser.mutation(api.eventTaskLinks.mutations.linkTaskToEvent, {
 			eventId,
 			externalTaskId: "linear-issue-1",
@@ -251,10 +260,11 @@ describe("getScheduledExternalTaskIdsForCurrentUser", () => {
 		expect,
 	}) => {
 		const { asUser } = auth;
-		const eventId = await asUser.mutation(
+		const created = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const eventId = created._id;
 		await asUser.mutation(api.eventTaskLinks.mutations.linkTaskToEvent, {
 			eventId,
 			externalTaskId: "linear-scheduled-a",
@@ -279,10 +289,11 @@ describe("getScheduledExternalTaskIdsForCurrentUser", () => {
 
 	test("excludes related-only links", async ({ auth, expect }) => {
 		const { asUser } = auth;
-		const eventId = await asUser.mutation(
+		const created = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const eventId = created._id;
 		await asUser.mutation(api.eventTaskLinks.mutations.linkTaskToEvent, {
 			eventId,
 			externalTaskId: "linear-related-only",
@@ -301,14 +312,16 @@ describe("getScheduledExternalTaskIdsForCurrentUser", () => {
 		expect,
 	}) => {
 		const { asUser } = auth;
-		const e1 = await asUser.mutation(
+		const created1 = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
-		const e2 = await asUser.mutation(
+		const created2 = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const e1 = created1._id;
+		const e2 = created2._id;
 		await asUser.mutation(api.eventTaskLinks.mutations.linkTaskToEvent, {
 			eventId: e1,
 			externalTaskId: "linear-same",

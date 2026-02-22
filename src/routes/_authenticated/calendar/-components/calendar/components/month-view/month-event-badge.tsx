@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { DraggableEvent } from "@/routes/_authenticated/calendar/-components/calendar/components/dnd/draggable-event";
 import { useCalendar } from "@/routes/_authenticated/calendar/-components/calendar/contexts/calendar-context";
 import type { TEvent } from "@/routes/_authenticated/calendar/-components/calendar/core/interfaces";
+import { getEventColorVariant } from "@/routes/_authenticated/calendar/-components/calendar/core/event-color";
 import type { PopoverRootProps } from "@base-ui/react";
 import type { VariantProps } from "class-variance-authority";
 import { cva } from "class-variance-authority";
@@ -46,6 +47,10 @@ export const eventBadgeVariants = cva(
 					"bg-neutral-50 dark:bg-neutral-900 [&_.event-dot]:fill-orange-600",
 				"gray-dot":
 					"bg-neutral-50 dark:bg-neutral-900 [&_.event-dot]:fill-neutral-600",
+				custom:
+					"border [&_.event-dot]:fill-[var(--event-dot-custom,currentColor)]",
+				"custom-dot":
+					"bg-neutral-50 dark:bg-neutral-900 [&_.event-dot]:fill-[var(--event-dot-custom,currentColor)]",
 			},
 			multiDayPosition: {
 				first:
@@ -113,9 +118,17 @@ export function MonthEventBadge({
 
 	const renderBadgeText = ["first", "none"].includes(position);
 
-	const color = (
-		badgeVariant === "dot" ? `${event.color}-dot` : event.color
-	) as VariantProps<typeof eventBadgeVariants>["color"];
+	const hex =
+		event.color && /^#[0-9A-Fa-f]{6}$/.test(event.color)
+			? event.color
+			: "#3B82F6";
+	const { variant: colorVariant, style: colorStyle } = getEventColorVariant(
+		hex,
+		badgeVariant,
+	);
+	const color = colorVariant as VariantProps<
+		typeof eventBadgeVariants
+	>["color"];
 
 	const isTask = event.eventKind === "task";
 	const eventBadgeClasses = cn(
@@ -158,6 +171,7 @@ export function MonthEventBadge({
 									type="button"
 									tabIndex={0}
 									className={eventBadgeClasses}
+									style={colorStyle}
 									onKeyDown={handleKeyDown}
 									onClick={(e) => e.stopPropagation()}
 								/>

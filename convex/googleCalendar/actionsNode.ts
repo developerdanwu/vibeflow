@@ -222,32 +222,16 @@ export const exchangeCode = action({
 		const listRes = await calendarClient.calendarList.list();
 		const items = listRes.data.items ?? [];
 		if (items.length > 0) {
-			const colorMap: Record<string, string> = {
-				"#9e69af": "purple",
-				"#7986cb": "blue",
-				"#5c6bc0": "blue",
-				"#3f51b5": "blue",
-				"#4285f4": "blue",
-				"#039be5": "blue",
-				"#0097a7": "blue",
-				"#009688": "green",
-				"#43a047": "green",
-				"#7cb342": "green",
-				"#afb42b": "yellow",
-				"#f9a825": "yellow",
-				"#ff9800": "orange",
-				"#ef6c02": "orange",
-				"#e65100": "orange",
-				"#e64a19": "red",
-				"#f44336": "red",
-				"#d32f2f": "red",
-				"#757575": "gray",
-			};
+			const defaultHex = "#3b82f6";
 			for (const cal of items) {
 				const calId = cal.id ?? "";
-				const color = cal.backgroundColor
-					? (colorMap[cal.backgroundColor.toLowerCase()] ?? "blue")
-					: "blue";
+				const raw = cal.backgroundColor?.trim().toLowerCase();
+				const color =
+					raw && /^#[0-9a-f]{6}$/.test(raw)
+						? raw
+						: raw && /^[0-9a-f]{6}$/.test(raw)
+							? `#${raw}`
+							: defaultHex;
 				await ctx.runMutation(
 					internal.googleCalendar.mutations.addExternalCalendar,
 					{
@@ -476,6 +460,19 @@ export const syncCalendar = internalAction({
 			});
 		}
 
+		// Remove single "series" rows created at create-time; sync returns expanded instances.
+		const seriesIdsToRemove = new Set<string>();
+		for (const u of toUpsert) {
+			if (u.recurringEventId) seriesIdsToRemove.add(u.recurringEventId);
+		}
+		for (const seriesId of seriesIdsToRemove) {
+			toDelete.push({
+				provider: "google",
+				externalCalendarId: args.externalCalendarId,
+				externalEventId: seriesId,
+			});
+		}
+
 		for (let i = 0; i < toDelete.length; i += BATCH_SIZE) {
 			const chunk = toDelete.slice(i, i + BATCH_SIZE);
 			await ctx.runMutation(
@@ -554,29 +551,49 @@ export const registerWatch = internalAction({
 		const channelId = crypto.randomUUID();
 		const expirationMs = now + 7 * 24 * 60 * 60 * 1000; // 7 days (Google max)
 		const calendarClient = getAuthenticatedCalendarClient(accessToken);
-		const watchRes = await calendarClient.events.watch({
-			calendarId: args.externalCalendarId,
-			requestBody: {
-				id: channelId,
-				type: "web_hook",
-				address: webhookUrl,
-				expiration: String(expirationMs),
-			},
-		});
-		const watchData = watchRes.data;
-		const expiration = watchData.expiration
-			? new Date(Number(watchData.expiration)).getTime()
-			: expirationMs;
-		await ctx.runMutation(
-			internal.googleCalendar.mutations.updateExternalCalendarChannel,
-			{
-				connectionId: args.connectionId,
-				externalCalendarId: args.externalCalendarId,
-				channelId: watchData.id ?? channelId,
-				resourceId: watchData.resourceId ?? "",
-				expiration,
-			},
-		);
+		try {
+			const watchRes = await calendarClient.events.watch({
+				calendarId: args.externalCalendarId,
+				requestBody: {
+					id: channelId,
+					type: "web_hook",
+					address: webhookUrl,
+					expiration: String(expirationMs),
+				},
+			});
+			const watchData = watchRes.data;
+			const expiration = watchData.expiration
+				? new Date(Number(watchData.expiration)).getTime()
+				: expirationMs;
+			await ctx.runMutation(
+				internal.googleCalendar.mutations.updateExternalCalendarChannel,
+				{
+					connectionId: args.connectionId,
+					externalCalendarId: args.externalCalendarId,
+					channelId: watchData.id ?? channelId,
+					resourceId: watchData.resourceId ?? "",
+					expiration,
+				},
+			);
+		} catch (e: unknown) {
+			// Google Calendar API returns error.reason for watch failures (e.g. pushNotSupportedForRequestedResource)
+			const err = e as {
+				response?: {
+					data?: { error?: { errors?: Array<{ reason?: string }> } };
+				};
+			};
+			if (
+				err.response?.data?.error?.errors?.[0]?.reason ===
+				"pushNotSupportedForRequestedResource"
+			) {
+				console.warn(
+					"registerWatch skipped (push not supported):",
+					args.externalCalendarId,
+				);
+				return;
+			}
+			throw e;
+		}
 	},
 });
 
@@ -860,6 +877,9 @@ export const createEventInGoogle = internalAction({
 						start: { dateTime: startIso, timeZone },
 						end: { dateTime: endIso, timeZone },
 					}),
+			...(event.recurrence?.length
+				? { recurrence: event.recurrence }
+				: {}),
 		} satisfies calendar_v3.Schema$Event;
 		const calendarClient = getAuthenticatedCalendarClient(accessToken);
 		const insertRes = await calendarClient.events.insert({

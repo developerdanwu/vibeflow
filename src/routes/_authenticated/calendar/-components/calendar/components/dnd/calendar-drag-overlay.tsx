@@ -7,6 +7,7 @@ import { eventBadgeVariants } from "@/routes/_authenticated/calendar/-components
 import { calendarWeekEventCardVariants } from "@/routes/_authenticated/calendar/-components/calendar/components/week-and-day-view/event-block";
 import { useCalendar } from "@/routes/_authenticated/calendar/-components/calendar/contexts/calendar-context";
 import type { TEvent } from "@/routes/_authenticated/calendar/-components/calendar/core/interfaces";
+import { getEventColorVariant } from "@/routes/_authenticated/calendar/-components/calendar/core/event-color";
 import { useDndContext } from "@dnd-kit/core";
 import type { VariantProps } from "class-variance-authority";
 import { differenceInMinutes, format, parseISO } from "date-fns";
@@ -59,9 +60,15 @@ function MonthEventBadgePreview({
 	badgeVariant: "colored" | "dot" | "mixed";
 }) {
 	const start = parseISO(event.startDate);
-	const color = (
-		badgeVariant === "dot" ? `${event.color}-dot` : event.color
-	) as VariantProps<typeof eventBadgeVariants>["color"];
+	const hex =
+		event.color && /^#[0-9A-Fa-f]{6}$/.test(event.color)
+			? event.color
+			: "#3B82F6";
+	const { variant: colorVariant, style: colorStyle } = getEventColorVariant(
+		hex,
+		badgeVariant,
+	);
+	const color = colorVariant as VariantProps<typeof eventBadgeVariants>["color"];
 	const className = cn(
 		eventBadgeVariants({ color, multiDayPosition: "none" }),
 		"pointer-events-none",
@@ -73,6 +80,7 @@ function MonthEventBadgePreview({
 				width: Math.max(width, 60),
 				height: Math.max(height, 26),
 				minHeight: 26,
+				...colorStyle,
 			}}
 		>
 			<div className="flex items-center gap-1.5 truncate">
@@ -119,9 +127,17 @@ function EventCardPreview({
 			: format(start, "h:mm a");
 	const isSingleLine = (durationInMinutes / 60) * 96 - 8 <= MIN_EVENT_HEIGHT_PX;
 
-	const color = (
-		badgeVariant === "dot" ? `${event.color}-dot` : event.color
-	) as VariantProps<typeof calendarWeekEventCardVariants>["color"];
+	const hex =
+		event.color && /^#[0-9A-Fa-f]{6}$/.test(event.color)
+			? event.color
+			: "#3B82F6";
+	const { variant: colorVariant, style: colorStyle } = getEventColorVariant(
+		hex,
+		badgeVariant,
+	);
+	const color = colorVariant as VariantProps<
+		typeof calendarWeekEventCardVariants
+	>["color"];
 
 	const className = cn(
 		calendarWeekEventCardVariants({ color }),
@@ -134,6 +150,7 @@ function EventCardPreview({
 			style={{
 				width: Math.max(width, 80),
 				height: Math.max(height, MIN_EVENT_HEIGHT_PX),
+				...colorStyle,
 			}}
 		>
 			<div className="flex min-h-0 flex-1 flex-col justify-start">

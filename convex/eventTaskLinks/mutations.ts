@@ -33,14 +33,20 @@ export const linkTaskToEvent = authMutation({
 		if (existing) {
 			if (effectiveLinkType !== existing.linkType) {
 				await ctx.db.patch("eventTaskLinks", existing._id, {
-				linkType: effectiveLinkType,
-			});
+					linkType: effectiveLinkType,
+					userId: event.userId,
+				});
+			} else if (existing.userId === undefined) {
+				await ctx.db.patch("eventTaskLinks", existing._id, {
+					userId: event.userId,
+				});
 			}
 			return existing._id;
 		}
 
 		return await ctx.db.insert("eventTaskLinks", {
 			eventId: args.eventId,
+			userId: event.userId,
 			externalTaskId: args.externalTaskId,
 			provider: "linear",
 			url: args.url,

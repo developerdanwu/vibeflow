@@ -70,29 +70,20 @@ export const getScheduledLinksByEventId = authQuery({
 export const getScheduledExternalTaskIdsForCurrentUser = authQuery({
 	args: {},
 	handler: async (ctx) => {
-		const events = await ctx.db
-			.query("events")
-			.withIndex("by_user", (q) => q.eq("userId", ctx.user._id))
+		const links = await ctx.db
+			.query("eventTaskLinks")
+			.withIndex("by_user_and_link_type", (q) =>
+				q.eq("userId", ctx.user._id).eq("linkType", "scheduled"),
+			)
 			.collect();
-		const scheduledIds = new Set<string>();
-		for (const event of events) {
-			const links = await ctx.db
-				.query("eventTaskLinks")
-				.withIndex("by_event", (q) => q.eq("eventId", event._id))
-				.collect();
-			for (const link of links) {
-				if (link.linkType === "scheduled") {
-					scheduledIds.add(link.externalTaskId);
-				}
-			}
-		}
-		return Array.from(scheduledIds);
+		return [...new Set(links.map((l) => l.externalTaskId))];
 	},
 });
 
 /**
  * Auth: returns task items (scheduled + related) linked to events on the given days.
  * Each day is a "yyyy-MM-dd" string. Returns one array of task items per day, in the same order as dateStrings.
+ * Uses events.by_user_and_date_str and eventTaskLinks.by_event indexes.
  */
 export const getTaskItemsLinkedToEventsOnDays = authQuery({
 	args: {
@@ -102,35 +93,27 @@ export const getTaskItemsLinkedToEventsOnDays = authQuery({
 		if (args.dateStrings.length === 0) {
 			return [];
 		}
-		const dateSet = new Set(args.dateStrings);
-		const events = await ctx.db
-			.query("events")
-			.withIndex("by_user", (q) => q.eq("userId", ctx.user._id))
-			.collect();
-		const eventsOnDays = events.filter(
-			(e) => e.startDateStr != null && dateSet.has(e.startDateStr),
-		);
 		const externalTaskIdsByDate = new Map<string, Set<string>>();
 		for (const dateStr of args.dateStrings) {
 			externalTaskIdsByDate.set(dateStr, new Set());
 		}
-		for (const event of eventsOnDays) {
-			const dateStr = event.startDateStr;
-			if (dateStr == null) continue;
+		for (const dateStr of args.dateStrings) {
+			const eventsOnDay = await ctx.db
+				.query("events")
+				.withIndex("by_user_and_date_str", (q) =>
+					q.eq("userId", ctx.user._id).eq("startDateStr", dateStr),
+				)
+				.collect();
 			const set = externalTaskIdsByDate.get(dateStr);
 			if (!set) continue;
-			const links = await ctx.db
-				.query("eventTaskLinks")
-				.withIndex("by_event", (q) => q.eq("eventId", event._id))
-				.collect();
-			for (const link of links) {
-				set.add(link.externalTaskId);
-			}
-		}
-		const allExternalIds = new Set<string>();
-		for (const set of externalTaskIdsByDate.values()) {
-			for (const id of set) {
-				allExternalIds.add(id);
+			for (const event of eventsOnDay) {
+				const links = await ctx.db
+					.query("eventTaskLinks")
+					.withIndex("by_event", (q) => q.eq("eventId", event._id))
+					.collect();
+				for (const link of links) {
+					set.add(link.externalTaskId);
+				}
 			}
 		}
 		const taskItems = await ctx.db

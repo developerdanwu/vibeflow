@@ -8,10 +8,11 @@ describe("createEvent", () => {
 		const { asUser, userId } = auth;
 		const eventData = factories.event();
 
-		const eventId = await asUser.mutation(
+		const created = await asUser.mutation(
 			api.events.mutations.createEvent,
 			eventData,
 		);
+		const eventId = created._id;
 
 		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get("events", eventId));
 		expect(event).toMatchObject({
@@ -42,13 +43,35 @@ describe("createEvent", () => {
 		).rejects.toThrowError("Not authenticated");
 	});
 
+	test("creates event with recurrence and persists recurrence on doc", async ({
+		t,
+		auth,
+		expect,
+	}) => {
+		const { asUser, userId } = auth;
+		const recurrence = ["RRULE:FREQ=WEEKLY;COUNT=3"];
+		const created = await asUser.mutation(
+			api.events.mutations.createEvent,
+			factories.event({ recurrence }),
+		);
+		const eventId = created._id;
+		const event = await t.run(async (ctx: MutationCtx) =>
+			ctx.db.get("events", eventId),
+		);
+		expect(event).toMatchObject({
+			title: "Test Event",
+			userId,
+			recurrence,
+		});
+	});
+
 	test("creates all-day event from date strings", async ({
 		t,
 		auth,
 		expect,
 	}) => {
 		const { asUser, userId } = auth;
-		const eventId = await asUser.mutation(
+		const created = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event({
 				allDay: true,
@@ -58,6 +81,7 @@ describe("createEvent", () => {
 				endTimestamp: undefined,
 			}),
 		);
+		const eventId = created._id;
 		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get("events", eventId));
 		expect(event).toMatchObject({
 			title: "Test Event",
@@ -91,7 +115,7 @@ describe("createEvent", () => {
 		expect,
 	}) => {
 		const { asUser, userId } = auth;
-		const eventId = await asUser.mutation(api.events.mutations.createEvent, {
+		const created = await asUser.mutation(api.events.mutations.createEvent, {
 			...factories.event(),
 			eventKind: "task",
 			scheduledTaskLinks: [
@@ -101,6 +125,7 @@ describe("createEvent", () => {
 				},
 			],
 		});
+		const eventId = created._id;
 		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get("events", eventId));
 		expect(event).toMatchObject({
 			title: "Test Event",
@@ -127,7 +152,7 @@ describe("createEvent", () => {
 		expect,
 	}) => {
 		const { asUser, userId } = auth;
-		const eventId = await asUser.mutation(api.events.mutations.createEvent, {
+		const created = await asUser.mutation(api.events.mutations.createEvent, {
 			...factories.event(),
 			eventKind: "task",
 			scheduledTaskLinks: [
@@ -141,6 +166,7 @@ describe("createEvent", () => {
 				},
 			],
 		});
+		const eventId = created._id;
 		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get("events", eventId));
 		expect(event).toMatchObject({
 			userId,
@@ -175,7 +201,7 @@ describe("createEvent", () => {
 		expect,
 	}) => {
 		const { asUser, userId } = auth;
-		const eventId = await asUser.mutation(api.events.mutations.createEvent, {
+		const created = await asUser.mutation(api.events.mutations.createEvent, {
 			...factories.event(),
 			relatedTaskLinks: [
 				{
@@ -188,6 +214,7 @@ describe("createEvent", () => {
 				},
 			],
 		});
+		const eventId = created._id;
 		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get("events", eventId));
 		expect(event).toMatchObject({ userId });
 		const links = await t.run(async (ctx: MutationCtx) =>
@@ -219,10 +246,11 @@ describe("createEvent", () => {
 		expect,
 	}) => {
 		const { asUser } = auth;
-		const eventId = await asUser.mutation(
+		const created = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const eventId = created._id;
 		const event = await t.run(async (ctx: MutationCtx) => ctx.db.get("events", eventId));
 		expect(event?.eventKind).toBe("event");
 	});
@@ -231,10 +259,11 @@ describe("createEvent", () => {
 describe("updateEvent", () => {
 	test("updates event title", async ({ t, auth, expect }) => {
 		const { asUser, userId } = auth;
-		const eventId = await asUser.mutation(
+		const created = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const eventId = created._id;
 		await asUser.mutation(api.events.mutations.updateEvent, {
 			id: eventId,
 			title: "Updated Title",
@@ -251,10 +280,11 @@ describe("updateEvent", () => {
 	}) => {
 		const { asUser: asAlice } = auth;
 		const { asUser: asBob } = await addUserToTest(t, { firstName: "Bob" });
-		const eventId = await asAlice.mutation(
+		const created = await asAlice.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const eventId = created._id;
 		await expect(
 			asBob.mutation(api.events.mutations.updateEvent, {
 				id: eventId,
@@ -310,10 +340,11 @@ describe("updateEvent", () => {
 
 	test("updates eventKind", async ({ t, auth, expect }) => {
 		const { asUser } = auth;
-		const eventId = await asUser.mutation(
+		const created = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const eventId = created._id;
 		await asUser.mutation(api.events.mutations.updateEvent, {
 			id: eventId,
 			eventKind: "task",
@@ -357,10 +388,11 @@ describe("updateEvent", () => {
 		expect,
 	}) => {
 		const { asUser } = auth;
-		const eventId = await asUser.mutation(
+		const created = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const eventId = created._id;
 		await asUser.mutation(api.eventTaskLinks.mutations.linkTaskToEvent, {
 			eventId,
 			externalTaskId: "linear-old-scheduled",
@@ -415,10 +447,11 @@ describe("updateEvent", () => {
 describe("deleteEvent", () => {
 	test("deletes own event", async ({ t, auth, expect }) => {
 		const { asUser } = auth;
-		const eventId = await asUser.mutation(
+		const created = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const eventId = created._id;
 		await asUser.mutation(api.events.mutations.deleteEvent, {
 			id: eventId,
 		});
@@ -433,10 +466,11 @@ describe("deleteEvent", () => {
 	}) => {
 		const { asUser: asAlice } = auth;
 		const { asUser: asBob } = await addUserToTest(t, { firstName: "Bob" });
-		const eventId = await asAlice.mutation(
+		const created = await asAlice.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const eventId = created._id;
 		await expect(
 			asBob.mutation(api.events.mutations.deleteEvent, { id: eventId }),
 		).rejects.toThrowError("Not authorized to delete this event");

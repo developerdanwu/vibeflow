@@ -1,5 +1,5 @@
+import { Button } from "@/components/ui/button";
 import { PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import {
 	ZCalendarDragData,
@@ -19,8 +19,6 @@ import type { TEvent } from "@/routes/_authenticated/calendar/-components/calend
 import { useDragToCreate } from "@/routes/_authenticated/calendar/-components/calendar/hooks/use-drag-to-create";
 import type { TEventPopoverFormData } from "@/routes/_authenticated/calendar/-components/event-popover/event-popover";
 import { ZEventPopoverForm } from "@/routes/_authenticated/calendar/-components/event-popover/event-popover";
-import type { TaskItemRow } from "@/routes/_authenticated/calendar/-components/task-sidebar/draggable-task-row";
-import { DraggableTaskRow } from "@/routes/_authenticated/calendar/-components/task-sidebar/draggable-task-row";
 import type { Popover as PopoverBase } from "@base-ui/react";
 import { mergeProps } from "@base-ui/react";
 import { useDndContext } from "@dnd-kit/core";
@@ -43,10 +41,7 @@ export interface DayViewColumnProps {
 	earliestEventHour: number;
 	latestEventHour: number;
 	groupedEvents: TEvent[][];
-	/** Tasks linked to events on this day (for collapsible content). */
-	tasksForDay?: TaskItemRow[];
-	/** Shared height for collapsible content (from parent). */
-	collapsibleContentHeight: number;
+	tasksCount: number;
 }
 
 export function DayViewColumn({
@@ -58,8 +53,7 @@ export function DayViewColumn({
 	earliestEventHour,
 	latestEventHour,
 	groupedEvents,
-	tasksForDay = [],
-	collapsibleContentHeight,
+	tasksCount,
 }: DayViewColumnProps) {
 	const { active, over } = useDndContext();
 	const activeResult = ZCalendarDragData.safeParse(active?.data.current);
@@ -78,10 +72,11 @@ export function DayViewColumn({
 	const [newEventDescription] = useCalendar(
 		(s) => s.context.newEventDescription,
 	);
-	const [newEventStartTime] = useCalendar((s) => s.context.newEventStartTime);
-	const [dayViewTasksCollapsibleOpen, calendarStore] = useCalendar(
+	const [dayViewTasksCollapsibleOpen] = useCalendar(
 		(s) => s.context.dayViewTasksCollapsibleOpen,
 	);
+	const [newEventStartTime] = useCalendar((s) => s.context.newEventStartTime);
+	const [, calendarStore] = useCalendar();
 	const [newEventEndTime] = useCalendar((s) => s.context.newEventEndTime);
 
 	const activeTriggerId =
@@ -365,28 +360,22 @@ export function DayViewColumn({
 					}),
 				)}
 			</div>
-			{/* Collapsible content only (trigger is in time column); same height for all columns */}
-			{dayViewTasksCollapsibleOpen && (
-				<div className="sticky right-0 bottom-0 left-0 z-50 w-full shrink-0 border-t bg-background">
-					<ScrollArea
-						className="w-full"
-						style={{ height: collapsibleContentHeight }}
+			{!dayViewTasksCollapsibleOpen && tasksCount > 0 && (
+				<div className="sticky bottom-0 flex h-0 w-full justify-center">
+					<Button
+						onClick={() =>
+							calendarStore.trigger.setDayViewTasksCollapsibleOpen({
+								open: true,
+							})
+						}
+						className={"absolute bottom-2"}
+						size="xs"
+						variant="outline"
 					>
-						<div className="flex flex-col gap-1 p-2">
-							{tasksForDay.length === 0 ? (
-								<p className="py-4 text-center text-muted-foreground text-sm">
-									No tasks linked to events this day
-								</p>
-							) : (
-								tasksForDay.map((item) => (
-									<DraggableTaskRow key={item._id} item={item} />
-								))
-							)}
-						</div>
-					</ScrollArea>
+						{tasksCount} tasks
+					</Button>
 				</div>
 			)}
-
 			{isToday(day) && (
 				<CalendarTimeline
 					firstVisibleHour={earliestEventHour}

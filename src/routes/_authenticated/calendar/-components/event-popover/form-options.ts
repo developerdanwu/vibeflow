@@ -16,10 +16,11 @@ export const eventFormSchema = z
 		allDay: z.boolean(),
 		startTime: z.custom<Time>().optional(),
 		endTime: z.custom<Time>().optional(),
-		color: z
-			.string()
-			.regex(/^#[0-9A-Fa-f]{6}$/, "Color must be a valid hex color")
-			.optional(),
+		/** Hex string, or null for "use calendar color" in edit mode. */
+		color: z.union([
+			z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Color must be a valid hex color"),
+			z.null(),
+		]),
 		calendarId: z.custom<Id<"calendars">>().optional(),
 		busy: z.enum(["busy", "free", "tentative", "outOfOffice"]).optional(),
 		visibility: z.enum(["public", "private"]).optional(),
@@ -32,6 +33,16 @@ export const eventFormSchema = z
 				}),
 			)
 			.default([]),
+		recurrenceRule: z
+			.enum(["none", "daily", "weekly", "monthly"])
+			.optional()
+			.default("none"),
+		recurrenceEnd: z
+			.enum(["never", "onDate", "after"])
+			.optional()
+			.default("never"),
+		recurrenceEndDate: z.date().optional(),
+		recurrenceCount: z.number().int().min(1).optional(),
 	})
 	.superRefine((data, ctx) => {
 		if (data.allDay) {
@@ -68,6 +79,9 @@ export const eventFormSchema = z
 
 export type TEventFormData = z.infer<typeof eventFormSchema>;
 
+export type RecurrenceRuleType = "none" | "daily" | "weekly" | "monthly";
+export type RecurrenceEndType = "never" | "onDate" | "after";
+
 export type GetCreateDefaultValuesInput = {
 	startDate: Date;
 	endDate?: Date;
@@ -82,6 +96,10 @@ export type GetCreateDefaultValuesInput = {
 	visibility?: "public" | "private";
 	eventKind?: "event" | "task";
 	relatedTaskLinks?: Array<{ externalTaskId: string; url: string }>;
+	recurrenceRule?: RecurrenceRuleType;
+	recurrenceEnd?: RecurrenceEndType;
+	recurrenceEndDate?: Date;
+	recurrenceCount?: number;
 };
 
 export function getCreateDefaultValues(
@@ -101,6 +119,10 @@ export function getCreateDefaultValues(
 		visibility = "public",
 		eventKind = "event",
 		relatedTaskLinks = [],
+		recurrenceRule = "none",
+		recurrenceEnd = "never",
+		recurrenceEndDate,
+		recurrenceCount,
 	} = input;
 	return {
 		title,
@@ -116,6 +138,10 @@ export function getCreateDefaultValues(
 		visibility,
 		eventKind,
 		relatedTaskLinks,
+		recurrenceRule,
+		recurrenceEnd,
+		recurrenceEndDate,
+		recurrenceCount,
 	};
 }
 

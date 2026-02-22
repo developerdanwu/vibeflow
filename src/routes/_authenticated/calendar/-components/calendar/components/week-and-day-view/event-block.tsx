@@ -11,6 +11,7 @@ import {
 } from "@/routes/_authenticated/calendar/-components/calendar/components/dnd/draggable-event";
 import { useCalendar } from "@/routes/_authenticated/calendar/-components/calendar/contexts/calendar-context";
 import type { TEvent } from "@/routes/_authenticated/calendar/-components/calendar/core/interfaces";
+import { getEventColorVariant } from "@/routes/_authenticated/calendar/-components/calendar/core/event-color";
 import type { PopoverRootProps } from "@base-ui/react";
 import type { VariantProps } from "class-variance-authority";
 import { cva } from "class-variance-authority";
@@ -52,6 +53,11 @@ export const calendarWeekEventCardVariants = cva(
 					"bg-neutral-50 dark:bg-neutral-900 [&_.event-dot]:fill-yellow-600",
 				"gray-dot":
 					"bg-neutral-50 dark:bg-neutral-900 [&_.event-dot]:fill-neutral-600",
+				// Custom hex: style applied via inline style
+				custom:
+					"border [&_.event-dot]:fill-[var(--event-dot-custom,currentColor)]",
+				"custom-dot":
+					"bg-neutral-50 dark:bg-neutral-900 [&_.event-dot]:fill-[var(--event-dot-custom,currentColor)]",
 			},
 		},
 		defaultVariants: {
@@ -99,9 +105,15 @@ export function EventBlock({
 		}
 	}, [heightInPixels, heightMotionValue]);
 
-	const color = (
-		badgeVariant === "dot" ? `${event.color}-dot` : event.color
-	) as VariantProps<typeof calendarWeekEventCardVariants>["color"];
+	const { variant: colorVariant, style: colorStyle } = getEventColorVariant(
+		event.color && /^#[0-9A-Fa-f]{6}$/.test(event.color)
+			? event.color
+			: "#3B82F6",
+		badgeVariant,
+	);
+	const color = colorVariant as VariantProps<
+		typeof calendarWeekEventCardVariants
+	>["color"];
 
 	const isTask = event.eventKind === "task";
 	const calendarWeekEventCardClasses = cn(
@@ -153,7 +165,10 @@ export function EventBlock({
 										showResizeHandles &&
 											"relative flex w-full flex-col items-start rounded-md",
 									)}
-									style={{ height: heightPx }}
+									style={{
+										height: heightPx,
+										...(colorStyle ?? {}),
+									}}
 									tabIndex={0}
 									onKeyDown={handleKeyDown}
 									onClick={(e) => e.stopPropagation()}

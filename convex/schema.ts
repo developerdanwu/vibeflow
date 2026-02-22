@@ -49,6 +49,7 @@ export default defineSchema({
 		.index("by_user", ["userId"])
 		.index("by_user_and_date", ["userId", "startTimestamp"])
 		.index("by_calendar", ["calendarId"])
+		.index("by_user_and_date_str", ["userId", "startDateStr"])
 		.index("by_external_event", [
 			"externalProvider",
 			"externalCalendarId",
@@ -138,12 +139,14 @@ export default defineSchema({
 		.index("by_external_task", ["provider", "externalTaskId"]),
 	eventTaskLinks: defineTable({
 		eventId: v.id("events"),
+		userId: v.optional(v.id("users")),
 		externalTaskId: v.string(),
 		provider: v.union(v.literal("linear")),
 		url: v.string(),
 		linkType: v.optional(v.union(v.literal("scheduled"), v.literal("related"))),
 	})
 		.index("by_event", ["eventId"])
+		.index("by_user_and_link_type", ["userId", "linkType"])
 		.index("by_external_task", ["provider", "externalTaskId"])
 		.index("by_event_and_external_task", ["eventId", "externalTaskId"]),
 });

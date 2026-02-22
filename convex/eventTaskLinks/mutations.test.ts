@@ -6,10 +6,11 @@ import { addUserToTest, factories } from "../test.setup";
 describe("linkTaskToEvent", () => {
 	test("creates link and returns id", async ({ t, auth, expect }) => {
 		const { asUser } = auth;
-		const eventId = await asUser.mutation(
+		const created = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const eventId = created._id;
 		const linkId = await asUser.mutation(
 			api.eventTaskLinks.mutations.linkTaskToEvent,
 			{
@@ -35,10 +36,11 @@ describe("linkTaskToEvent", () => {
 		expect,
 	}) => {
 		const { asUser } = auth;
-		const eventId = await asUser.mutation(
+		const created = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const eventId = created._id;
 		const id1 = await asUser.mutation(
 			api.eventTaskLinks.mutations.linkTaskToEvent,
 			{
@@ -60,10 +62,11 @@ describe("linkTaskToEvent", () => {
 
 	test("requires auth", async ({ t, auth, expect }) => {
 		const { asUser } = auth;
-		const eventId = await asUser.mutation(
+		const created = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const eventId = created._id;
 		await expect(
 			t.mutation(api.eventTaskLinks.mutations.linkTaskToEvent, {
 				eventId,
@@ -75,10 +78,11 @@ describe("linkTaskToEvent", () => {
 
 	test("throws when event not found", async ({ auth, expect }) => {
 		const { asUser } = auth;
-		const deletedId = await asUser.mutation(
+		const created = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const deletedId = created._id;
 		await asUser.mutation(api.events.mutations.deleteEvent, {
 			id: deletedId,
 		});
@@ -98,10 +102,11 @@ describe("linkTaskToEvent", () => {
 	}) => {
 		const { asUser: asAlice } = auth;
 		const { asUser: asBob } = await addUserToTest(t, { firstName: "Bob" });
-		const eventId = await asAlice.mutation(
+		const created = await asAlice.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const eventId = created._id;
 		await expect(
 			asBob.mutation(api.eventTaskLinks.mutations.linkTaskToEvent, {
 				eventId,
@@ -115,10 +120,11 @@ describe("linkTaskToEvent", () => {
 describe("unlinkTaskFromEvent", () => {
 	test("deletes existing link", async ({ t, auth, expect }) => {
 		const { asUser } = auth;
-		const eventId = await asUser.mutation(
+		const created = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const eventId = created._id;
 		await asUser.mutation(api.eventTaskLinks.mutations.linkTaskToEvent, {
 			eventId,
 			externalTaskId: "linear-issue-1",
@@ -139,10 +145,11 @@ describe("unlinkTaskFromEvent", () => {
 
 	test("no-op when link does not exist", async ({ auth, expect }) => {
 		const { asUser } = auth;
-		const eventId = await asUser.mutation(
+		const created = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const eventId = created._id;
 		await expect(
 			asUser.mutation(api.eventTaskLinks.mutations.unlinkTaskFromEvent, {
 				eventId,
@@ -153,10 +160,11 @@ describe("unlinkTaskFromEvent", () => {
 
 	test("requires auth", async ({ t, auth, expect }) => {
 		const { asUser } = auth;
-		const eventId = await asUser.mutation(
+		const created = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const eventId = created._id;
 		await expect(
 			t.mutation(api.eventTaskLinks.mutations.unlinkTaskFromEvent, {
 				eventId,
@@ -167,10 +175,11 @@ describe("unlinkTaskFromEvent", () => {
 
 	test("throws when event not found", async ({ auth, expect }) => {
 		const { asUser } = auth;
-		const deletedId = await asUser.mutation(
+		const created = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const deletedId = created._id;
 		await asUser.mutation(api.events.mutations.deleteEvent, {
 			id: deletedId,
 		});
@@ -189,10 +198,11 @@ describe("unlinkTaskFromEvent", () => {
 	}) => {
 		const { asUser: asAlice } = auth;
 		const { asUser: asBob } = await addUserToTest(t, { firstName: "Bob" });
-		const eventId = await asAlice.mutation(
+		const created = await asAlice.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const eventId = created._id;
 		await asAlice.mutation(api.eventTaskLinks.mutations.linkTaskToEvent, {
 			eventId,
 			externalTaskId: "linear-issue-1",

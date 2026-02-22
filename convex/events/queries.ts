@@ -1,7 +1,40 @@
+import type { Id } from "../_generated/dataModel";
 import { v } from "convex/values";
 import { authQuery } from "../helpers";
 import { internalQuery } from "../_generated/server";
 import { ErrorCode, throwConvexError } from "../errors";
+
+const DEFAULT_HEX = "#3B82F6";
+
+/** Legacy color names → hex for backward compatibility. */
+const NAME_TO_HEX: Record<string, string> = {
+	blue: "#3B82F6",
+	green: "#22C55E",
+	red: "#EF4444",
+	yellow: "#EAB308",
+	purple: "#A855F7",
+	orange: "#F97316",
+	gray: "#6B7280",
+};
+
+function toHex(value: string | undefined): string {
+	if (value == null || value === "") {
+		return DEFAULT_HEX;
+	}
+	if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+		return value;
+	}
+	const hex = NAME_TO_HEX[value.toLowerCase()];
+	return hex ?? DEFAULT_HEX;
+}
+
+function resolveEventColor(
+	eventColor: string | undefined,
+	calendarColor: string | undefined,
+): string {
+	const raw = eventColor ?? calendarColor;
+	return toHex(raw);
+}
 
 export const getEventsByUser = authQuery({
 	args: {},
@@ -30,7 +63,26 @@ export const getEventsByDateRange = authQuery({
 			)
 			.collect();
 
-		return events.filter((event) => event.startTimestamp <= bufferedEnd);
+		const filtered = events.filter((event) => event.startTimestamp <= bufferedEnd);
+
+		const calendars = await ctx.db
+			.query("calendars")
+			.withIndex("by_user", (q) => q.eq("userId", ctx.user._id))
+			.collect();
+		const calendarColorById = new Map<Id<"calendars">, string>();
+		for (const cal of calendars) {
+			calendarColorById.set(cal._id, cal.color);
+		}
+
+		return filtered.map((event) => ({
+			...event,
+			color: resolveEventColor(
+				event.color,
+				event.calendarId
+					? calendarColorById.get(event.calendarId)
+					: undefined,
+			),
+		}));
 	},
 });
 

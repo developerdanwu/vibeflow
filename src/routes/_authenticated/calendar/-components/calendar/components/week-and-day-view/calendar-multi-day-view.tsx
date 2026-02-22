@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { DroppableDayCell } from "@/routes/_authenticated/calendar/-components/calendar/components/dnd/droppable-day-cell";
@@ -9,17 +8,17 @@ import {
 } from "@/routes/_authenticated/calendar/-components/calendar/core/helpers";
 import type { TEvent } from "@/routes/_authenticated/calendar/-components/calendar/core/interfaces";
 import { EventPopover } from "@/routes/_authenticated/calendar/-components/event-popover/event-popover";
+import type { TaskItemRow } from "@/routes/_authenticated/calendar/-components/task-sidebar/draggable-task-row";
 import { useCalendarSearch } from "@/routes/_authenticated/calendar/index";
 import { Popover as PopoverBase } from "@base-ui/react";
 import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
 import { useQuery } from "@tanstack/react-query";
 import { addDays, format, isToday, parseISO, startOfDay } from "date-fns";
-import { ChevronDown, ChevronUp } from "lucide-react";
 import { useMemo } from "react";
-import type { TaskItemRow } from "@/routes/_authenticated/calendar/-components/task-sidebar/draggable-task-row";
 import { DayViewColumn } from "./day-view-column";
 import { DayViewMultiDayEventsRow } from "./day-view-multi-day-events-row";
+import { DayViewTasksPanel } from "./day-view-tasks-panel";
 
 interface IProps {
 	dayCount: 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -92,20 +91,6 @@ export function CalendarMultiDayView({
 		[tasksPerDayRaw, dateStrings],
 	);
 
-	/** Task count per day. */
-	const taskCountPerDay = useMemo(
-		() => tasksPerDay.map((tasks) => tasks.length),
-		[tasksPerDay],
-	);
-
-	/** Shared height for all day columns' collapsible content (based on column with most tasks). */
-	const collapsibleContentHeight = useMemo(() => {
-		const maxCount = Math.max(0, ...taskCountPerDay);
-		const rowHeight = 52;
-		const padding = 72;
-		return Math.min(280, padding + maxCount * rowHeight);
-	}, [taskCountPerDay]);
-
 	const renderHeader = () => {
 		return (
 			<div className="relative z-20 flex h-full border-b">
@@ -148,53 +133,52 @@ export function CalendarMultiDayView({
 			<div className="flex min-h-0 flex-1 flex-col">
 				<div className="shrink">{renderHeader()}</div>
 				<ScrollArea className="h-0 flex-[1_1_0px]">
-					<div className="flex">
-						<div className="relative w-18">
-							{hours.map((hour, index) => (
-								<div key={hour} className="relative" style={{ height: "96px" }}>
-									<div className="absolute -top-3 right-2 flex h-6 items-center">
-										{index !== 0 && (
-											<span className="text-muted-foreground text-xs">
-												{format(new Date().setHours(hour, 0, 0, 0), "hh a")}
-											</span>
-										)}
+					<div className="flex min-h-full flex-col">
+						{/* Grid row: time column (hours only) + day columns */}
+						<div className="flex flex-1">
+							<div className="relative w-18 shrink-0">
+								{hours.map((hour, index) => (
+									<div
+										key={hour}
+										className="relative"
+										style={{ height: "96px" }}
+									>
+										<div className="absolute -top-3 right-2 flex h-6 items-center">
+											{index !== 0 && (
+												<span className="text-muted-foreground text-xs">
+													{format(new Date().setHours(hour, 0, 0, 0), "hh a")}
+												</span>
+											)}
+										</div>
 									</div>
-								</div>
-							))}
-							{/* Single collapsible trigger in time column: chevron down when open, chevron up when closed */}
-							<div className="sticky bottom-0 flex items-center justify-center border-t bg-background py-1">
-								<Button
-									onClick={() =>
-										store.trigger.setDayViewTasksCollapsibleOpen({
-											open: !dayViewTasksCollapsibleOpen,
-										})
-									}
-									size="icon-sm"
-									variant="ghost"
-								>
-									{dayViewTasksCollapsibleOpen ? (
-										<ChevronDown />
-									) : (
-										<ChevronUp />
-									)}
-								</Button>
+								))}
 							</div>
+							{days.map((day, i) => (
+								<DayViewColumn
+									key={format(day, "yyyy-MM-dd")}
+									day={day}
+									triggerId={newEventTriggerId(i)}
+									quickAddEventPopoverHandle={quickAddEventPopoverHandle}
+									hours={hours}
+									workingHours={workingHours}
+									earliestEventHour={earliestEventHour}
+									latestEventHour={latestEventHour}
+									tasksCount={tasksPerDay[i]?.length ?? 0}
+									groupedEvents={groupedPerDay[i] ?? []}
+								/>
+							))}
 						</div>
-						{days.map((day, i) => (
-							<DayViewColumn
-								key={format(day, "yyyy-MM-dd")}
-								day={day}
-								triggerId={newEventTriggerId(i)}
-								quickAddEventPopoverHandle={quickAddEventPopoverHandle}
-								hours={hours}
-								workingHours={workingHours}
-								earliestEventHour={earliestEventHour}
-								latestEventHour={latestEventHour}
-								groupedEvents={groupedPerDay[i] ?? []}
-								tasksForDay={tasksPerDay[i] ?? []}
-								collapsibleContentHeight={collapsibleContentHeight}
+						{/* Tasks panel row: single sticky row (trigger + one cell per day) */}
+						{dayViewTasksCollapsibleOpen && (
+							<DayViewTasksPanel
+								open={dayViewTasksCollapsibleOpen}
+								onOpenChange={(open) =>
+									store.trigger.setDayViewTasksCollapsibleOpen({ open })
+								}
+								tasksPerDay={tasksPerDay}
+								days={days}
 							/>
-						))}
+						)}
 					</div>
 				</ScrollArea>
 			</div>

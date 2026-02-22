@@ -1,14 +1,7 @@
 import { z } from "zod";
 
-const ZEventColorSchema = z.enum([
-	"blue",
-	"green",
-	"red",
-	"yellow",
-	"purple",
-	"orange",
-	"gray",
-]);
+/** Event color is stored and displayed as hex (e.g. "#3B82F6"). API returns hex. */
+const ZEventColorSchema = z.string();
 
 export const ZUserSchema = z.object({
 	id: z.string(),

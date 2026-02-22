@@ -1,5 +1,3 @@
-"use client";
-
 import { Button } from "@/components/ui/button";
 import ColorPickerCompact from "@/components/ui/color-picker-compact";
 import {
@@ -57,6 +55,7 @@ import {
 	Eye,
 	EyeOff,
 	InfoIcon,
+	Repeat,
 	Trash2,
 } from "lucide-react";
 import {
@@ -74,6 +73,7 @@ import {
 	getCreateDefaultValues,
 	type TEventFormData,
 } from "./form-options";
+import { buildRecurrenceRruleStrings } from "./recurrence-rrule";
 import { RelatedTasksSection } from "./related-tasks-section";
 
 const colorNameToHex: Record<TEventColor, string> = {
@@ -85,6 +85,26 @@ const colorNameToHex: Record<TEventColor, string> = {
 	orange: "#F97316",
 	gray: "#6B7280",
 };
+
+const RECURRENCE_OPTIONS: Array<{
+	value: "none" | "daily" | "weekly" | "monthly";
+	label: string;
+}> = [
+	{ value: "none", label: "Does not repeat" },
+	{ value: "daily", label: "Daily" },
+	{ value: "weekly", label: "Weekly" },
+	{ value: "monthly", label: "Monthly" },
+];
+
+/** Sentinel for "use calendar color" in edit mode; submit sends clearColor and omits color. */
+const USE_CALENDAR_COLOR_SENTINEL: string | null = null;
+
+function calendarColorToHex(cal: { color: string } | undefined): string {
+	if (!cal) return "#3B82F6";
+	return /^#[0-9A-Fa-f]{6}$/.test(cal.color)
+		? cal.color
+		: (colorNameToHex[cal.color as TEventColor] ?? "#3B82F6");
+}
 
 export const ZEventPopoverForm = z.discriminatedUnion("mode", [
 	z.object({
@@ -107,44 +127,6 @@ export const ZEventPopoverForm = z.discriminatedUnion("mode", [
 export type TEventPopoverFormData = z.infer<typeof ZEventPopoverForm>;
 
 type TEventPopoverPayload = z.infer<typeof ZEventPopoverForm>;
-
-function hexToRgb(hex: string): { r: number; g: number; b: number } {
-	const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-	return result
-		? {
-				r: Number.parseInt(result[1], 16),
-				g: Number.parseInt(result[2], 16),
-				b: Number.parseInt(result[3], 16),
-			}
-		: { r: 0, g: 0, b: 0 };
-}
-
-function colorDistance(
-	rgb1: { r: number; g: number; b: number },
-	rgb2: { r: number; g: number; b: number },
-): number {
-	const dr = rgb1.r - rgb2.r;
-	const dg = rgb1.g - rgb2.g;
-	const db = rgb1.b - rgb2.b;
-	return Math.sqrt(dr * dr + dg * dg + db * db);
-}
-
-function hexToColorName(hex: string): TEventColor {
-	const inputRgb = hexToRgb(hex);
-	let minDistance = Infinity;
-	let closestColor: TEventColor = "blue";
-
-	for (const [colorName, colorHex] of Object.entries(colorNameToHex)) {
-		const colorRgb = hexToRgb(colorHex);
-		const distance = colorDistance(inputRgb, colorRgb);
-		if (distance < minDistance) {
-			minDistance = distance;
-			closestColor = colorName as TEventColor;
-		}
-	}
-
-	return closestColor;
-}
 
 export {
 	eventFormOptions,
@@ -169,6 +151,56 @@ function getTimes(
 		};
 	}
 	return { startTime: undefined, endTime: undefined };
+}
+
+/** If event is recurring, open dialog and run onConfirm(mode); else run action() (and await if Promise). */
+function withRecurringDialog(
+	event: TEvent,
+	action: (recurringEditMode?: "this" | "all") => void | Promise<void>,
+	opts: { onConfirm: (mode: "this" | "all") => void; onCancel?: () => void },
+): void | Promise<void> {
+	if (event.recurringEventId) {
+		dialogStore.send({
+			type: "openRecurringEventDialog",
+			onConfirm: opts.onConfirm,
+			onCancel: opts.onCancel ?? (() => {}),
+		});
+		return;
+	}
+	return action();
+}
+
+function buildDateTimePayload(
+	values: TEventFormData,
+):
+	| { allDay: true; startDateStr: string; endDateStr: string }
+	| { allDay: false; startTimestamp: number; endTimestamp: number } {
+	const startTimeVal = values.startTime ?? new Time(9, 0);
+	const endTimeVal = values.endTime ?? new Time(10, 0);
+	if (values.allDay) {
+		return {
+			allDay: true,
+			startDateStr: format(values.startDate, "yyyy-MM-dd"),
+			endDateStr: format(addDays(values.endDate, 1), "yyyy-MM-dd"),
+		};
+	}
+	const startDateTime = set(startOfDay(values.startDate), {
+		hours: startTimeVal.hour,
+		minutes: startTimeVal.minute,
+		seconds: 0,
+		milliseconds: 0,
+	});
+	const endDateTime = set(startOfDay(values.endDate), {
+		hours: endTimeVal.hour,
+		minutes: endTimeVal.minute,
+		seconds: 0,
+		milliseconds: 0,
+	});
+	return {
+		allDay: false,
+		startTimestamp: startDateTime.getTime(),
+		endTimestamp: endDateTime.getTime(),
+	};
 }
 
 export type EventPopoverContentHandle = {
@@ -208,7 +240,12 @@ const EventPopoverContent = forwardRef<
 ) {
 	const formId = useId();
 	const titleId = useId();
-	const titleInputRef = useRef<HTMLInputElement | null>(null);
+	const refs = useRef({
+		titleInput: null as HTMLInputElement | null,
+		userHasSetColor: false,
+		form: null as HTMLFormElement | null,
+		runAfterClose: null as (() => void) | null,
+	});
 
 	const { mutateAsync: updateEvent } = useUpdateEventMutation({
 		meta: { updateType: "edit" },
@@ -230,24 +267,20 @@ const EventPopoverContent = forwardRef<
 			: undefined;
 	const handleDelete = () => {
 		if (!event?.convexId) return;
-		// Check if recurring event needs dialog
-		if (event.recurringEventId) {
-			dialogStore.send({
-				type: "openRecurringEventDialog",
+		const eventId = event.convexId as Id<"events">;
+		withRecurringDialog(
+			event,
+			() => {
+				refs.current.runAfterClose = () => deleteEvent({ id: eventId });
+				onClose();
+			},
+			{
 				onConfirm: () => {
-					// Note: recurringEditMode not needed for delete yet, but can be added later
-					deleteEvent({ id: event.convexId as Id<"events"> });
+					deleteEvent({ id: eventId });
 					onClose();
 				},
-				onCancel: () => {},
-			});
-			return;
-		}
-		// Not recurring, delete directly
-		runAfterCloseRef.current = () => {
-			deleteEvent({ id: event.convexId as Id<"events"> });
-		};
-		onClose();
+			},
+		);
 	};
 
 	const performSubmit = async (
@@ -255,70 +288,65 @@ const EventPopoverContent = forwardRef<
 		recurringEditMode?: "this" | "all",
 	) => {
 		try {
-			const colorName = values.color ? hexToColorName(values.color) : "blue";
+			const useCalendarColor =
+				mode === "edit" && values.color === USE_CALENDAR_COLOR_SENTINEL;
+			const colorHex =
+				values.color && values.color !== USE_CALENDAR_COLOR_SENTINEL
+					? values.color
+					: "#3B82F6";
+
+			const taskLinks = values.relatedTaskLinks ?? [];
+			const taskLinkUpdates =
+				values.eventKind === "task"
+					? { scheduledTaskLinks: taskLinks, relatedTaskLinks: [] }
+					: { scheduledTaskLinks: [], relatedTaskLinks: taskLinks };
+			const dateTime = buildDateTimePayload(values);
 
 			if (mode === "edit" && event?.convexId) {
 				const eventId = event.convexId as Id<"events">;
-				const taskLinks = values.relatedTaskLinks ?? [];
-				const taskLinkUpdates =
-					values.eventKind === "task"
-						? { scheduledTaskLinks: taskLinks, relatedTaskLinks: [] }
-						: { scheduledTaskLinks: [], relatedTaskLinks: taskLinks };
-				if (values.allDay) {
-					await updateEvent({
-						id: eventId,
-						title: values.title,
-						description: values.description || "",
-						allDay: true,
-						startDateStr: format(values.startDate, "yyyy-MM-dd"),
-						endDateStr: format(addDays(values.endDate, 1), "yyyy-MM-dd"),
-						color: colorName,
-						calendarId: values.calendarId,
-						busy: values.busy,
-						visibility: values.visibility,
-						eventKind: values.eventKind,
-						recurringEditMode,
-						...taskLinkUpdates,
-					});
-				} else {
-					const startTimeVal = values.startTime ?? new Time(9, 0);
-					const endTimeVal = values.endTime ?? new Time(10, 0);
-
-					const startDateTime = set(startOfDay(values.startDate), {
-						hours: startTimeVal.hour,
-						minutes: startTimeVal.minute,
-						seconds: 0,
-						milliseconds: 0,
-					});
-					const endDateTime = set(startOfDay(values.endDate), {
-						hours: endTimeVal.hour,
-						minutes: endTimeVal.minute,
-						seconds: 0,
-						milliseconds: 0,
-					});
-
-					await updateEvent({
-						id: eventId,
-						title: values.title,
-						description: values.description || "",
-						allDay: false,
-						startTimestamp: startDateTime.getTime(),
-						endTimestamp: endDateTime.getTime(),
-						color: colorName,
-						calendarId: values.calendarId,
-						busy: values.busy,
-						visibility: values.visibility,
-						eventKind: values.eventKind,
-						recurringEditMode,
-						...taskLinkUpdates,
-					});
-				}
-			} else {
-				const taskLinks = values.relatedTaskLinks ?? [];
-				const createPayload = {
+				await updateEvent({
+					id: eventId,
 					title: values.title,
 					description: values.description || "",
-					color: colorName,
+					calendarId: values.calendarId,
+					busy: values.busy,
+					visibility: values.visibility,
+					eventKind: values.eventKind,
+					recurringEditMode,
+					...taskLinkUpdates,
+					...(useCalendarColor
+						? { clearColor: true as const }
+						: { color: colorHex }),
+					...dateTime,
+				});
+			} else {
+				const selectedCalendarForCreate = calendars?.find(
+					(cal) => cal.id === values.calendarId,
+				);
+				const createColorHex =
+					values.color && values.color !== USE_CALENDAR_COLOR_SENTINEL
+						? values.color
+						: calendarColorToHex(selectedCalendarForCreate);
+				const eventStart =
+					values.allDay || !values.startTime
+						? startOfDay(values.startDate)
+						: set(startOfDay(values.startDate), {
+								hours: values.startTime.hour,
+								minutes: values.startTime.minute,
+								seconds: 0,
+								milliseconds: 0,
+							});
+				const recurrence = buildRecurrenceRruleStrings({
+					recurrenceRule: values.recurrenceRule ?? "none",
+					recurrenceEnd: values.recurrenceEnd ?? "never",
+					recurrenceEndDate: values.recurrenceEndDate,
+					recurrenceCount: values.recurrenceCount,
+					eventStart,
+				});
+				await createEvent({
+					title: values.title,
+					description: values.description || "",
+					color: createColorHex,
 					calendarId: values.calendarId,
 					busy: values.busy,
 					visibility: values.visibility,
@@ -326,38 +354,9 @@ const EventPopoverContent = forwardRef<
 					...(values.eventKind === "task"
 						? { scheduledTaskLinks: taskLinks, relatedTaskLinks: [] }
 						: { relatedTaskLinks: taskLinks }),
-				};
-				if (values.allDay) {
-					await createEvent({
-						...createPayload,
-						allDay: true,
-						startDateStr: format(values.startDate, "yyyy-MM-dd"),
-						endDateStr: format(addDays(values.endDate, 1), "yyyy-MM-dd"),
-					});
-				} else {
-					const startTimeVal = values.startTime ?? new Time(9, 0);
-					const endTimeVal = values.endTime ?? new Time(10, 0);
-
-					const startDateTime = set(startOfDay(values.startDate), {
-						hours: startTimeVal.hour,
-						minutes: startTimeVal.minute,
-						seconds: 0,
-						milliseconds: 0,
-					});
-					const endDateTime = set(startOfDay(values.endDate), {
-						hours: endTimeVal.hour,
-						minutes: endTimeVal.minute,
-						seconds: 0,
-						milliseconds: 0,
-					});
-
-					await createEvent({
-						...createPayload,
-						allDay: false,
-						startTimestamp: startDateTime.getTime(),
-						endTimestamp: endDateTime.getTime(),
-					});
-				}
+					...dateTime,
+					...(recurrence.length > 0 ? { recurrence } : {}),
+				});
 			}
 
 			form.reset();
@@ -380,76 +379,57 @@ const EventPopoverContent = forwardRef<
 		defaultValues: initialValues,
 		onSubmit: async ({ value }) => {
 			const values = value as TEventFormData;
-			// Check if this is a recurring event that needs user choice
-			if (mode === "edit" && event?.recurringEventId) {
-				dialogStore.send({
-					type: "openRecurringEventDialog",
+			if (mode === "edit" && event) {
+				const result = withRecurringDialog(event, () => performSubmit(values), {
 					onConfirm: async (recurringEditMode) => {
 						await performSubmit(values, recurringEditMode);
 						onClose();
 					},
-					onCancel: () => {},
 				});
+				if (result !== undefined) await result;
 				return;
 			}
-			// Not recurring, submit directly
 			await performSubmit(values);
 		},
 	});
 	const isDirty = useStore(form.store, (state) => state.isDirty);
-	const formRef = useRef<HTMLFormElement | null>(null);
-	const runAfterCloseRef = useRef<(() => void) | null>(null);
 
-	// Sync store → form when resize handles change the event times
+	// Sync store → form when resize handles change the event times (create mode only)
 	useEffect(() => {
-		if (mode !== "create") {
-			return;
+		if (mode !== "create") return;
+		if (storeStartTime) {
+			const current = form.getFieldValue("startTime") as Time | undefined;
+			if (
+				!current ||
+				current.hour !== storeStartTime.hour ||
+				current.minute !== storeStartTime.minute
+			) {
+				form.setFieldValue("startTime", storeStartTime);
+			}
 		}
-		if (!storeStartTime) {
-			return;
+		if (storeEndTime) {
+			const current = form.getFieldValue("endTime") as Time | undefined;
+			if (
+				!current ||
+				current.hour !== storeEndTime.hour ||
+				current.minute !== storeEndTime.minute
+			) {
+				form.setFieldValue("endTime", storeEndTime);
+			}
 		}
-		const current = form.getFieldValue("startTime") as Time | undefined;
-		if (
-			current &&
-			current.hour === storeStartTime.hour &&
-			current.minute === storeStartTime.minute
-		) {
-			return;
-		}
-		form.setFieldValue("startTime", storeStartTime);
-	}, [storeStartTime, mode, form]);
-
-	useEffect(() => {
-		if (mode !== "create") {
-			return;
-		}
-		if (!storeEndTime) {
-			return;
-		}
-		const current = form.getFieldValue("endTime") as Time | undefined;
-		if (
-			current &&
-			current.hour === storeEndTime.hour &&
-			current.minute === storeEndTime.minute
-		) {
-			return;
-		}
-		form.setFieldValue("endTime", storeEndTime);
-	}, [storeEndTime, mode, form]);
+	}, [storeStartTime, storeEndTime, mode, form]);
 
 	useImperativeHandle(
 		ref,
 		() => ({
 			runAfterClose: () => {
-				if (runAfterCloseRef.current) {
-					runAfterCloseRef.current?.();
-					runAfterCloseRef.current = null;
-				} else {
-					if (isDirty) {
-						formRef.current?.requestSubmit();
-					}
+				const runAfter = refs.current.runAfterClose;
+				if (runAfter) {
+					runAfter();
+					refs.current.runAfterClose = null;
+				} else if (isDirty) {
+					refs.current.form?.requestSubmit();
 				}
-
 				calendarStore.trigger.resetNewEvent();
 			},
 		}),
@@ -467,7 +447,9 @@ const EventPopoverContent = forwardRef<
 			backdrop
 		>
 			<form
-				ref={formRef}
+				ref={(el) => {
+					refs.current.form = el;
+				}}
 				id={formId}
 				onSubmit={(e) => {
 					e.preventDefault();
@@ -677,6 +659,71 @@ const EventPopoverContent = forwardRef<
 								);
 							}}
 						</form.AppField>
+						{mode === "create" && (
+							<form.Subscribe selector={(state) => state.values.eventKind}>
+								{(eventKind) =>
+									eventKind === "event" && (
+										<form.AppField name="recurrenceRule">
+											{(field) => {
+												const current = field.state.value ?? "none";
+												const selectedOption =
+													RECURRENCE_OPTIONS.find((o) => o.value === current) ??
+													RECURRENCE_OPTIONS[0];
+												return (
+													<Combobox
+														items={RECURRENCE_OPTIONS}
+														value={selectedOption}
+														onValueChange={(option) => {
+															if (option) {
+																field.handleChange(option.value);
+															}
+														}}
+														itemToStringValue={(item) => item.value}
+														itemToStringLabel={(item) => item.label}
+														isItemEqualToValue={(a, b) => a.value === b.value}
+													>
+														<Tooltip disableHoverablePopup>
+															<TooltipTrigger
+																render={
+																	<ComboboxTrigger
+																		render={
+																			<Button variant="outline" size="icon-xs">
+																				<Repeat />
+																			</Button>
+																		}
+																	/>
+																}
+															/>
+															<TooltipContent>
+																{selectedOption.label}
+															</TooltipContent>
+														</Tooltip>
+														<ComboboxContent width="min" className="min-w-34">
+															<ComboboxInput
+																showFocusRing={false}
+																placeholder="Type recurrence"
+																showTrigger={false}
+															/>
+															<ComboboxEmpty>No options found</ComboboxEmpty>
+															<ComboboxList>
+																{(option) => (
+																	<ComboboxItem
+																		key={option.value}
+																		value={option}
+																	>
+																		{option.label}
+																	</ComboboxItem>
+																)}
+															</ComboboxList>
+														</ComboboxContent>
+													</Combobox>
+												);
+											}}
+										</form.AppField>
+									)
+								}
+							</form.Subscribe>
+						)}
 					</div>
 					<form.AppField
 						name="allDay"
@@ -697,38 +744,81 @@ const EventPopoverContent = forwardRef<
 							},
 						}}
 					>
-						{(field) => {
-							return (
-								<div className="flex shrink-0 items-center gap-2">
-									<p className="text-muted-foreground text-xs">All Day</p>
-									<Switch
-										size="sm"
-										checked={field.state.value}
-										onCheckedChange={field.handleChange}
-									/>
-								</div>
-							);
-						}}
+						{(field) => (
+							<div className="flex shrink-0 items-center gap-2">
+								<p className="text-muted-foreground text-xs">All Day</p>
+								<Switch
+									size="sm"
+									checked={field.state.value}
+									onCheckedChange={field.handleChange}
+								/>
+							</div>
+						)}
 					</form.AppField>
 				</div>
 				<Separator />
-				<div className="flex items-center px-2 py-1">
-					<form.AppField name="color">
-						{(field) => {
+				<div className="flex flex-wrap items-center gap-2 px-2 py-1">
+					<form.Subscribe
+						selector={(state) => ({
+							color: state.values.color,
+							calendarId: state.values.calendarId,
+						})}
+					>
+						{({ color, calendarId }) => {
+							const selectedCalendar = calendars?.find(
+								(cal) => cal.id === calendarId,
+							);
+							const displayColor =
+								color && color !== USE_CALENDAR_COLOR_SENTINEL
+									? color
+									: calendarColorToHex(selectedCalendar);
 							return (
-								<ColorPickerCompact
-									value={field.state.value ?? "#3B82F6"}
-									onChange={field.handleChange}
-								/>
+								<form.AppField name="color">
+									{(field) => (
+										<>
+											<ColorPickerCompact
+												value={displayColor}
+												onChange={(hex) => {
+													if (mode === "create") {
+														refs.current.userHasSetColor = true;
+													}
+													field.handleChange(hex);
+												}}
+											/>
+											{(mode === "edit" ||
+												(mode === "create" && selectedCalendar)) && (
+												<Button
+													type="button"
+													variant="link"
+													size="xs"
+													className="shrink-0 text-muted-foreground text-xs"
+													onClick={() => {
+														if (mode === "create") {
+															refs.current.userHasSetColor = false;
+														}
+														field.handleChange(USE_CALENDAR_COLOR_SENTINEL);
+													}}
+												>
+													Use calendar color
+													{selectedCalendar && (
+														<span className="ml-1">
+															({selectedCalendar.color})
+														</span>
+													)}
+												</Button>
+											)}
+										</>
+									)}
+								</form.AppField>
 							);
 						}}
-					</form.AppField>
+					</form.Subscribe>
 					<form.AppField
 						name="title"
 						listeners={{
 							onMount: ({ value }) => {
 								if (mode === "create") {
-									titleInputRef.current?.focus();
+									refs.current.titleInput?.focus();
 								}
 								calendarStore.trigger.setNewEventTitle({
 									title: value ?? "",
@@ -748,7 +838,9 @@ const EventPopoverContent = forwardRef<
 								field.state.meta.isTouched && !field.state.meta.isValid;
 							return (
 								<Input
-									ref={titleInputRef}
+									ref={(el) => {
+										refs.current.titleInput = el;
+									}}
 									className="rounded-none text-base placeholder:text-base hover:bg-transparent focus:bg-transparent focus-visible:bg-transparent"
 									variant="ghost"
 									id={titleId}
@@ -801,6 +893,22 @@ const EventPopoverContent = forwardRef<
 										value={selectedCalendar ?? null}
 										onValueChange={(value) => {
 											field.handleChange(value === null ? undefined : value.id);
+											if (
+												mode === "create" &&
+												!refs.current.userHasSetColor &&
+												value
+											) {
+												// Keep "use calendar color" (sentinel) when switching calendar so submit uses new calendar's color
+												const currentColor = form.getFieldValue("color") as
+													| string
+													| null;
+												form.setFieldValue(
+													"color",
+													currentColor === USE_CALENDAR_COLOR_SENTINEL
+														? USE_CALENDAR_COLOR_SENTINEL
+														: calendarColorToHex(value),
+												);
+											}
 										}}
 										itemToStringValue={(item) => item.id}
 										itemToStringLabel={(item) => item.name}
@@ -973,7 +1081,10 @@ function EditEventPopoverContent({
 		title: event.title,
 		description: event.description ?? "",
 		allDay: event.allDay,
-		color: colorNameToHex[event.color] ?? "#3B82F6",
+		color:
+			event.color && /^#[0-9A-Fa-f]{6}$/.test(event.color)
+				? event.color
+				: "#3B82F6",
 		calendarId: event.calendarId as Id<"calendars"> | undefined,
 		busy: event.busy,
 		visibility: event.visibility,
@@ -1024,37 +1135,26 @@ export function EventPopover({
 	);
 	const defaultCalendar = calendars?.find((cal) => cal.isDefault);
 
-	const handleClose = () => {
-		onClose();
-	};
-
 	return (
 		<Popover
 			open={isOpen}
 			onOpenChange={(open) => {
-				if (open) {
-					onOpen();
-				} else {
-					onClose();
-				}
+				if (open) onOpen();
+				else onClose();
 			}}
 			handle={handle}
 			onOpenChangeComplete={(open) => {
-				if (!open) {
-					contentRef.current?.runAfterClose();
-				}
+				if (!open) contentRef.current?.runAfterClose();
 			}}
 		>
 			{({ payload: _payload }) => {
 				const payload = _payload as TEventPopoverPayload;
-				if (!payload) {
-					return null;
-				}
+				if (!payload) return null;
 				if (payload.mode === "edit") {
 					return (
 						<EditEventPopoverContent
 							event={payload.event}
-							onClose={handleClose}
+							onClose={onClose}
 							contentRef={contentRef}
 							openId={openId}
 							side={side}
@@ -1078,9 +1178,10 @@ export function EventPopover({
 							allDay: payload?.allDay,
 							description: payload?.description,
 							calendarId: defaultCalendar?.id as Id<"calendars"> | undefined,
+							color: calendarColorToHex(defaultCalendar),
 						})}
 						mode="create"
-						onClose={handleClose}
+						onClose={onClose}
 						isLoadingRelatedTasks={false}
 						side={side}
 						align={align}

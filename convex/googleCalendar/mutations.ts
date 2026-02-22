@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation } from "../_generated/server";
+import { authMutation } from "../helpers";
 import { ErrorCode, throwConvexError } from "../errors";
 
 /** Provider literal union for reuse in this module. */
@@ -330,5 +331,77 @@ export const patchEventExternalFields = internalMutation({
 			externalEventId: args.externalEventId,
 			isEditable: args.isEditable,
 		});
+	},
+});
+
+/** Auth: disconnect current user's Google Calendar connection (optionally remove synced events and linked calendars). */
+export const removeMyGoogleConnection = authMutation({
+	args: {
+		removeSyncedEvents: v.optional(v.boolean()),
+		removeLinkedCalendars: v.optional(v.boolean()),
+	},
+	handler: async (ctx, args) => {
+		const connection = await ctx.db
+			.query("calendarConnections")
+			.withIndex("by_user_and_provider", (q) =>
+				q.eq("userId", ctx.user._id).eq("provider", "google"),
+			)
+			.unique();
+		if (!connection) return;
+
+		const externalCalendars = await ctx.db
+			.query("externalCalendars")
+			.withIndex("by_connection", (q) =>
+				q.eq("connectionId", connection._id),
+			)
+			.collect();
+		const externalCalendarIds = new Set(
+			externalCalendars.map((ext) => ext.externalCalendarId),
+		);
+
+		if (args.removeSyncedEvents) {
+			const userEvents = await ctx.db
+				.query("events")
+				.withIndex("by_user", (q) => q.eq("userId", ctx.user._id))
+				.collect();
+			for (const event of userEvents) {
+				if (
+					event.externalProvider === "google" &&
+					event.externalCalendarId &&
+					externalCalendarIds.has(event.externalCalendarId)
+				) {
+					await ctx.db.delete("events", event._id);
+				}
+			}
+		}
+
+		if (args.removeLinkedCalendars) {
+			for (const ext of externalCalendars) {
+				if (!ext.calendarId) continue;
+				const calendar = await ctx.db.get("calendars", ext.calendarId);
+				if (
+					!calendar ||
+					calendar.userId !== ctx.user._id ||
+					calendar.isDefault
+				) {
+					continue;
+				}
+				const eventsInCalendar = await ctx.db
+					.query("events")
+					.withIndex("by_calendar", (q) => q.eq("calendarId", ext.calendarId!))
+					.collect();
+				for (const event of eventsInCalendar) {
+					await ctx.db.patch("events", event._id, {
+						calendarId: undefined,
+					});
+				}
+				await ctx.db.delete("calendars", ext.calendarId);
+			}
+		}
+
+		for (const ext of externalCalendars) {
+			await ctx.db.delete("externalCalendars", ext._id);
+		}
+		await ctx.db.delete("calendarConnections", connection._id);
 	},
 });

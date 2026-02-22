@@ -214,10 +214,11 @@ describe("deleteCalendar", () => {
 			api.calendars.mutations.createCalendar,
 			factories.calendar({ isDefault: false }),
 		);
-		const eventId = await asUser.mutation(
+		const created = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event({ calendarId: calId }),
 		);
+		const eventId = created._id;
 		await asUser.mutation(api.calendars.mutations.deleteCalendar, {
 			id: calId,
 		});

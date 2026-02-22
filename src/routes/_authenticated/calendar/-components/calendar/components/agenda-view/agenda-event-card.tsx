@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { useCalendar } from "@/routes/_authenticated/calendar/-components/calendar/contexts/calendar-context";
 import type { TEvent } from "@/routes/_authenticated/calendar/-components/calendar/core/interfaces";
+import { getEventColorVariant } from "@/routes/_authenticated/calendar/-components/calendar/core/event-color";
 import type { VariantProps } from "class-variance-authority";
 import { cva } from "class-variance-authority";
 import { format, parseISO } from "date-fns";
@@ -41,6 +42,10 @@ const agendaEventCardVariants = cva(
 					"bg-neutral-50 dark:bg-neutral-900 [&_.event-dot]:fill-yellow-600",
 				"gray-dot":
 					"bg-neutral-50 dark:bg-neutral-900 [&_.event-dot]:fill-neutral-600",
+				custom:
+					"border [&_.event-dot]:fill-[var(--event-dot-custom,currentColor)]",
+				"custom-dot":
+					"bg-neutral-50 dark:bg-neutral-900 [&_.event-dot]:fill-[var(--event-dot-custom,currentColor)]",
 			},
 		},
 		defaultVariants: {
@@ -65,9 +70,17 @@ export function AgendaEventCard({
 	const startDate = parseISO(event.startDate);
 	const endDate = parseISO(event.endDate);
 
-	const color = (
-		badgeVariant === "dot" ? `${event.color}-dot` : event.color
-	) as VariantProps<typeof agendaEventCardVariants>["color"];
+	const hex =
+		event.color && /^#[0-9A-Fa-f]{6}$/.test(event.color)
+			? event.color
+			: "#3B82F6";
+	const { variant: colorVariant, style: colorStyle } = getEventColorVariant(
+		hex,
+		badgeVariant,
+	);
+	const color = colorVariant as VariantProps<
+		typeof agendaEventCardVariants
+	>["color"];
 
 	const isTask = event.eventKind === "task";
 	const agendaEventCardClasses = cn(
@@ -87,6 +100,7 @@ export function AgendaEventCard({
 			role="button"
 			tabIndex={0}
 			className={agendaEventCardClasses}
+			style={colorStyle}
 			onKeyDown={handleKeyDown}
 		>
 			<div className="flex flex-col gap-2">

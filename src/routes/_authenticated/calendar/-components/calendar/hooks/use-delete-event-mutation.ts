@@ -9,7 +9,11 @@ export type DeleteEventPayload = FunctionArgs<
 	typeof api.events.mutations.deleteEvent
 >;
 
-const eventsQueryKey = convexQuery(api.events.queries.getEventsByUser).queryKey;
+/** Calendar UI reads from getEventsByDateRange, not getEventsByUser. */
+const dateRangeQueryKeyPrefix = convexQuery(
+	api.events.queries.getEventsByDateRange,
+	{ startTimestamp: 0, endTimestamp: 0 },
+).queryKey.slice(0, 2);
 
 function removeEventFromCache(prev: unknown, id: Id<"events">): unknown {
 	if (!Array.isArray(prev)) {
@@ -20,8 +24,8 @@ function removeEventFromCache(prev: unknown, id: Id<"events">): unknown {
 
 /**
  * useMutation for api.events.mutations.deleteEvent with optimistic update of the
- * getEventsByUser query cache. Use this instead of raw useConvexMutation
- * so the event disappears from the UI immediately.
+ * getEventsByDateRange query cache (used by the calendar). Use this instead of
+ * raw useConvexMutation so the event disappears from the UI immediately.
  */
 export function useDeleteEventMutation() {
 	const queryClient = useQueryClient();
@@ -30,18 +34,33 @@ export function useDeleteEventMutation() {
 	const mutation = useMutation({
 		mutationFn: deleteEventFn,
 		onMutate: async (payload) => {
-			await queryClient.cancelQueries({ queryKey: eventsQueryKey });
-			const previousData = queryClient.getQueryData(eventsQueryKey);
-			queryClient.setQueryData(
-				eventsQueryKey,
-				removeEventFromCache(previousData, payload.id),
-			);
+			await queryClient.cancelQueries({
+				queryKey: dateRangeQueryKeyPrefix,
+			});
+			const allDateRangeEntries = queryClient.getQueriesData({
+				queryKey: dateRangeQueryKeyPrefix,
+			});
+			const previousDataByKey: Array<readonly [readonly unknown[], unknown]> =
+				[];
+			for (const [queryKey, data] of allDateRangeEntries) {
+				if (!Array.isArray(data)) {
+					continue;
+				}
+				previousDataByKey.push([queryKey, data]);
+				queryClient.setQueryData(
+					[...queryKey] as unknown[],
+					removeEventFromCache(data, payload.id),
+				);
+			}
 			toast.success("Event deleted");
-			return { previousData };
+			return { previousDataByKey };
 		},
 		onError: (_err, _payload, context) => {
-			if (context?.previousData !== undefined) {
-				queryClient.setQueryData(eventsQueryKey, context.previousData);
+			const entries = context?.previousDataByKey;
+			if (Array.isArray(entries)) {
+				for (const [queryKey, data] of entries) {
+					queryClient.setQueryData([...queryKey] as unknown[], data);
+				}
 			}
 			toast.error("Failed to delete event");
 		},

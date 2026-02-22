@@ -63,15 +63,93 @@ describe("getEventsByDateRange", () => {
 			}),
 		).rejects.toThrow("Not authenticated");
 	});
+
+	test("resolves color from calendar when event has no color", async ({
+		auth,
+		expect,
+	}) => {
+		const { asUser } = auth;
+		const calId = await asUser.mutation(
+			api.calendars.mutations.createCalendar,
+			factories.calendar({ color: "red", isDefault: false }),
+		);
+		const start = Date.now();
+		const end = start + 2 * 3600000;
+		await asUser.mutation(
+			api.events.mutations.createEvent,
+			factories.event({
+				calendarId: calId,
+				startTimestamp: start + 3600000,
+				endTimestamp: start + 3600000 + 1800000,
+			}),
+		);
+		const events = await asUser.query(api.events.queries.getEventsByDateRange, {
+			startTimestamp: start,
+			endTimestamp: end,
+		});
+		expect(events).toHaveLength(1);
+		expect(events[0].color).toBe("#EF4444");
+	});
+
+	test("event explicit color wins over calendar color", async ({
+		auth,
+		expect,
+	}) => {
+		const { asUser } = auth;
+		const calId = await asUser.mutation(
+			api.calendars.mutations.createCalendar,
+			factories.calendar({ color: "red", isDefault: false }),
+		);
+		const start = Date.now();
+		const end = start + 2 * 3600000;
+		await asUser.mutation(
+			api.events.mutations.createEvent,
+			factories.event({
+				calendarId: calId,
+				color: "green",
+				startTimestamp: start + 3600000,
+				endTimestamp: start + 3600000 + 1800000,
+			}),
+		);
+		const events = await asUser.query(api.events.queries.getEventsByDateRange, {
+			startTimestamp: start,
+			endTimestamp: end,
+		});
+		expect(events).toHaveLength(1);
+		expect(events[0].color).toBe("#22C55E");
+	});
+
+	test("event with no calendarId and no color gets blue", async ({
+		auth,
+		expect,
+	}) => {
+		const { asUser } = auth;
+		const start = Date.now();
+		const end = start + 2 * 3600000;
+		await asUser.mutation(
+			api.events.mutations.createEvent,
+			factories.event({
+				startTimestamp: start + 3600000,
+				endTimestamp: start + 3600000 + 1800000,
+			}),
+		);
+		const events = await asUser.query(api.events.queries.getEventsByDateRange, {
+			startTimestamp: start,
+			endTimestamp: end,
+		});
+		expect(events).toHaveLength(1);
+		expect(events[0].color).toBe("#3B82F6");
+	});
 });
 
 describe("getEventById", () => {
 	test("returns event when owner", async ({ auth, expect }) => {
 		const { asUser } = auth;
-		const eventId = await asUser.mutation(
+		const created = await asUser.mutation(
 			api.events.mutations.createEvent,
 			factories.event({ title: "My Event" }),
 		);
+		const eventId = created._id;
 		const event = await asUser.query(api.events.queries.getEventById, {
 			id: eventId,
 		});
@@ -109,10 +187,11 @@ describe("getEventById", () => {
 	}) => {
 		const { asUser: asAlice } = auth;
 		const { asUser: asBob } = await addUserToTest(t, { firstName: "Bob" });
-		const eventId = await asAlice.mutation(
+		const created = await asAlice.mutation(
 			api.events.mutations.createEvent,
 			factories.event(),
 		);
+		const eventId = created._id;
 		await expect(
 			asBob.query(api.events.queries.getEventById, { id: eventId }),
 		).rejects.toThrowError("Not authorized to view this event");

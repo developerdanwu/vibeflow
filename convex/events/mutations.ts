@@ -1,7 +1,7 @@
 import { v } from "convex/values";
-import { authMutation } from "../helpers";
 import { internal } from "../_generated/api";
 import { ErrorCode, throwConvexError } from "../errors";
+import { authMutation } from "../helpers";
 
 export const createEvent = authMutation({
 	args: {
@@ -44,6 +44,7 @@ export const createEvent = authMutation({
 				}),
 			),
 		),
+		recurrence: v.optional(v.array(v.string())),
 	},
 	handler: async (ctx, args) => {
 		let derivedStartTimestamp = args.startTimestamp;
@@ -97,6 +98,7 @@ export const createEvent = authMutation({
 			seenScheduled.add(link.externalTaskId);
 			await ctx.db.insert("eventTaskLinks", {
 				eventId,
+				userId: ctx.user._id,
 				externalTaskId: link.externalTaskId,
 				provider: "linear",
 				url: link.url,
@@ -112,6 +114,7 @@ export const createEvent = authMutation({
 				seenExternalIds.add(link.externalTaskId);
 				await ctx.db.insert("eventTaskLinks", {
 					eventId,
+					userId: ctx.user._id,
 					externalTaskId: link.externalTaskId,
 					provider: "linear",
 					url: link.url,
@@ -134,7 +137,14 @@ export const createEvent = authMutation({
 			}
 		}
 
-		return eventId;
+		const doc = await ctx.db.get("events", eventId);
+		if (!doc) {
+			throwConvexError(
+				ErrorCode.INTERNAL,
+				"Event was created but could not be read back",
+			);
+		}
+		return doc;
 	},
 });
 
@@ -181,6 +191,7 @@ export const updateEvent = authMutation({
 				}),
 			),
 		),
+		clearColor: v.optional(v.boolean()),
 	},
 	handler: async (ctx, args) => {
 		const {
@@ -188,6 +199,7 @@ export const updateEvent = authMutation({
 			recurringEditMode,
 			scheduledTaskLinks,
 			relatedTaskLinks,
+			clearColor,
 			...updates
 		} = args;
 		const event = await ctx.db.get("events", id);
@@ -276,6 +288,9 @@ export const updateEvent = authMutation({
 		if (derived.end !== undefined) {
 			cleanUpdates.endTimestamp = derived.end;
 		}
+		if (clearColor === true) {
+			(cleanUpdates as Record<string, unknown>).color = undefined;
+		}
 
 		if (allDay) {
 			(cleanUpdates as Record<string, unknown>).startTime = undefined;
@@ -308,6 +323,7 @@ export const updateEvent = authMutation({
 					seen.add(link.externalTaskId);
 					await ctx.db.insert("eventTaskLinks", {
 						eventId: id,
+						userId: event.userId,
 						externalTaskId: link.externalTaskId,
 						provider: "linear",
 						url: link.url,
@@ -331,6 +347,7 @@ export const updateEvent = authMutation({
 					seen.add(link.externalTaskId);
 					await ctx.db.insert("eventTaskLinks", {
 						eventId: id,
+						userId: event.userId,
 						externalTaskId: link.externalTaskId,
 						provider: "linear",
 						url: link.url,
@@ -368,7 +385,15 @@ export const updateEvent = authMutation({
 				externalEventId: undefined,
 			});
 			await applyTaskLinkUpdates();
-			return await ctx.db.patch("events", id, cleanUpdates);
+			await ctx.db.patch("events", id, cleanUpdates);
+			const doc = await ctx.db.get("events", id);
+			if (!doc) {
+				throwConvexError(
+					ErrorCode.INTERNAL,
+					"Event was updated but could not be read back",
+				);
+			}
+			return doc;
 		}
 
 		const willSyncToGoogle =
@@ -376,6 +401,7 @@ export const updateEvent = authMutation({
 			event.isEditable === true &&
 			event.externalEventId &&
 			event.externalCalendarId;
+
 		console.log(
 			"[updateEvent] eventId=%s externalProvider=%s isEditable=%s hasExternalIds=%s willSyncToGoogle=%s",
 			id,
@@ -430,7 +456,15 @@ export const updateEvent = authMutation({
 		}
 
 		await applyTaskLinkUpdates();
-		return await ctx.db.patch("events", id, cleanUpdates);
+		await ctx.db.patch("events", id, cleanUpdates);
+		const doc = await ctx.db.get("events", id);
+		if (!doc) {
+			throwConvexError(
+				ErrorCode.INTERNAL,
+				"Event was updated but could not be read back",
+			);
+		}
+		return doc;
 	},
 });
 

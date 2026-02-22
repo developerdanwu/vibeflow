@@ -20,7 +20,6 @@ import {
 	type TUser,
 	ZEventSchema,
 } from "@/routes/_authenticated/calendar/-components/calendar/core/interfaces";
-import type { TEventColor } from "@/routes/_authenticated/calendar/-components/calendar/core/types";
 import { InboxSidebar } from "@/routes/_authenticated/calendar/-components/task-sidebar/inbox-sidebar";
 import { TaskSidebar } from "@/routes/_authenticated/calendar/-components/task-sidebar/task-sidebar";
 import "@/styles/calendar.css";
@@ -83,15 +82,7 @@ export const Route = createFileRoute("/_authenticated/calendar/")({
 	component: CalendarRoute,
 });
 
-const validColors: TEventColor[] = [
-	"blue",
-	"red",
-	"green",
-	"yellow",
-	"purple",
-	"orange",
-	"gray",
-];
+const DEFAULT_EVENT_HEX = "#3B82F6";
 
 function CalendarRoute() {
 	return (
@@ -106,7 +97,6 @@ function CalendarContent() {
 	const { auth } = useRouteContext({ from: "__root__" });
 	const user = auth.user;
 	const [_, store] = useGlobalStore();
-	const [taskPanelOpen] = useGlobalStore((s) => s.context.taskPanelOpen);
 	const [taskPanelId] = useGlobalStore((s) => s.context.taskPanelId);
 	const currentUser: TUser | null = user
 		? {
@@ -133,6 +123,11 @@ function CalendarContent() {
 			return [];
 		}
 		return convexEvents.map((event) => {
+			// Color is resolved in getEventsByDateRange as hex (event.color ?? calendar.color ?? "#3B82F6").
+			const color =
+				event.color && /^#[0-9A-Fa-f]{6}$/.test(event.color)
+					? event.color
+					: DEFAULT_EVENT_HEX;
 			const mappedEvent = {
 				id: event._id,
 				convexId: event._id,
@@ -140,9 +135,7 @@ function CalendarContent() {
 				description: event.description ?? "",
 				startDate: new Date(event.startTimestamp).toISOString(),
 				endDate: new Date(event.endTimestamp).toISOString(),
-				color: (validColors.includes(event.color as TEventColor)
-					? event.color
-					: "blue") as TEventColor,
+				color,
 				user: currentUser,
 				allDay: event.allDay,
 				startDateStr: event.startDateStr,
@@ -238,9 +231,9 @@ function CalendarContent() {
 						panelRef={taskPanelRef}
 						className="flex min-h-0 min-w-0 flex-1 flex-col"
 					>
-						{taskPanelOpen && taskPanelId === "inbox" ? (
+						{taskPanelId === "inbox" ? (
 							<InboxSidebar />
-						) : taskPanelOpen && taskPanelId === "all-tasks" ? (
+						) : taskPanelId === "all-tasks" ? (
 							<TaskSidebar />
 						) : null}
 					</ResizablePanel>

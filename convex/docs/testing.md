@@ -39,7 +39,8 @@ import { addUserToTest, factories } from "../test.setup";
 describe("createEvent", () => {
   test("creates event when authenticated", async ({ t, auth, expect }) => {
     const { asUser, userId } = auth;
-    const eventId = await asUser.mutation(api.events.mutations.createEvent, factories.event());
+    const created = await asUser.mutation(api.events.mutations.createEvent, factories.event());
+    const eventId = created._id;
     const event = await t.run((ctx: MutationCtx) => ctx.db.get("events", eventId));
     expect(event?.userId).toEqual(userId);
   });
