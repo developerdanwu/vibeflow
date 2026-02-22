@@ -1,17 +1,23 @@
+import { internal } from "../_generated/api";
+import type { MutationCtx } from "../_generated/server";
 import { api } from "../_generated/api";
 import { describe, test } from "../testFixture.nobundle";
 
 describe("getUserByAuthId", () => {
 	test("returns null for unknown authId", async ({ t, expect }) => {
-		const user = await t.query(api.users.queries.getUserByAuthId, {
-			authId: "unknown-auth-id",
-		});
+		const user = await t.run(async (ctx: MutationCtx) =>
+			ctx.runQuery(internal.users.queries.getUserByAuthId, {
+				authId: "unknown-auth-id",
+			}),
+		);
 		expect(user).toBeNull();
 	});
 
 	test("returns user when authId exists", async ({ auth, t, expect }) => {
 		const { authId } = auth;
-		const user = await t.query(api.users.queries.getUserByAuthId, { authId });
+		const user = await t.run(async (ctx: MutationCtx) =>
+			ctx.runQuery(internal.users.queries.getUserByAuthId, { authId }),
+		);
 		expect(user).not.toBeNull();
 		expect(user?.authId).toBe(authId);
 	});

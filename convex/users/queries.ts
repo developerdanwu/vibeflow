@@ -1,11 +1,12 @@
 import { v } from "convex/values";
-import type { Doc } from "../_generated/dataModel";
-import { internalQuery, query } from "../_generated/server";
+import { z } from "zod";
+import { internalQuery } from "../_generated/server";
 import { authQuery } from "../helpers";
 
-export const getUserByAuthId = query({
+/** Internal: for authAction only. Do not expose as a public API. */
+export const getUserByAuthId = internalQuery({
 	args: { authId: v.string() },
-	handler: async (ctx, args): Promise<Doc<"users"> | null> => {
+	handler: async (ctx, args) => {
 		return await ctx.db
 			.query("users")
 			.withIndex("authId", (q) => q.eq("authId", args.authId))
@@ -34,7 +35,7 @@ export const getUserPreferencesByUserId = internalQuery({
 
 /** Get current user's preferences (for settings UI). */
 export const getUserPreferences = authQuery({
-	args: {},
+	args: z.object({}),
 	handler: async (ctx) => {
 		return await ctx.db
 			.query("userPreferences")

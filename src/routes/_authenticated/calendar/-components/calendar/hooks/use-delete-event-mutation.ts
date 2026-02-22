@@ -1,13 +1,10 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
-import type { Id } from "@convex/_generated/dataModel";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { FunctionArgs } from "convex/server";
 import { toast } from "sonner";
 
-export type DeleteEventPayload = FunctionArgs<
-	typeof api.events.mutations.deleteEvent
->;
+/** Payload for api.events.mutations.deleteEvent (Zod-validated args). */
+export type DeleteEventPayload = { id: string };
 
 /** Calendar UI reads from getEventsByDateRange, not getEventsByUser. */
 const dateRangeQueryKeyPrefix = convexQuery(
@@ -15,7 +12,7 @@ const dateRangeQueryKeyPrefix = convexQuery(
 	{ startTimestamp: 0, endTimestamp: 0 },
 ).queryKey.slice(0, 2);
 
-function removeEventFromCache(prev: unknown, id: Id<"events">): unknown {
+function removeEventFromCache(prev: unknown, id: string): unknown {
 	if (!Array.isArray(prev)) {
 		return prev;
 	}

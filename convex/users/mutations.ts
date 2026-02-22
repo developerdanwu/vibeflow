@@ -1,17 +1,8 @@
 import { v } from "convex/values";
+import { z } from "zod";
 import { mutation } from "../_generated/server";
 import { ErrorCode, throwConvexError } from "../errors";
 import { authMutation } from "../helpers";
-
-const calendarSyncFromMonthsValidator = v.optional(
-	v.union(
-		v.literal(1),
-		v.literal(3),
-		v.literal(6),
-		v.literal(12),
-		v.literal(24),
-	),
-);
 
 export const ensureUserExists = mutation({
 	args: {
@@ -54,9 +45,17 @@ export const ensureUserExists = mutation({
 
 /** Update current user's preferences (e.g. calendar sync range). */
 export const updateUserPreferences = authMutation({
-	args: {
-		calendarSyncFromMonths: calendarSyncFromMonthsValidator,
-	},
+	args: z.object({
+		calendarSyncFromMonths: z
+			.union([
+				z.literal(1),
+				z.literal(3),
+				z.literal(6),
+				z.literal(12),
+				z.literal(24),
+			])
+			.optional(),
+	}),
 	handler: async (ctx, args) => {
 		const existing = await ctx.db
 			.query("userPreferences")

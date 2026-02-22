@@ -29,6 +29,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { getConvexErrorMessage } from "@/lib/convex-error";
+import { dialogStore } from "@/lib/dialog-store";
 import { selectPlatform } from "@/lib/tauri";
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
@@ -187,12 +188,10 @@ function CalendarsSettings() {
 	const deleteCalendarFn = useConvexMutation(
 		api.calendars.mutations.deleteCalendar,
 	);
-	const { mutateAsync: deleteCalendar, isPending: isDeleting } = useMutation({
+	const { mutateAsync: deleteCalendar } = useMutation({
 		mutationFn: deleteCalendarFn,
 		onSuccess: () => {
 			toast.success("Calendar deleted");
-			setDeleteOpen(false);
-			setDeletingId(null);
 		},
 		onError: (err) => {
 			toast.error(getConvexErrorMessage(err, "Failed to delete calendar"));
@@ -228,9 +227,6 @@ function CalendarsSettings() {
 	const [editColor, setEditColor] = useState(DEFAULT_CALENDAR_HEX);
 	const [editDefault, setEditDefault] = useState(false);
 
-	const [deleteOpen, setDeleteOpen] = useState(false);
-	const [deletingId, setDeletingId] = useState<Id<"calendars"> | null>(null);
-
 	const [disconnectOpen, setDisconnectOpen] = useState(false);
 	const [removeSyncedEvents, setRemoveSyncedEvents] = useState(false);
 	const [removeLinkedCalendars, setRemoveLinkedCalendars] = useState(false);
@@ -246,8 +242,16 @@ function CalendarsSettings() {
 	};
 
 	const openDelete = (id: Id<"calendars">) => {
-		setDeletingId(id);
-		setDeleteOpen(true);
+		dialogStore.send({
+			type: "openConfirmDialog",
+			title: "Delete calendar",
+			description:
+				"Are you sure? Events in this calendar will be unassigned but not deleted. You cannot delete the default calendar.",
+			confirmText: "Delete",
+			onConfirm: async () => {
+				await deleteCalendar({ id });
+			},
+		});
 	};
 
 	const handleAddSubmit = async (e: React.FormEvent) => {
@@ -274,11 +278,6 @@ function CalendarsSettings() {
 			color: editColor,
 			isDefault: editDefault,
 		});
-	};
-
-	const handleDeleteConfirm = async () => {
-		if (!deletingId) return;
-		await deleteCalendar({ id: deletingId });
 	};
 
 	return (
@@ -567,28 +566,6 @@ function CalendarsSettings() {
 							</Button>
 						</DialogFooter>
 					</form>
-				</DialogContent>
-			</Dialog>
-
-			{/* Delete confirm dialog */}
-			<Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-				<DialogContent className="sm:max-w-md">
-					<DialogHeader>
-						<DialogTitle>Delete calendar</DialogTitle>
-						<DialogDescription>
-							Are you sure? Events in this calendar will be unassigned but not
-							deleted. You cannot delete the default calendar.
-						</DialogDescription>
-					</DialogHeader>
-					<DialogFooter showCloseButton>
-						<Button
-							variant="destructive"
-							onClick={handleDeleteConfirm}
-							disabled={isDeleting}
-						>
-							{isDeleting ? "Deleting…" : "Delete"}
-						</Button>
-					</DialogFooter>
 				</DialogContent>
 			</Dialog>
 

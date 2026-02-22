@@ -2,6 +2,7 @@
 
 import { calendar, type calendar_v3 } from "@googleapis/calendar";
 import { v } from "convex/values";
+import { z } from "zod";
 import { OAuth2Client } from "google-auth-library";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
@@ -964,7 +965,7 @@ export const deleteEventFromGoogle = internalAction({
 
 /** Public: sync all Google calendars for the current user (e.g. "Sync now" button). */
 export const syncMyCalendars = authAction({
-	args: {},
+	args: z.object({}),
 	handler: async (ctx) => {
 		const data = await ctx.runQuery(
 			internal.googleCalendar.queries.getConnectionByUserId,

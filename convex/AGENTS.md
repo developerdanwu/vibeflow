@@ -29,7 +29,7 @@ Never use `any`. Use `QueryCtx` / `MutationCtx` / `ActionCtx` from `./_generated
 convex/
 ├── _generated/      # DO NOT EDIT
 ├── schema.ts
-├── helpers.ts       # authQuery, authMutation
+├── helpers.ts       # authQuery, authMutation, authAction (Zod args via zCustom*)
 ├── errors.ts        # ErrorCode, throwConvexError
 ├── auth.ts
 ├── auth.config.ts
@@ -52,6 +52,8 @@ convex/
 **Folder structure:** Root holds shared/core modules. Feature-specific logic lives in feature folders (e.g. `googleCalendar/`) with procedures grouped by type: `actionsNode.ts`, `http.ts`, `queries.ts`, `mutations.ts`. Add new procedures for a feature in the appropriate file under that feature's folder.
 
 ## Documentation
+
+- `users.queries.getUserByAuthId` is internal and used only by `authAction` for user lookup; do not add a public query that looks up users by authId.
 
 Convex best practices (detailed):
 

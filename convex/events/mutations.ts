@@ -1,51 +1,38 @@
-import { v } from "convex/values";
+import { zid } from "convex-helpers/server/zod4";
+import { z } from "zod";
 import { internal } from "../_generated/api";
 import { ErrorCode, throwConvexError } from "../errors";
 import { authMutation } from "../helpers";
 
+const taskLinkSchema = z.object({
+	externalTaskId: z.string(),
+	url: z.string(),
+});
+
+const createEventArgs = z.object({
+	title: z.string(),
+	description: z.string().optional(),
+	startTimestamp: z.number().optional(),
+	endTimestamp: z.number().optional(),
+	calendarId: zid("calendars").optional(),
+	color: z.string().optional(),
+	location: z.string().optional(),
+	allDay: z.boolean(),
+	startDateStr: z.string().optional(),
+	endDateStr: z.string().optional(),
+	startTime: z.string().optional(),
+	endTime: z.string().optional(),
+	timeZone: z.string().optional(),
+	busy: z.enum(["busy", "free", "tentative", "outOfOffice"]).optional(),
+	visibility: z.enum(["public", "private"]).optional(),
+	eventKind: z.enum(["event", "task"]).optional(),
+	scheduledTaskLinks: z.array(taskLinkSchema).optional(),
+	relatedTaskLinks: z.array(taskLinkSchema).optional(),
+	recurrence: z.array(z.string()).optional(),
+});
+
 export const createEvent = authMutation({
-	args: {
-		title: v.string(),
-		description: v.optional(v.string()),
-		startTimestamp: v.optional(v.number()),
-		endTimestamp: v.optional(v.number()),
-		calendarId: v.optional(v.id("calendars")),
-		color: v.optional(v.string()),
-		location: v.optional(v.string()),
-		allDay: v.boolean(),
-		startDateStr: v.optional(v.string()),
-		endDateStr: v.optional(v.string()),
-		startTime: v.optional(v.string()),
-		endTime: v.optional(v.string()),
-		timeZone: v.optional(v.string()),
-		busy: v.optional(
-			v.union(
-				v.literal("busy"),
-				v.literal("free"),
-				v.literal("tentative"),
-				v.literal("outOfOffice"),
-			),
-		),
-		visibility: v.optional(v.union(v.literal("public"), v.literal("private"))),
-		eventKind: v.optional(v.union(v.literal("event"), v.literal("task"))),
-		scheduledTaskLinks: v.optional(
-			v.array(
-				v.object({
-					externalTaskId: v.string(),
-					url: v.string(),
-				}),
-			),
-		),
-		relatedTaskLinks: v.optional(
-			v.array(
-				v.object({
-					externalTaskId: v.string(),
-					url: v.string(),
-				}),
-			),
-		),
-		recurrence: v.optional(v.array(v.string())),
-	},
+	args: createEventArgs,
 	handler: async (ctx, args) => {
 		let derivedStartTimestamp = args.startTimestamp;
 		let derivedEndTimestamp = args.endTimestamp;
@@ -148,51 +135,32 @@ export const createEvent = authMutation({
 	},
 });
 
+const updateEventArgs = z.object({
+	id: zid("events"),
+	title: z.string().optional(),
+	description: z.string().optional(),
+	startTimestamp: z.number().optional(),
+	endTimestamp: z.number().optional(),
+	calendarId: zid("calendars").optional(),
+	color: z.string().optional(),
+	location: z.string().optional(),
+	allDay: z.boolean().optional(),
+	startDateStr: z.string().optional(),
+	endDateStr: z.string().optional(),
+	startTime: z.string().optional(),
+	endTime: z.string().optional(),
+	timeZone: z.string().optional(),
+	recurringEditMode: z.enum(["this", "all"]).optional(),
+	busy: z.enum(["busy", "free", "tentative", "outOfOffice"]).optional(),
+	visibility: z.enum(["public", "private"]).optional(),
+	eventKind: z.enum(["event", "task"]).optional(),
+	scheduledTaskLinks: z.array(taskLinkSchema).optional(),
+	relatedTaskLinks: z.array(taskLinkSchema).optional(),
+	clearColor: z.boolean().optional(),
+});
+
 export const updateEvent = authMutation({
-	args: {
-		id: v.id("events"),
-		title: v.optional(v.string()),
-		description: v.optional(v.string()),
-		startTimestamp: v.optional(v.number()),
-		endTimestamp: v.optional(v.number()),
-		calendarId: v.optional(v.id("calendars")),
-		color: v.optional(v.string()),
-		location: v.optional(v.string()),
-		allDay: v.optional(v.boolean()),
-		startDateStr: v.optional(v.string()),
-		endDateStr: v.optional(v.string()),
-		startTime: v.optional(v.string()),
-		endTime: v.optional(v.string()),
-		timeZone: v.optional(v.string()),
-		recurringEditMode: v.optional(v.union(v.literal("this"), v.literal("all"))),
-		busy: v.optional(
-			v.union(
-				v.literal("busy"),
-				v.literal("free"),
-				v.literal("tentative"),
-				v.literal("outOfOffice"),
-			),
-		),
-		visibility: v.optional(v.union(v.literal("public"), v.literal("private"))),
-		eventKind: v.optional(v.union(v.literal("event"), v.literal("task"))),
-		scheduledTaskLinks: v.optional(
-			v.array(
-				v.object({
-					externalTaskId: v.string(),
-					url: v.string(),
-				}),
-			),
-		),
-		relatedTaskLinks: v.optional(
-			v.array(
-				v.object({
-					externalTaskId: v.string(),
-					url: v.string(),
-				}),
-			),
-		),
-		clearColor: v.optional(v.boolean()),
-	},
+	args: updateEventArgs,
 	handler: async (ctx, args) => {
 		const {
 			id,
@@ -469,9 +437,9 @@ export const updateEvent = authMutation({
 });
 
 export const deleteEvent = authMutation({
-	args: {
-		id: v.id("events"),
-	},
+	args: z.object({
+		id: zid("events"),
+	}),
 	handler: async (ctx, args) => {
 		const event = await ctx.db.get("events", args.id);
 

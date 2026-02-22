@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { z } from "zod";
 import { internalMutation } from "../../_generated/server";
 import { ErrorCode, throwConvexError } from "../../errors";
 import { authMutation } from "../../helpers";
@@ -149,7 +150,7 @@ export const upsertTaskItems = internalMutation({
 
 /** Auth: disconnect current user's Linear connection (and delete cached task items). */
 export const removeMyLinearConnection = authMutation({
-	args: {},
+	args: z.object({}),
 	handler: async (ctx) => {
 		const connection = await ctx.db
 			.query("taskConnections")

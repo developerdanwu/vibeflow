@@ -3,6 +3,7 @@
 import { LinearClient } from "@linear/sdk";
 import type { FunctionArgs } from "convex/server";
 import { v } from "convex/values";
+import { z } from "zod";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import type { ActionCtx } from "../../_generated/server";
@@ -235,7 +236,7 @@ export async function getLinearClient(
 
 /** Fetch current user's assigned Linear issues (non-completed) and cache in taskItems. */
 export const fetchMyIssues = authAction({
-	args: {},
+	args: z.object({}),
 	handler: async (ctx): Promise<{ count: number }> => {
 		const connection = await ctx.runQuery(
 			internal.taskProviders.linear.queries.getConnectionByUserId,

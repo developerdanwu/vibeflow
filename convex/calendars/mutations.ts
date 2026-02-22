@@ -1,13 +1,14 @@
-import { v } from "convex/values";
+import { z } from "zod";
+import { zid } from "convex-helpers/server/zod4";
 import { authMutation } from "../helpers";
 import { ErrorCode, throwConvexError } from "../errors";
 
 export const createCalendar = authMutation({
-	args: {
-		name: v.string(),
-		color: v.string(),
-		isDefault: v.boolean(),
-	},
+	args: z.object({
+		name: z.string(),
+		color: z.string(),
+		isDefault: z.boolean(),
+	}),
 	handler: async (ctx, args) => {
 		if (args.isDefault) {
 			const existingDefault = await ctx.db
@@ -32,12 +33,12 @@ export const createCalendar = authMutation({
 });
 
 export const updateCalendar = authMutation({
-	args: {
-		id: v.id("calendars"),
-		name: v.optional(v.string()),
-		color: v.optional(v.string()),
-		isDefault: v.optional(v.boolean()),
-	},
+	args: z.object({
+		id: zid("calendars"),
+		name: z.string().optional(),
+		color: z.string().optional(),
+		isDefault: z.boolean().optional(),
+	}),
 	handler: async (ctx, args) => {
 		const { id, ...updates } = args;
 		const calendar = await ctx.db.get("calendars", id);
@@ -76,9 +77,9 @@ export const updateCalendar = authMutation({
 });
 
 export const deleteCalendar = authMutation({
-	args: {
-		id: v.id("calendars"),
-	},
+	args: z.object({
+		id: zid("calendars"),
+	}),
 	handler: async (ctx, args) => {
 		const calendar = await ctx.db.get("calendars", args.id);
 

@@ -1,11 +1,12 @@
-import { v } from "convex/values";
+import { z } from "zod";
+import { zid } from "convex-helpers/server/zod4";
 import { authQuery } from "../helpers";
 import { ErrorCode, throwConvexError } from "../errors";
 
 export const getLinksByEventId = authQuery({
-	args: {
-		eventId: v.optional(v.id("events")),
-	},
+	args: z.object({
+		eventId: zid("events").optional(),
+	}),
 	handler: async (ctx, args) => {
 		if (args.eventId === undefined) {
 			return [];
@@ -36,9 +37,9 @@ export const getLinksByEventId = authQuery({
 });
 
 export const getScheduledLinksByEventId = authQuery({
-	args: {
-		eventId: v.optional(v.id("events")),
-	},
+	args: z.object({
+		eventId: zid("events").optional(),
+	}),
 	handler: async (ctx, args) => {
 		if (args.eventId === undefined) {
 			return [];
@@ -68,7 +69,7 @@ export const getScheduledLinksByEventId = authQuery({
 
 /** Auth: returns external task IDs that are scheduled on any of the current user's events. */
 export const getScheduledExternalTaskIdsForCurrentUser = authQuery({
-	args: {},
+	args: z.object({}),
 	handler: async (ctx) => {
 		const links = await ctx.db
 			.query("eventTaskLinks")
@@ -86,9 +87,9 @@ export const getScheduledExternalTaskIdsForCurrentUser = authQuery({
  * Uses events.by_user_and_date_str and eventTaskLinks.by_event indexes.
  */
 export const getTaskItemsLinkedToEventsOnDays = authQuery({
-	args: {
-		dateStrings: v.array(v.string()),
-	},
+	args: z.object({
+		dateStrings: z.array(z.string()),
+	}),
 	handler: async (ctx, args) => {
 		if (args.dateStrings.length === 0) {
 			return [];

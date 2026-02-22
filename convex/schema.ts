@@ -92,7 +92,11 @@ export default defineSchema({
 			"externalCalendarId",
 		])
 		.index("by_channel", ["channelId"])
-		.index("by_calendar", ["calendarId"]),
+		.index("by_calendar", ["calendarId"])
+		.index("by_provider_and_external_id", [
+			"provider",
+			"externalCalendarId",
+		]),
 
 	userPreferences: defineTable({
 		userId: v.id("users"),
@@ -139,7 +143,7 @@ export default defineSchema({
 		.index("by_external_task", ["provider", "externalTaskId"]),
 	eventTaskLinks: defineTable({
 		eventId: v.id("events"),
-		userId: v.optional(v.id("users")),
+		userId: v.id("users"),
 		externalTaskId: v.string(),
 		provider: v.union(v.literal("linear")),
 		url: v.string(),

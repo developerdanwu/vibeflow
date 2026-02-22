@@ -1,14 +1,15 @@
-import { v } from "convex/values";
+import { z } from "zod";
+import { zid } from "convex-helpers/server/zod4";
 import { authMutation } from "../helpers";
 import { ErrorCode, throwConvexError } from "../errors";
 
 export const linkTaskToEvent = authMutation({
-	args: {
-		eventId: v.id("events"),
-		externalTaskId: v.string(),
-		url: v.string(),
-		linkType: v.optional(v.union(v.literal("scheduled"), v.literal("related"))),
-	},
+	args: z.object({
+		eventId: zid("events"),
+		externalTaskId: z.string(),
+		url: z.string(),
+		linkType: z.enum(["scheduled", "related"]).optional(),
+	}),
 	handler: async (ctx, args) => {
 		const event = await ctx.db.get("events", args.eventId);
 		if (!event) {
@@ -56,10 +57,10 @@ export const linkTaskToEvent = authMutation({
 });
 
 export const unlinkTaskFromEvent = authMutation({
-	args: {
-		eventId: v.id("events"),
-		externalTaskId: v.string(),
-	},
+	args: z.object({
+		eventId: zid("events"),
+		externalTaskId: z.string(),
+	}),
 	handler: async (ctx, args) => {
 		const event = await ctx.db.get("events", args.eventId);
 		if (!event) {

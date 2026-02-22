@@ -1,18 +1,19 @@
-# Custom Function Builders (authQuery / authMutation)
+# Custom Function Builders (authQuery / authMutation / authAction)
 
-We use `convex-helpers` to create custom query and mutation builders with built-in authentication.
+We use `convex-helpers` **Zod** integration (`zCustomQuery`, `zCustomMutation`, `zCustomAction`) to create custom query, mutation, and action builders with built-in authentication. Function **args** are defined with **Zod** schemas (not Convex `v` validators).
 
 **Implementation:** [convex/helpers.ts](../helpers.ts)  
-**Reference:** [convex-helpers customFunctions](https://github.com/get-convex/convex-helpers/blob/main/packages/convex-helpers/server/customFunctions.ts)
+**Reference:** [convex-helpers server/zod](https://github.com/get-convex/convex-helpers) (`zCustomQuery`, `zCustomMutation`, `zid`); [Stack: Zod with Convex](https://stack.convex.dev/typescript-zod-function-validation)
 
 ## Usage
 
 ```typescript
+import { z } from "zod";
+import { zid } from "convex-helpers/server/zod4";
 import { authQuery, authMutation } from "../helpers";
-import { v } from "convex/values";
 
 export const getMyData = authQuery({
-  args: {},
+  args: z.object({}),
   handler: async (ctx) => {
     return await ctx.db
       .query("events")
@@ -22,7 +23,7 @@ export const getMyData = authQuery({
 });
 
 export const createItem = authMutation({
-  args: { title: v.string() },
+  args: z.object({ title: z.string() }),
   handler: async (ctx, args) => {
     return await ctx.db.insert("items", {
       ...args,
@@ -30,7 +31,17 @@ export const createItem = authMutation({
     });
   },
 });
+
+export const getItem = authQuery({
+  args: z.object({ id: zid("items") }),
+  handler: async (ctx, args) => {
+    return await ctx.db.get("items", args.id);
+  },
+});
 ```
+
+- Use **`z.object({ ... })`** for args. For Convex document IDs use **`zid("tableName")`** (from `convex-helpers/server/zod4`).
+- Invalid args are rejected with a ConvexError containing the Zod validation error.
 
 ## Context Extension
 

@@ -1,5 +1,7 @@
 import type { Id } from "../_generated/dataModel";
 import { v } from "convex/values";
+import { z } from "zod";
+import { zid } from "convex-helpers/server/zod4";
 import { authQuery } from "../helpers";
 import { internalQuery } from "../_generated/server";
 import { ErrorCode, throwConvexError } from "../errors";
@@ -37,7 +39,7 @@ function resolveEventColor(
 }
 
 export const getEventsByUser = authQuery({
-	args: {},
+	args: z.object({}),
 	handler: async (ctx) => {
 		return await ctx.db
 			.query("events")
@@ -47,10 +49,10 @@ export const getEventsByUser = authQuery({
 });
 
 export const getEventsByDateRange = authQuery({
-	args: {
-		startTimestamp: v.number(),
-		endTimestamp: v.number(),
-	},
+	args: z.object({
+		startTimestamp: z.number(),
+		endTimestamp: z.number(),
+	}),
 	handler: async (ctx, args) => {
 		const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 		const bufferedStart = args.startTimestamp - ONE_DAY_MS;
@@ -87,9 +89,9 @@ export const getEventsByDateRange = authQuery({
 });
 
 export const getEventById = authQuery({
-	args: {
-		id: v.id("events"),
-	},
+	args: z.object({
+		id: zid("events"),
+	}),
 	handler: async (ctx, args) => {
 		const event = await ctx.db.get("events", args.id);
 

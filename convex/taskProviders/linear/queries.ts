@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { z } from "zod";
 import { internalQuery } from "../../_generated/server";
 import { authQuery } from "../../helpers";
 
@@ -25,7 +26,7 @@ export const getConnectionById = internalQuery({
 
 /** Auth: get current user's Linear connection status (no tokens). */
 export const getMyLinearConnection = authQuery({
-	args: {},
+	args: z.object({}),
 	handler: async (ctx) => {
 		const connection = await ctx.db
 			.query("taskConnections")
@@ -43,7 +44,7 @@ export const getMyLinearConnection = authQuery({
 
 /** Auth: get cached task items for the current user (Linear issues). */
 export const getMyTaskItems = authQuery({
-	args: {},
+	args: z.object({}),
 	handler: async (ctx) => {
 		const items = await ctx.db
 			.query("taskItems")

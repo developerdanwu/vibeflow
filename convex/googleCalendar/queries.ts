@@ -1,11 +1,12 @@
 import { v } from "convex/values";
+import { z } from "zod";
 import { internalQuery } from "../_generated/server";
 import { authQuery } from "../helpers";
 import { providerValidator } from "./mutations";
 
 /** Auth: get current user's Google connection and calendars for UI. */
 export const getMyGoogleConnection = authQuery({
-	args: {},
+	args: z.object({}),
 	handler: async (ctx) => {
 		const connection = await ctx.db
 			.query("calendarConnections")
@@ -74,12 +75,14 @@ export const getExternalCalendarByExternalId = internalQuery({
 		externalCalendarId: v.string(),
 	},
 	handler: async (ctx, args) => {
-		const all = await ctx.db.query("externalCalendars").collect();
-		const ext = all.find(
-			(e) =>
-				e.provider === args.provider &&
-				e.externalCalendarId === args.externalCalendarId,
-		);
+		const ext = await ctx.db
+			.query("externalCalendars")
+			.withIndex("by_provider_and_external_id", (q) =>
+				q
+					.eq("provider", args.provider)
+					.eq("externalCalendarId", args.externalCalendarId),
+			)
+			.first();
 		return ext ?? null;
 	},
 });

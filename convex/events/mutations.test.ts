@@ -43,6 +43,16 @@ describe("createEvent", () => {
 		).rejects.toThrowError("Not authenticated");
 	});
 
+	test("rejects invalid args (Zod validation)", async ({ auth, expect }) => {
+		const { asUser } = auth;
+		await expect(
+			asUser.mutation(api.events.mutations.createEvent, {
+				...factories.event(),
+				allDay: "not-a-boolean" as unknown as boolean,
+			}),
+		).rejects.toThrow();
+	});
+
 	test("creates event with recurrence and persists recurrence on doc", async ({
 		t,
 		auth,

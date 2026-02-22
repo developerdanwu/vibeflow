@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { z } from "zod";
 import { internalMutation } from "../_generated/server";
 import { authMutation } from "../helpers";
 import { ErrorCode, throwConvexError } from "../errors";
@@ -336,10 +337,10 @@ export const patchEventExternalFields = internalMutation({
 
 /** Auth: disconnect current user's Google Calendar connection (optionally remove synced events and linked calendars). */
 export const removeMyGoogleConnection = authMutation({
-	args: {
-		removeSyncedEvents: v.optional(v.boolean()),
-		removeLinkedCalendars: v.optional(v.boolean()),
-	},
+	args: z.object({
+		removeSyncedEvents: z.boolean().optional(),
+		removeLinkedCalendars: z.boolean().optional(),
+	}),
 	handler: async (ctx, args) => {
 		const connection = await ctx.db
 			.query("calendarConnections")

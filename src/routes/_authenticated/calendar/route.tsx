@@ -1,55 +1,28 @@
 import { TitleBar } from "@/components/title-bar.tauri";
-import { Button } from "@/components/ui/button";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { useGlobalStore } from "@/lib/global-store";
+import { isTauri } from "@/lib/tauri";
 import { CalendarSidebar } from "@/routes/_authenticated/calendar/-components/calendar-sidebar";
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
-import { PanelLeft, PanelLeftClose, Settings } from "lucide-react";
+import { CalendarTitleBarButtons } from "@/routes/_authenticated/calendar/-components/calendar-title-bar-buttons";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/calendar")({
 	component: CalendarLayout,
 });
 
 function CalendarLayout() {
-	const [taskPanelOpen, store] = useGlobalStore((s) => s.context.taskPanelOpen);
-
 	return (
 		<SidebarProvider
 			titleBar={
-				<TitleBar
-					rightContent={
-						<div className="flex items-center">
-							{taskPanelOpen ? (
-								<Button
-									variant={"ghost"}
-									size="icon"
-									onClick={() => store.send({ type: "closeTaskPanel" })}
-									aria-label="Toggle Linear task panel"
-								>
-									<PanelLeftClose />
-								</Button>
-							) : null}
-							{!taskPanelOpen ? (
-								<Button
-									variant={"ghost"}
-									size="icon"
-									onClick={() => store.send({ type: "openTaskPanel" })}
-									aria-label="Toggle Linear task panel"
-								>
-									<PanelLeft />
-								</Button>
-							) : null}
-							<Button
-								variant={"ghost"}
-								size="icon"
-								render={<Link to="/settings" state={{}} />}
-								aria-label="Toggle Linear task panel"
-							>
-								<Settings />
-							</Button>
+				<>
+					{isTauri() ? (
+						<TitleBar rightContent={<CalendarTitleBarButtons />} />
+					) : null}
+					{!isTauri() ? (
+						<div className="flex h-10 shrink-0 items-center justify-end gap-2 bg-sidebar px-2">
+							<CalendarTitleBarButtons />
 						</div>
-					}
-				/>
+					) : null}
+				</>
 			}
 		>
 			<CalendarSidebar />

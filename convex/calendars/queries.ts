@@ -1,7 +1,8 @@
+import { z } from "zod";
 import { authQuery } from "../helpers";
 
 export const getUserCalendars = authQuery({
-	args: {},
+	args: z.object({}),
 	handler: async (ctx) => {
 		return await ctx.db
 			.query("calendars")
@@ -11,7 +12,7 @@ export const getUserCalendars = authQuery({
 });
 
 export const getDefaultCalendar = authQuery({
-	args: {},
+	args: z.object({}),
 	handler: async (ctx) => {
 		return await ctx.db
 			.query("calendars")
@@ -23,27 +24,44 @@ export const getDefaultCalendar = authQuery({
 });
 
 export const getAllUserCalendars = authQuery({
-	args: {},
+	args: z.object({}),
 	handler: async (ctx) => {
 		const calendars = await ctx.db
 			.query("calendars")
 			.withIndex("by_user", (q) => q.eq("userId", ctx.user._id))
 			.collect();
 
-		const allExternalCalendars = await ctx.db
-			.query("externalCalendars")
+		const googleConnections = await ctx.db
+			.query("calendarConnections")
+			.withIndex("by_user_and_provider", (q) =>
+				q.eq("userId", ctx.user._id).eq("provider", "google"),
+			)
+			.collect();
+		const microsoftConnections = await ctx.db
+			.query("calendarConnections")
+			.withIndex("by_user_and_provider", (q) =>
+				q.eq("userId", ctx.user._id).eq("provider", "microsoft"),
+			)
 			.collect();
 
 		const googleCalendarMap = new Map<
 			string,
 			{ externalCalendarId: string; provider: "google" | "microsoft" }
 		>();
-		for (const ext of allExternalCalendars) {
-			if (ext.calendarId) {
-				googleCalendarMap.set(ext.calendarId, {
-					externalCalendarId: ext.externalCalendarId,
-					provider: ext.provider,
-				});
+		for (const connection of [...googleConnections, ...microsoftConnections]) {
+			const externalCalendars = await ctx.db
+				.query("externalCalendars")
+				.withIndex("by_connection", (q) =>
+					q.eq("connectionId", connection._id),
+				)
+				.collect();
+			for (const ext of externalCalendars) {
+				if (ext.calendarId) {
+					googleCalendarMap.set(ext.calendarId, {
+						externalCalendarId: ext.externalCalendarId,
+						provider: ext.provider,
+					});
+				}
 			}
 		}
 
