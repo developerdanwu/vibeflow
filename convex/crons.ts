@@ -17,4 +17,11 @@ crons.interval(
 	internal.googleCalendar.actionsNode.runFallbackSync,
 );
 
+// Linear issues sync for all connected workspaces
+crons.interval(
+	"linear sync",
+	{ minutes: 30 },
+	internal.taskProviders.linear.actionsNode.runLinearSyncCron,
+);
+
 export default crons;

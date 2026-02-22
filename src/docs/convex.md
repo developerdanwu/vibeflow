@@ -39,6 +39,8 @@ const { mutate: deleteEvent, isPending } = useMutation({
 <Button disabled={isPending}>{isPending ? "Deleting..." : "Delete"}</Button>
 ```
 
+**Don’t track loading with `useState` when using `useMutation`.** Use the mutation’s `isPending` instead—TanStack Query keeps it in sync and you avoid try/finally boilerplate.
+
 **When you need to await (e.g. in onSubmit or passing to a callback):**
 
 ```tsx

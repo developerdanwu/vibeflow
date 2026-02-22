@@ -1,6 +1,7 @@
 import { zid } from "convex-helpers/server/zod4";
 import { v } from "convex/values";
 import { z } from "zod";
+import { internal } from "../../_generated/api";
 import { internalMutation } from "../../_generated/server";
 import { ErrorCode, throwConvexError } from "../../errors";
 import { authMutation } from "../../helpers";
@@ -191,5 +192,29 @@ export const removeMyLinearConnection = authMutation({
 			await ctx.db.delete("taskItems", item._id);
 		}
 		await ctx.db.delete("taskConnections", connection._id);
+	},
+});
+
+/** Start Linear issues sync for all workspaces (status via getMyLinearConnections + getLinearSyncWorkflowStatus). */
+export const fetchMyIssues = authMutation({
+	args: z.object({}),
+	handler: async (ctx): Promise<{ started: boolean }> => {
+		const connections = await ctx.db
+			.query("taskConnections")
+			.withIndex("by_user_and_provider", (q) =>
+				q.eq("userId", ctx.user._id).eq("provider", "linear"),
+			)
+			.collect();
+		if (connections.length === 0) {
+			throwConvexError(ErrorCode.LINEAR_NOT_CONNECTED, "Linear not connected");
+		}
+		for (const connection of connections) {
+			await ctx.scheduler.runAfter(
+				0,
+				internal.taskProviders.linear.syncWorkflow.startSyncWorkflowInternal,
+				{ connectionId: connection._id },
+			);
+		}
+		return { started: true };
 	},
 });

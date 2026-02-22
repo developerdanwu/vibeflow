@@ -3,13 +3,11 @@
 import { LinearClient } from "@linear/sdk";
 import type { FunctionArgs } from "convex/server";
 import { v } from "convex/values";
-import { z } from "zod";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import type { ActionCtx } from "../../_generated/server";
 import { action, internalAction } from "../../_generated/server";
 import { ErrorCode, throwConvexError } from "../../errors";
-import { authAction } from "../../helpers";
 
 type UpsertTaskItemsArgs = FunctionArgs<
 	typeof internal.taskProviders.linear.mutations.upsertTaskItems
@@ -291,23 +289,19 @@ export const syncLinearIssues = internalAction({
 	},
 });
 
-/** Start Linear issues sync for all workspaces (status via getMyLinearConnections + getLinearSyncWorkflowStatus). */
-export const fetchMyIssues = authAction({
-	args: z.object({}),
-	handler: async (ctx): Promise<{ started: boolean }> => {
-		const connections = await ctx.runQuery(
-			internal.taskProviders.linear.queries.getConnectionsByUserId,
-			{ userId: ctx.user._id },
+/** Internal: cron entry point — start Linear sync for all connections (every 30 mins). */
+export const runLinearSyncCron = internalAction({
+	args: {},
+	handler: async (ctx) => {
+		const connectionIds = await ctx.runQuery(
+			internal.taskProviders.linear.queries.getAllLinearConnectionIds,
+			{},
 		);
-		if (connections.length === 0) {
-			throwConvexError(ErrorCode.LINEAR_NOT_CONNECTED, "Linear not connected");
-		}
-		for (const connection of connections) {
+		for (const connectionId of connectionIds) {
 			await ctx.runMutation(
 				internal.taskProviders.linear.syncWorkflow.startSyncWorkflowInternal,
-				{ connectionId: connection._id },
+				{ connectionId },
 			);
 		}
-		return { started: true };
 	},
 });

@@ -1,30 +1,20 @@
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { convexQuery } from "@convex-dev/react-query";
+import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
-import { useQuery } from "@tanstack/react-query";
-import { useAction } from "convex/react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Loader2, RefreshCw } from "lucide-react";
-import { useState } from "react";
 import { DraggableTaskRow, type TaskItemRow } from "./draggable-task-row";
 
 export function TaskSidebar() {
 	const { data: taskItems, isLoading } = useQuery(
 		convexQuery(api.taskProviders.linear.queries.getMyTaskItems),
 	);
-	const fetchMyIssues = useAction(
-		api.taskProviders.linear.actionsNode.fetchMyIssues,
-	);
-	const [refreshLoading, setRefreshLoading] = useState(false);
+	const { mutateAsync: fetchMyIssues, isPending } = useMutation({
+		mutationFn: useConvexMutation(api.taskProviders.linear.mutations.fetchMyIssues),
+	});
 
-	const handleRefresh = async () => {
-		setRefreshLoading(true);
-		try {
-			await fetchMyIssues();
-		} finally {
-			setRefreshLoading(false);
-		}
-	};
+	const handleRefresh = () => fetchMyIssues({});
 
 	return (
 		<div className="flex min-h-0 min-w-0 flex-1 flex-col border-r bg-muted/30">
@@ -34,10 +24,10 @@ export function TaskSidebar() {
 					variant="ghost"
 					size="icon-sm"
 					onClick={handleRefresh}
-					disabled={refreshLoading}
+					disabled={isPending}
 					title="Refresh issues"
 				>
-					{refreshLoading ? (
+					{isPending ? (
 						<Loader2 className="size-4 animate-spin" />
 					) : (
 						<RefreshCw className="size-4" />

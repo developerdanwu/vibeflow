@@ -130,6 +130,7 @@ export default defineSchema({
 		lastSyncErrorMessage: v.optional(v.string()),
 	})
 		.index("by_user_and_provider", ["userId", "provider"])
+		.index("by_provider", ["provider"])
 		.index("by_latestSyncWorkflowRunId", ["latestSyncWorkflowRunId"]),
 	taskItems: defineTable({
 		userId: v.id("users"),

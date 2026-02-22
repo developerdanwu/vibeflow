@@ -1,9 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { convexQuery } from "@convex-dev/react-query";
+import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
-import { useQuery } from "@tanstack/react-query";
-import { useAction } from "convex/react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { isPast, isToday, parse } from "date-fns";
 import { Loader2, RefreshCw } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -59,9 +58,9 @@ export function InboxSidebar() {
 			api.eventTaskLinks.queries.getScheduledExternalTaskIdsForCurrentUser,
 		),
 	);
-	const fetchMyIssues = useAction(
-		api.taskProviders.linear.actionsNode.fetchMyIssues,
-	);
+	const { mutateAsync: fetchMyIssues } = useMutation({
+		mutationFn: useConvexMutation(api.taskProviders.linear.mutations.fetchMyIssues),
+	});
 	const [refreshLoading, setRefreshLoading] = useState(false);
 
 	const scheduledSet = useMemo(() => new Set(scheduledIds), [scheduledIds]);
@@ -121,7 +120,7 @@ export function InboxSidebar() {
 	const handleRefresh = async () => {
 		setRefreshLoading(true);
 		try {
-			await fetchMyIssues();
+			await fetchMyIssues({});
 		} finally {
 			setRefreshLoading(false);
 		}

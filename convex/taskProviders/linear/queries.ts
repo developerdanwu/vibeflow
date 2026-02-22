@@ -5,6 +5,18 @@ import { internalQuery } from "../../_generated/server";
 import { authQuery } from "../../helpers";
 import { workflow } from "../../workflow";
 
+/** Internal: get all Linear connection IDs (for cron sync). */
+export const getAllLinearConnectionIds = internalQuery({
+	args: {},
+	handler: async (ctx) => {
+		const connections = await ctx.db
+			.query("taskConnections")
+			.withIndex("by_provider", (q) => q.eq("provider", "linear"))
+			.collect();
+		return connections.map((c) => c._id);
+	},
+});
+
 /** Internal: get all Linear connections for a user (for actions that sync all workspaces). */
 export const getConnectionsByUserId = internalQuery({
 	args: { userId: v.id("users") },
