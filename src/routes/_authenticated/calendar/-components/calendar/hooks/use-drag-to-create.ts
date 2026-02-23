@@ -16,6 +16,8 @@ export interface SlotRange {
 
 // --- Helpers ---
 
+const SLOTS_PER_HOUR = 4;
+const SLOTS_PER_DAY = 24 * SLOTS_PER_HOUR; // 96
 const DEFAULT_SLOT_HEIGHT_PX = 24;
 const DEFAULT_MIN_DISTANCE = 5;
 const DEFAULT_DURATION_SLOTS = 1; // 1 slot = 15 min
@@ -51,8 +53,11 @@ function slotFromClientY(
 		if (clientY >= rect.top && clientY < rect.bottom) {
 			const offsetInRow = clientY - rect.top;
 			const slotInRow = Math.min(
-				3,
-				Math.max(0, Math.floor(offsetInRow / (rect.height / 4))),
+				SLOTS_PER_HOUR - 1,
+				Math.max(
+					0,
+					Math.floor(offsetInRow / (rect.height / SLOTS_PER_HOUR)),
+				),
 			);
 			return { hour, minute: slotInRow * 15 };
 		}
@@ -61,12 +66,12 @@ function slotFromClientY(
 }
 
 function slotToIndex(slot: Slot): number {
-	return slot.hour * 4 + slot.minute / 15;
+	return slot.hour * SLOTS_PER_HOUR + slot.minute / 15;
 }
 
 function indexToSlot(index: number): Slot {
-	const hour = Math.min(Math.floor(index / 4), 23);
-	const minute = Math.min((index % 4) * 15, 45);
+	const hour = Math.min(Math.floor(index / SLOTS_PER_HOUR), 23);
+	const minute = Math.min((index % SLOTS_PER_HOUR) * 15, 45);
 	return { hour, minute };
 }
 
@@ -82,7 +87,7 @@ function getPreviewRectFromRows(
 	const startRow = rowMap.get(startSlot.hour);
 	if (!startRow) return null;
 	const startRect = startRow.getBoundingClientRect();
-	const slotHeightInRow = startRect.height / 4;
+	const slotHeightInRow = startRect.height / SLOTS_PER_HOUR;
 	const startOffsetInRow = (startSlot.minute / 15) * slotHeightInRow;
 	const topPx = startRect.top - gridRect.top + startOffsetInRow;
 	// endSlot is exclusive; last inclusive slot is endSlot - 15min
@@ -94,12 +99,40 @@ function getPreviewRectFromRows(
 	const endRow = rowMap.get(lastSlot.hour);
 	if (!endRow) return null;
 	const endRect = endRow.getBoundingClientRect();
-	const lastSlotHeightInRow = endRect.height / 4;
+	const lastSlotHeightInRow = endRect.height / SLOTS_PER_HOUR;
 	const endOffsetInRow =
 		((lastSlot.minute / 15) + 1) * lastSlotHeightInRow;
 	const bottomPx = endRect.top - gridRect.top + endOffsetInRow;
 	const heightPx = Math.max(slotHeightInRow, bottomPx - topPx);
 	return { topPx, heightPx };
+}
+
+function applyPreviewPosition(
+	startSlot: Slot,
+	endSlot: Slot,
+	rowMap: Map<number, HTMLDivElement>,
+	gridEl: HTMLDivElement | null,
+	topValue: { set: (n: number) => void },
+	heightValue: { set: (n: number) => void },
+	slotHeightPx: number,
+	fallbackTopIdx: number,
+	fallbackHeightSlots: number,
+): void {
+	const rect = getPreviewRectFromRows(
+		startSlot,
+		endSlot,
+		rowMap,
+		gridEl,
+	);
+	if (rect) {
+		topValue.set(rect.topPx);
+		heightValue.set(rect.heightPx);
+	} else {
+		topValue.set(fallbackTopIdx * slotHeightPx);
+		heightValue.set(
+			Math.max(slotHeightPx, fallbackHeightSlots * slotHeightPx),
+		);
+	}
 }
 
 // --- Hook options ---
@@ -139,11 +172,8 @@ export function useDragToCreate(
 	options: UseDragToCreateOptions,
 ): UseDragToCreateReturn {
 	const slotHeightPx = options.slotHeightPx ?? DEFAULT_SLOT_HEIGHT_PX;
-	const minDistance = options.minDistance ?? DEFAULT_MIN_DISTANCE;
 	const defaultDurationSlots =
 		options.defaultDurationSlots ?? DEFAULT_DURATION_SLOTS;
-	const minDurationSlots = options.minDurationSlots ?? 1;
-	const maxDurationSlots = options.maxDurationSlots ?? Number.POSITIVE_INFINITY;
 
 	// Keep latest options in refs so event listeners always read current values
 	const optionsRef = useRef(options);
@@ -188,23 +218,41 @@ export function useDragToCreate(
 	const handleUpRef = useRef<(e: PointerEvent) => void>(() => {});
 	const handleCancelRef = useRef<(e: PointerEvent) => void>(() => {});
 
+	const releaseCapture = (e: PointerEvent) => {
+		if (captureTargetRef.current) {
+			try {
+				captureTargetRef.current.releasePointerCapture(e.pointerId);
+			} catch {
+				// Ignore if already released
+			}
+			captureTargetRef.current = null;
+		}
+	};
+
 	handleMoveRef.current = (e: PointerEvent) => {
 		const down = pointerDownRef.current;
 		if (!down) return;
 
+		const opts = optionsRef.current;
 		const deltaY = Math.abs(e.clientY - down.startY);
 		const hasCrossedThreshold =
-			dragPreviewRef.current !== null || deltaY > minDistance;
+			dragPreviewRef.current !== null ||
+			deltaY > (opts.minDistance ?? DEFAULT_MIN_DISTANCE);
 		if (!hasCrossedThreshold) return;
 
 		if (rafIdRef.current !== null) return;
 		rafIdRef.current = requestAnimationFrame(() => {
 			rafIdRef.current = null;
-			const opts = optionsRef.current;
-			const rowMap = opts.hourRowRefsRef.current ?? new Map();
-			const slot = slotFromClientY(e.clientY, rowMap, opts.firstHour);
+			const optsInner = optionsRef.current;
+			const rowMap = optsInner.hourRowRefsRef.current ?? new Map();
+			const slot = slotFromClientY(e.clientY, rowMap, optsInner.firstHour);
 			const origin = pointerDownRef.current?.origin;
 			if (!origin) return;
+			const slotHeightPx =
+				optsInner.slotHeightPx ?? DEFAULT_SLOT_HEIGHT_PX;
+			const minDurationSlots = optsInner.minDurationSlots ?? 1;
+			const maxDurationSlots =
+				optsInner.maxDurationSlots ?? Number.POSITIVE_INFINITY;
 			const originIdx = slotToIndex(origin);
 			const curIdx = slotToIndex(slot);
 			const rangeSize = Math.max(
@@ -219,11 +267,11 @@ export function useDragToCreate(
 			const maxIdx =
 				curIdx >= originIdx ? originIdx + rangeSize - 1 : originIdx;
 
-			const startH = Math.floor(minIdx / 4);
-			const startM = (minIdx % 4) * 15;
+			const startH = Math.floor(minIdx / SLOTS_PER_HOUR);
+			const startM = (minIdx % SLOTS_PER_HOUR) * 15;
 			const endPlusOne = maxIdx + 1;
-			const endH = Math.floor(endPlusOne / 4);
-			const endM = (endPlusOne % 4) * 15;
+			const endH = Math.floor(endPlusOne / SLOTS_PER_HOUR);
+			const endM = (endPlusOne % SLOTS_PER_HOUR) * 15;
 
 			const preview: SlotRange = {
 				startSlot: { hour: startH, minute: startM },
@@ -232,33 +280,22 @@ export function useDragToCreate(
 			dragPreviewRef.current = preview;
 			setDragPreview(preview);
 
-			const rect = getPreviewRectFromRows(
+			applyPreviewPosition(
 				preview.startSlot,
 				preview.endSlot,
 				rowMap,
-				opts.gridRef.current,
+				optsInner.gridRef.current,
+				topValue,
+				heightValue,
+				slotHeightPx,
+				minIdx,
+				maxIdx - minIdx + 1,
 			);
-			if (rect) {
-				topValue.set(rect.topPx);
-				heightValue.set(rect.heightPx);
-			} else {
-				topValue.set(minIdx * slotHeightPx);
-				heightValue.set(
-					Math.max(slotHeightPx, (maxIdx - minIdx + 1) * slotHeightPx),
-				);
-			}
 		});
 	};
 
 	handleUpRef.current = (e: PointerEvent) => {
-		if (captureTargetRef.current) {
-			try {
-				captureTargetRef.current.releasePointerCapture(e.pointerId);
-			} catch {
-				// Ignore if already released
-			}
-			captureTargetRef.current = null;
-		}
+		releaseCapture(e);
 
 		const finalPreview = dragPreviewRef.current;
 		const origin = pointerDownRef.current?.origin;
@@ -266,48 +303,47 @@ export function useDragToCreate(
 		const opts = optionsRef.current;
 		const rowMap = opts.hourRowRefsRef.current ?? new Map();
 		const gridEl = opts.gridRef.current;
+		const slotHeightPx = opts.slotHeightPx ?? DEFAULT_SLOT_HEIGHT_PX;
+		const defaultDurationSlots =
+			opts.defaultDurationSlots ?? DEFAULT_DURATION_SLOTS;
 
 		if (wasDragging && finalPreview) {
-			const rect = getPreviewRectFromRows(
+			const startIdx = slotToIndex(finalPreview.startSlot);
+			const endIdx = slotToIndex(finalPreview.endSlot);
+			applyPreviewPosition(
 				finalPreview.startSlot,
 				finalPreview.endSlot,
 				rowMap,
 				gridEl,
+				topValue,
+				heightValue,
+				slotHeightPx,
+				startIdx,
+				endIdx - startIdx,
 			);
-			if (rect) {
-				topValue.set(rect.topPx);
-				heightValue.set(rect.heightPx);
-			} else {
-				const startIdx = slotToIndex(finalPreview.startSlot);
-				const endIdx = slotToIndex(finalPreview.endSlot);
-				topValue.set(startIdx * slotHeightPx);
-				heightValue.set(
-					Math.max(slotHeightPx, (endIdx - startIdx) * slotHeightPx),
-				);
-			}
 			cleanup();
-			optionsRef.current.onDragEnd(finalPreview);
+			opts.onDragEnd(finalPreview);
 		} else if (origin) {
 			const originIdx = slotToIndex(origin);
 			const endIdx = originIdx + defaultDurationSlots;
-			const rect =
-				endIdx < 96
-					? getPreviewRectFromRows(
-							origin,
-							indexToSlot(endIdx),
-							rowMap,
-							gridEl,
-						)
-					: null;
-			if (rect) {
-				topValue.set(rect.topPx);
-				heightValue.set(rect.heightPx);
+			if (endIdx < SLOTS_PER_DAY) {
+				applyPreviewPosition(
+					origin,
+					indexToSlot(endIdx),
+					rowMap,
+					gridEl,
+					topValue,
+					heightValue,
+					slotHeightPx,
+					originIdx,
+					defaultDurationSlots,
+				);
 			} else {
 				topValue.set(originIdx * slotHeightPx);
 				heightValue.set(defaultDurationSlots * slotHeightPx);
 			}
 			cleanup();
-			optionsRef.current.onClick(origin);
+			opts.onClick(origin);
 		} else {
 			cleanup();
 		}
@@ -322,22 +358,22 @@ export function useDragToCreate(
 	};
 
 	handleCancelRef.current = (e: PointerEvent) => {
-		if (captureTargetRef.current) {
-			try {
-				captureTargetRef.current.releasePointerCapture(e.pointerId);
-			} catch {
-				// Ignore
-			}
-			captureTargetRef.current = null;
-		}
+		releaseCapture(e);
 		cleanup();
 	};
 
-	// --- Safety: clean up listeners on unmount ---
+	// --- Safety: clean up listeners and refs on unmount (no setState to avoid update on unmounted component) ---
 	useEffect(() => {
 		return () => {
 			cleanupListenersRef.current?.();
 			cleanupListenersRef.current = null;
+			if (rafIdRef.current !== null) {
+				cancelAnimationFrame(rafIdRef.current);
+				rafIdRef.current = null;
+			}
+			pointerDownRef.current = null;
+			dragPreviewRef.current = null;
+			captureTargetRef.current = null;
 		};
 	}, []);
 
@@ -381,22 +417,22 @@ export function useDragToCreate(
 			const rowMap = optionsRef.current.hourRowRefsRef.current ?? new Map();
 			const gridEl = optionsRef.current.gridRef.current;
 			const startSlot = { hour, minute };
-			const endIdx = hour * 4 + minute / 15 + defaultDurationSlots;
-			const rect =
-				endIdx < 96
-					? getPreviewRectFromRows(
-							startSlot,
-							indexToSlot(endIdx),
-							rowMap,
-							gridEl,
-						)
-					: null;
-			if (rect) {
-				topValue.set(rect.topPx);
-				heightValue.set(rect.heightPx);
+			const startIdx = hour * SLOTS_PER_HOUR + minute / 15;
+			const endIdx = startIdx + defaultDurationSlots;
+			if (endIdx < SLOTS_PER_DAY) {
+				applyPreviewPosition(
+					startSlot,
+					indexToSlot(endIdx),
+					rowMap,
+					gridEl,
+					topValue,
+					heightValue,
+					slotHeightPx,
+					startIdx,
+					1,
+				);
 			} else {
-				const topPx = (hour * 4 + minute / 15) * slotHeightPx;
-				topValue.set(topPx);
+				topValue.set(startIdx * slotHeightPx);
 				heightValue.set(slotHeightPx);
 			}
 
