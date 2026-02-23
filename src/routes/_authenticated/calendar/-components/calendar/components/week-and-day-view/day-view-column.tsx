@@ -66,6 +66,13 @@ export function DayViewColumn({
 			: null;
 
 	const gridRef = useRef<HTMLDivElement>(null);
+	const hourRowRefsRef = useRef<Map<number, HTMLDivElement> | null>(null);
+	function getHourRowMap(): Map<number, HTMLDivElement> {
+		if (!hourRowRefsRef.current) {
+			hourRowRefsRef.current = new Map();
+		}
+		return hourRowRefsRef.current;
+	}
 	const [workingHoursContext] = useCalendar((s) => s.context.workingHours);
 	const [badgeVariant] = useCalendar((s) => s.context.badgeVariant);
 	const [newEventTitle] = useCalendar((s) => s.context.newEventTitle);
@@ -85,6 +92,7 @@ export function DayViewColumn({
 	const dragToCreate = useDragToCreate({
 		gridRef,
 		firstHour: hours[0],
+		hourRowRefsRef,
 		onDragEnd: (range) => {
 			calendarStore.trigger.setNewEventStartTime({
 				startTime: new Time(range.startSlot.hour, range.startSlot.minute),
@@ -192,6 +200,13 @@ export function DayViewColumn({
 					return (
 						<div
 							key={hour}
+							ref={(node) => {
+								const map = getHourRowMap();
+								if (node) map.set(hour, node);
+								return () => {
+									map.delete(hour);
+								};
+							}}
 							className={cn(
 								"relative",
 								isDisabled && "bg-calendar-disabled-hour",

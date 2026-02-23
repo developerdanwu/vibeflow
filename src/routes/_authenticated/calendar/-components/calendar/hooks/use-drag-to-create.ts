@@ -22,37 +22,106 @@ const DEFAULT_DURATION_SLOTS = 1; // 1 slot = 15 min
 
 function slotFromClientY(
 	clientY: number,
-	gridEl: HTMLDivElement,
+	rowMap: Map<number, HTMLDivElement>,
 	firstHour: number,
-	slotHeightPx: number,
 ): Slot {
-	const rect = gridEl.getBoundingClientRect();
-	const offsetY = Math.max(0, Math.min(clientY - rect.top, rect.height - 1));
-	const totalSlots = Math.floor(offsetY / slotHeightPx);
-	const absoluteSlot = firstHour * 4 + totalSlots;
-	const hour = Math.min(Math.floor(absoluteSlot / 4), 23);
-	const minute = Math.min((absoluteSlot % 4) * 15, 45);
-	return { hour, minute };
+	const sortedHours = [...rowMap.keys()].sort((a, b) => a - b);
+	if (sortedHours.length === 0) {
+		return { hour: firstHour, minute: 0 };
+	}
+	const firstRowHour = sortedHours[0];
+	const lastRowHour = sortedHours[sortedHours.length - 1];
+	const firstEl = rowMap.get(firstRowHour);
+	const lastEl = rowMap.get(lastRowHour);
+	if (!firstEl || !lastEl) {
+		return { hour: firstHour, minute: 0 };
+	}
+	const firstRect = firstEl.getBoundingClientRect();
+	const lastRect = lastEl.getBoundingClientRect();
+	if (clientY < firstRect.top) {
+		return { hour: firstRowHour, minute: 0 };
+	}
+	if (clientY >= lastRect.bottom) {
+		return { hour: lastRowHour, minute: 45 };
+	}
+	for (const hour of sortedHours) {
+		const el = rowMap.get(hour);
+		if (!el) continue;
+		const rect = el.getBoundingClientRect();
+		if (clientY >= rect.top && clientY < rect.bottom) {
+			const offsetInRow = clientY - rect.top;
+			const slotInRow = Math.min(
+				3,
+				Math.max(0, Math.floor(offsetInRow / (rect.height / 4))),
+			);
+			return { hour, minute: slotInRow * 15 };
+		}
+	}
+	return { hour: lastRowHour, minute: 45 };
 }
 
 function slotToIndex(slot: Slot): number {
 	return slot.hour * 4 + slot.minute / 15;
 }
 
+function indexToSlot(index: number): Slot {
+	const hour = Math.min(Math.floor(index / 4), 23);
+	const minute = Math.min((index % 4) * 15, 45);
+	return { hour, minute };
+}
+
+/** Returns preview top (px from grid top) and height (px) using row rects, or null if unavailable. */
+function getPreviewRectFromRows(
+	startSlot: Slot,
+	endSlot: Slot,
+	rowMap: Map<number, HTMLDivElement>,
+	gridEl: HTMLDivElement | null,
+): { topPx: number; heightPx: number } | null {
+	if (!gridEl || rowMap.size === 0) return null;
+	const gridRect = gridEl.getBoundingClientRect();
+	const startRow = rowMap.get(startSlot.hour);
+	if (!startRow) return null;
+	const startRect = startRow.getBoundingClientRect();
+	const slotHeightInRow = startRect.height / 4;
+	const startOffsetInRow = (startSlot.minute / 15) * slotHeightInRow;
+	const topPx = startRect.top - gridRect.top + startOffsetInRow;
+	// endSlot is exclusive; last inclusive slot is endSlot - 15min
+	const lastSlot: Slot =
+		endSlot.minute === 0
+			? { hour: endSlot.hour - 1, minute: 45 }
+			: { hour: endSlot.hour, minute: endSlot.minute - 15 };
+	if (lastSlot.hour < 0) return null;
+	const endRow = rowMap.get(lastSlot.hour);
+	if (!endRow) return null;
+	const endRect = endRow.getBoundingClientRect();
+	const lastSlotHeightInRow = endRect.height / 4;
+	const endOffsetInRow =
+		((lastSlot.minute / 15) + 1) * lastSlotHeightInRow;
+	const bottomPx = endRect.top - gridRect.top + endOffsetInRow;
+	const heightPx = Math.max(slotHeightInRow, bottomPx - topPx);
+	return { topPx, heightPx };
+}
+
 // --- Hook options ---
 
 interface UseDragToCreateOptions {
+	/** Used to compute preview position/height from row rects (grid-relative). */
 	gridRef: React.RefObject<HTMLDivElement | null>;
 	firstHour: number;
+	/** Map of hour -> row DOM element for measure-on-the-fly slot resolution. */
+	hourRowRefsRef: React.RefObject<Map<number, HTMLDivElement> | null>;
 	slotHeightPx?: number;
 	minDistance?: number;
 	defaultDurationSlots?: number;
+	/** Min number of 15-min slots in a drag range (default 1). */
+	minDurationSlots?: number;
+	/** Max number of 15-min slots in a drag range (default unlimited). */
+	maxDurationSlots?: number;
 	onDragEnd: (range: SlotRange) => void;
 	onClick: (slot: Slot) => void;
 }
 
 interface UseDragToCreateReturn {
-	isDragging: boolean;
 	dragPreview: SlotRange | null;
 	topValue: ReturnType<typeof useMotionValue<number>>;
 	heightValue: ReturnType<typeof useMotionValue<number>>;
@@ -73,22 +142,23 @@ export function useDragToCreate(
 	const minDistance = options.minDistance ?? DEFAULT_MIN_DISTANCE;
 	const defaultDurationSlots =
 		options.defaultDurationSlots ?? DEFAULT_DURATION_SLOTS;
+	const minDurationSlots = options.minDurationSlots ?? 1;
+	const maxDurationSlots = options.maxDurationSlots ?? Number.POSITIVE_INFINITY;
 
 	// Keep latest options in refs so event listeners always read current values
 	const optionsRef = useRef(options);
 	optionsRef.current = options;
 
 	// --- State ---
-	// `dragPreview` triggers re-render for visual preview
 	const [dragPreview, setDragPreview] = useState<SlotRange | null>(null);
 
 	// --- Refs (no re-renders during drag) ---
-	const originSlotRef = useRef<Slot | null>(null);
+	/** Set on pointer down, cleared on up/cancel/cleanup. */
+	const pointerDownRef = useRef<{ origin: Slot; startY: number } | null>(null);
 	const dragPreviewRef = useRef<SlotRange | null>(null);
-	const isDraggingRef = useRef(false);
-	const startYRef = useRef(0);
+	const captureTargetRef = useRef<Element | null>(null);
+	const rafIdRef = useRef<number | null>(null);
 
-	// Ref to hold the function that removes document listeners
 	const cleanupListenersRef = useRef<(() => void) | null>(null);
 
 	// --- Motion values (no re-renders) ---
@@ -97,110 +167,153 @@ export function useDragToCreate(
 
 	// --- Cleanup helper ---
 	const cleanup = () => {
-		// Remove document listeners first
 		cleanupListenersRef.current?.();
 		cleanupListenersRef.current = null;
 
-		originSlotRef.current = null;
+		if (captureTargetRef.current) {
+			captureTargetRef.current = null;
+		}
+		if (rafIdRef.current !== null) {
+			cancelAnimationFrame(rafIdRef.current);
+			rafIdRef.current = null;
+		}
+
+		pointerDownRef.current = null;
 		dragPreviewRef.current = null;
-		isDraggingRef.current = false;
-		startYRef.current = 0;
 		setDragPreview(null);
 	};
 
 	// --- Handler refs (stable references for document listeners) ---
 	const handleMoveRef = useRef<(e: PointerEvent) => void>(() => {});
-	const handleUpRef = useRef<() => void>(() => {});
-	const handleCancelRef = useRef<() => void>(() => {});
+	const handleUpRef = useRef<(e: PointerEvent) => void>(() => {});
+	const handleCancelRef = useRef<(e: PointerEvent) => void>(() => {});
 
-	// Update handler refs on every render — cheap, no re-render triggered
 	handleMoveRef.current = (e: PointerEvent) => {
-		if (!originSlotRef.current) {
-			return;
-		}
+		const down = pointerDownRef.current;
+		if (!down) return;
 
-		// Check threshold
-		const deltaY = Math.abs(e.clientY - startYRef.current);
-		if (!isDraggingRef.current && deltaY > minDistance) {
-			isDraggingRef.current = true;
-		}
+		const deltaY = Math.abs(e.clientY - down.startY);
+		const hasCrossedThreshold =
+			dragPreviewRef.current !== null || deltaY > minDistance;
+		if (!hasCrossedThreshold) return;
 
-		// Update drag preview if threshold exceeded
-		if (!isDraggingRef.current) {
-			return;
-		}
+		if (rafIdRef.current !== null) return;
+		rafIdRef.current = requestAnimationFrame(() => {
+			rafIdRef.current = null;
+			const opts = optionsRef.current;
+			const rowMap = opts.hourRowRefsRef.current ?? new Map();
+			const slot = slotFromClientY(e.clientY, rowMap, opts.firstHour);
+			const origin = pointerDownRef.current?.origin;
+			if (!origin) return;
+			const originIdx = slotToIndex(origin);
+			const curIdx = slotToIndex(slot);
+			const rangeSize = Math.max(
+				minDurationSlots,
+				Math.min(
+					maxDurationSlots,
+					Math.abs(curIdx - originIdx) + 1,
+				),
+			);
+			const minIdx =
+				curIdx >= originIdx ? originIdx : originIdx - rangeSize + 1;
+			const maxIdx =
+				curIdx >= originIdx ? originIdx + rangeSize - 1 : originIdx;
 
-		const gridEl = optionsRef.current.gridRef.current;
-		if (!gridEl) {
-			return;
-		}
+			const startH = Math.floor(minIdx / 4);
+			const startM = (minIdx % 4) * 15;
+			const endPlusOne = maxIdx + 1;
+			const endH = Math.floor(endPlusOne / 4);
+			const endM = (endPlusOne % 4) * 15;
 
-		const slot = slotFromClientY(
-			e.clientY,
-			gridEl,
-			optionsRef.current.firstHour,
-			slotHeightPx,
-		);
-		const originIdx = slotToIndex(originSlotRef.current);
-		const curIdx = slotToIndex(slot);
-		const minIdx = Math.min(originIdx, curIdx);
-		const maxIdx = Math.max(originIdx, curIdx);
+			const preview: SlotRange = {
+				startSlot: { hour: startH, minute: startM },
+				endSlot: { hour: endH, minute: endM },
+			};
+			dragPreviewRef.current = preview;
+			setDragPreview(preview);
 
-		const startH = Math.floor(minIdx / 4);
-		const startM = (minIdx % 4) * 15;
-		const endPlusOne = maxIdx + 1;
-		const endH = Math.floor(endPlusOne / 4);
-		const endM = (endPlusOne % 4) * 15;
-
-		const preview: SlotRange = {
-			startSlot: { hour: startH, minute: startM },
-			endSlot: { hour: endH, minute: endM },
-		};
-		dragPreviewRef.current = preview;
-		setDragPreview(preview);
-
-		// Update motion values
-		const startIdx = minIdx;
-		const endIdx = maxIdx;
-		topValue.set(startIdx * slotHeightPx);
-		heightValue.set(
-			Math.max(slotHeightPx, (endIdx - startIdx + 1) * slotHeightPx),
-		);
+			const rect = getPreviewRectFromRows(
+				preview.startSlot,
+				preview.endSlot,
+				rowMap,
+				opts.gridRef.current,
+			);
+			if (rect) {
+				topValue.set(rect.topPx);
+				heightValue.set(rect.heightPx);
+			} else {
+				topValue.set(minIdx * slotHeightPx);
+				heightValue.set(
+					Math.max(slotHeightPx, (maxIdx - minIdx + 1) * slotHeightPx),
+				);
+			}
+		});
 	};
 
-	handleUpRef.current = () => {
-		const wasDragging = isDraggingRef.current;
-		const origin = originSlotRef.current;
+	handleUpRef.current = (e: PointerEvent) => {
+		if (captureTargetRef.current) {
+			try {
+				captureTargetRef.current.releasePointerCapture(e.pointerId);
+			} catch {
+				// Ignore if already released
+			}
+			captureTargetRef.current = null;
+		}
+
 		const finalPreview = dragPreviewRef.current;
+		const origin = pointerDownRef.current?.origin;
+		const wasDragging = finalPreview !== null;
+		const opts = optionsRef.current;
+		const rowMap = opts.hourRowRefsRef.current ?? new Map();
+		const gridEl = opts.gridRef.current;
 
 		if (wasDragging && finalPreview) {
-			// Drag completed — sync motion values to final range
-			const startIdx = slotToIndex(finalPreview.startSlot);
-			const endIdx = slotToIndex(finalPreview.endSlot);
-			topValue.set(startIdx * slotHeightPx);
-			heightValue.set(
-				Math.max(slotHeightPx, (endIdx - startIdx) * slotHeightPx),
+			const rect = getPreviewRectFromRows(
+				finalPreview.startSlot,
+				finalPreview.endSlot,
+				rowMap,
+				gridEl,
 			);
+			if (rect) {
+				topValue.set(rect.topPx);
+				heightValue.set(rect.heightPx);
+			} else {
+				const startIdx = slotToIndex(finalPreview.startSlot);
+				const endIdx = slotToIndex(finalPreview.endSlot);
+				topValue.set(startIdx * slotHeightPx);
+				heightValue.set(
+					Math.max(slotHeightPx, (endIdx - startIdx) * slotHeightPx),
+				);
+			}
 			cleanup();
 			optionsRef.current.onDragEnd(finalPreview);
 		} else if (origin) {
-			// Click — set default duration and sync motion values
 			const originIdx = slotToIndex(origin);
-			topValue.set(originIdx * slotHeightPx);
-			heightValue.set(defaultDurationSlots * slotHeightPx);
+			const endIdx = originIdx + defaultDurationSlots;
+			const rect =
+				endIdx < 96
+					? getPreviewRectFromRows(
+							origin,
+							indexToSlot(endIdx),
+							rowMap,
+							gridEl,
+						)
+					: null;
+			if (rect) {
+				topValue.set(rect.topPx);
+				heightValue.set(rect.heightPx);
+			} else {
+				topValue.set(originIdx * slotHeightPx);
+				heightValue.set(defaultDurationSlots * slotHeightPx);
+			}
 			cleanup();
 			optionsRef.current.onClick(origin);
 		} else {
 			cleanup();
 		}
 
-		// Suppress the stale `click` event the browser fires after pointerup/mouseup.
-		// On desktop (mouse input), preventDefault on pointerdown does NOT prevent
-		// the mousedown → mouseup → click chain. Without this, base-ui's dismiss
-		// layer picks up the click as "click outside" and immediately closes the
-		// popover we just opened.
-		const stopNextClick = (e: MouseEvent) => {
-			e.stopPropagation();
+		const stopNextClick = (ev: MouseEvent) => {
+			ev.stopPropagation();
 		};
 		document.addEventListener("click", stopNextClick, {
 			capture: true,
@@ -208,7 +321,15 @@ export function useDragToCreate(
 		});
 	};
 
-	handleCancelRef.current = () => {
+	handleCancelRef.current = (e: PointerEvent) => {
+		if (captureTargetRef.current) {
+			try {
+				captureTargetRef.current.releasePointerCapture(e.pointerId);
+			} catch {
+				// Ignore
+			}
+			captureTargetRef.current = null;
+		}
 		cleanup();
 	};
 
@@ -226,8 +347,8 @@ export function useDragToCreate(
 		cleanupListenersRef.current?.();
 
 		const onMove = (e: PointerEvent) => handleMoveRef.current(e);
-		const onUp = () => handleUpRef.current();
-		const onCancel = () => handleCancelRef.current();
+		const onUp = (e: PointerEvent) => handleUpRef.current(e);
+		const onCancel = (e: PointerEvent) => handleCancelRef.current(e);
 
 		document.addEventListener("pointermove", onMove);
 		document.addEventListener("pointerup", onUp);
@@ -250,26 +371,40 @@ export function useDragToCreate(
 
 			e.preventDefault(); // Prevent text selection
 
-			// Reset drag state
-			isDraggingRef.current = false;
-			startYRef.current = e.clientY;
-			originSlotRef.current = { hour, minute };
+			captureTargetRef.current = e.currentTarget;
+			e.currentTarget.setPointerCapture(e.pointerId);
+
+			pointerDownRef.current = { origin: { hour, minute }, startY: e.clientY };
 			dragPreviewRef.current = null;
 			setDragPreview(null);
 
-			// Set initial position (motion values)
-			const topPx = (hour * 4 + minute / 15) * slotHeightPx;
-			topValue.set(topPx);
-			heightValue.set(slotHeightPx);
+			const rowMap = optionsRef.current.hourRowRefsRef.current ?? new Map();
+			const gridEl = optionsRef.current.gridRef.current;
+			const startSlot = { hour, minute };
+			const endIdx = hour * 4 + minute / 15 + defaultDurationSlots;
+			const rect =
+				endIdx < 96
+					? getPreviewRectFromRows(
+							startSlot,
+							indexToSlot(endIdx),
+							rowMap,
+							gridEl,
+						)
+					: null;
+			if (rect) {
+				topValue.set(rect.topPx);
+				heightValue.set(rect.heightPx);
+			} else {
+				const topPx = (hour * 4 + minute / 15) * slotHeightPx;
+				topValue.set(topPx);
+				heightValue.set(slotHeightPx);
+			}
 
-			// Attach document listeners synchronously so pointerup/pointermove
-			// are captured immediately, without waiting for a React render cycle
 			attachListeners();
 		},
 	});
 
 	return {
-		isDragging: isDraggingRef.current,
 		dragPreview,
 		topValue,
 		heightValue,
