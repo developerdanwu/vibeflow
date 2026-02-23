@@ -261,6 +261,9 @@ export const syncLinearIssues = internalAction({
 				state: { type: { nin: ["completed", "canceled"] } },
 			},
 		});
+		while (issuesConnection.pageInfo.hasNextPage) {
+			await issuesConnection.fetchNext();
+		}
 		const nodes = issuesConnection.nodes ?? [];
 		const items: UpsertTaskItemsArgs["items"] = [];
 		for (const issue of nodes) {
