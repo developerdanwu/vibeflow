@@ -1,3 +1,4 @@
+import type { Id } from "../_generated/dataModel";
 import { v } from "convex/values";
 import { z } from "zod";
 import { internalMutation } from "../_generated/server";
@@ -360,20 +361,21 @@ export const patchEventExternalFields = internalMutation({
 	},
 });
 
-/** Auth: disconnect current user's Google Calendar connection (optionally remove synced events and linked calendars). */
+/** Auth: disconnect a Google Calendar connection (optionally remove synced events and linked calendars). */
 export const removeMyGoogleConnection = authMutation({
 	args: z.object({
+		connectionId: z.custom<Id<"calendarConnections">>(),
 		removeSyncedEvents: z.boolean().optional(),
 		removeLinkedCalendars: z.boolean().optional(),
 	}),
 	handler: async (ctx, args) => {
-		const connection = await ctx.db
-			.query("calendarConnections")
-			.withIndex("by_user_and_provider", (q) =>
-				q.eq("userId", ctx.user._id).eq("provider", "google"),
-			)
-			.unique();
-		if (!connection) return;
+		const connection = await ctx.db.get(
+			"calendarConnections",
+			args.connectionId,
+		);
+		if (!connection || connection.userId !== ctx.user._id) {
+			return;
+		}
 
 		const externalCalendars = await ctx.db
 			.query("externalCalendars")

@@ -25,8 +25,8 @@ import { toast } from "sonner";
 
 export function CalendarTitleBarButtons() {
 	const [taskPanelOpen, store] = useGlobalStore((s) => s.context.taskPanelOpen);
-	const { data: googleConnection } = useQuery(
-		convexQuery(api.googleCalendar.queries.getMyGoogleConnection),
+	const { data: googleConnections } = useQuery(
+		convexQuery(api.googleCalendar.queries.getMyGoogleConnections),
 	);
 	const { data: linearConnections } = useQuery(
 		convexQuery(api.taskProviders.linear.queries.getMyLinearConnections),
@@ -36,7 +36,7 @@ export function CalendarTitleBarButtons() {
 	);
 	const [syncLoading, setSyncLoading] = useState(false);
 
-	const calendars = googleConnection?.googleCalendars ?? [];
+	const calendars = (googleConnections ?? []).flatMap((c) => c.googleCalendars);
 	const calendarsWithRunId = calendars.filter(
 		(c): c is typeof c & { latestSyncWorkflowRunId: string } =>
 			Boolean(c.latestSyncWorkflowRunId),
@@ -61,7 +61,7 @@ export function CalendarTitleBarButtons() {
 		),
 	});
 
-	const hasCalendar = googleConnection != null;
+	const hasCalendar = (googleConnections?.length ?? 0) > 0;
 	const hasTasks = (linearConnections?.length ?? 0) > 0;
 	const canSync = hasCalendar || hasTasks;
 
@@ -110,9 +110,10 @@ export function CalendarTitleBarButtons() {
 				} else if (statusData.type === "completed") {
 					lines.push({ name: cal.name, status: "Synced", icon: "ok" });
 				} else if (statusData.type === "failed") {
+					const err = (statusData as { error?: string }).error;
 					lines.push({
 						name: cal.name,
-						status: statusData.error ?? "Failed",
+						status: err ?? "Failed",
 						icon: "fail",
 					});
 				} else {
@@ -177,7 +178,8 @@ export function CalendarTitleBarButtons() {
 						tasksStatus = "Synced";
 					} else if (statusData.type === "failed") {
 						tasksIcon = "fail";
-						tasksStatus = statusData.error ?? "Failed";
+						tasksStatus =
+							(statusData as { error?: string }).error ?? "Failed";
 					}
 				} else if (lastError) {
 					tasksIcon = "fail";

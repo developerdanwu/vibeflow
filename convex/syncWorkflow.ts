@@ -8,13 +8,13 @@ import { workflow } from "./workflow";
 export const startAllSyncs = authMutation({
 	args: z.object({}),
 	handler: async (ctx) => {
-		const googleConnection = await ctx.db
+		const googleConnections = await ctx.db
 			.query("calendarConnections")
 			.withIndex("by_user_and_provider", (q) =>
 				q.eq("userId", ctx.user._id).eq("provider", "google"),
 			)
-			.unique();
-		if (googleConnection) {
+			.collect();
+		for (const googleConnection of googleConnections) {
 			const externalCalendars = await ctx.db
 				.query("externalCalendars")
 				.withIndex("by_connection", (q) =>
@@ -59,7 +59,8 @@ export const startAllSyncs = authMutation({
 				{
 					startAsync: true,
 					onComplete:
-						internal.taskProviders.linear.syncWorkflow.handleSyncWorkflowOnComplete,
+						internal.taskProviders.linear.syncWorkflow
+							.handleSyncWorkflowOnComplete,
 					context,
 				},
 			);
@@ -69,7 +70,7 @@ export const startAllSyncs = authMutation({
 			});
 		}
 
-		if (!googleConnection && !linearConnection) {
+		if (googleConnections.length === 0 && !linearConnection) {
 			throwConvexError(
 				ErrorCode.CONNECTION_NOT_FOUND,
 				"No calendar or task connection to sync",

@@ -12,12 +12,13 @@ Google Calendar sync uses the **workflow component** (`@convex-dev/workflow`) so
 
 - **Definition:** `syncCalendarWorkflow` runs the existing `syncCalendar` internal action as a single step. Workflow state stays small (no event payloads in workflow state).
 - **Starting a sync:** Use `startSyncWorkflow` (auth) or `startSyncWorkflowInternal` (internal). Each starts the workflow with `workflow.start(..., { startAsync: true })`, then sets `externalCalendars.latestSyncWorkflowRunId` so the FE can subscribe to run status.
-- **Callers:** `syncMyCalendars`, the Google webhook (`http.ts`), and `runFallbackSync` start the workflow via `startSyncWorkflowInternal` instead of calling `syncCalendar` directly. The `syncCalendar` action is now only invoked from inside the workflow step.
+- **Callers:** `syncMyCalendars` (via `startAllSyncs`), the Google webhook (`http.ts`), and `runFallbackSync` start the workflow via `startSyncWorkflowInternal` instead of calling `syncCalendar` directly. The `syncCalendar` action is now only invoked from inside the workflow step.
+- **Multiple connections:** A user can connect more than one Google account. `startAllSyncs` runs the sync workflow for every Google connection and every external calendar under each connection.
 - **Failure:** `handleSyncWorkflowOnComplete` (onComplete) sets `externalCalendars.lastSyncErrorMessage` when the run fails.
 
 ## Run status for the frontend
 
-- Calendars query (`getMyGoogleConnection`) returns `latestSyncWorkflowRunId` and `lastSyncErrorMessage` per external calendar.
+- Calendars query (`getMyGoogleConnections`) returns all of the user’s Google connections, each with its external calendars; each calendar has `latestSyncWorkflowRunId` and `lastSyncErrorMessage`.
 - `getSyncWorkflowStatus(workflowId)` (auth query) returns the workflow run status for a given run ID; it only returns status if the run ID belongs to one of the current user’s calendars.
 - FE subscribes to `getSyncWorkflowStatus` with the calendar’s `latestSyncWorkflowRunId` to show in-progress / completed / failed.
 

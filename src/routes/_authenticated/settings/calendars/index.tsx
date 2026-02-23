@@ -90,8 +90,8 @@ function CalendarsSettings() {
 	const { data: calendars, isLoading } = useQuery(
 		convexQuery(api.calendars.queries.getUserCalendars),
 	);
-	const { data: googleConnection } = useQuery(
-		convexQuery(api.googleCalendar.queries.getMyGoogleConnection),
+	const { data: googleConnections } = useQuery(
+		convexQuery(api.googleCalendar.queries.getMyGoogleConnections),
 	);
 	const { data: userPreferences } = useQuery(
 		convexQuery(api.users.queries.getUserPreferences),
@@ -206,6 +206,7 @@ function CalendarsSettings() {
 		onSuccess: () => {
 			toast.success("Google Calendar disconnected");
 			setDisconnectOpen(false);
+			setDisconnectConnectionId(null);
 			setRemoveSyncedEvents(false);
 			setRemoveLinkedCalendars(false);
 		},
@@ -228,6 +229,9 @@ function CalendarsSettings() {
 	const [editDefault, setEditDefault] = useState(false);
 
 	const [disconnectOpen, setDisconnectOpen] = useState(false);
+	const [disconnectConnectionId, setDisconnectConnectionId] = useState<
+		Id<"calendarConnections"> | null
+	>(null);
 	const [removeSyncedEvents, setRemoveSyncedEvents] = useState(false);
 	const [removeLinkedCalendars, setRemoveLinkedCalendars] = useState(false);
 
@@ -302,7 +306,7 @@ function CalendarsSettings() {
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-4">
-					{googleConnection ? (
+					{(googleConnections?.length ?? 0) > 0 ? (
 						<>
 							<div className="flex flex-wrap items-center gap-2">
 								<span className="text-muted-foreground text-sm">Connected</span>
@@ -313,14 +317,6 @@ function CalendarsSettings() {
 									disabled={syncLoading}
 								>
 									{syncLoading ? "Syncing…" : "Sync now"}
-								</Button>
-								<Button
-									variant="outline"
-									size="sm"
-									onClick={() => setDisconnectOpen(true)}
-									disabled={isDisconnecting}
-								>
-									Disconnect
 								</Button>
 							</div>
 							<div className="grid gap-2">
@@ -375,30 +371,70 @@ function CalendarsSettings() {
 									sync automatically.
 								</p>
 							</div>
-							{googleConnection.googleCalendars.length > 0 ? (
-								<ul className="flex flex-col gap-2">
-									{googleConnection.googleCalendars.map((gc) => (
-										<li
-											key={gc._id}
-											className="flex min-w-0 items-center gap-3 rounded-lg border bg-card px-4 py-3"
+							{(googleConnections ?? []).map((conn, index) => (
+								<div
+									key={conn.connectionId}
+									className="space-y-2 rounded-lg border p-4"
+								>
+									<div className="flex flex-wrap items-center justify-between gap-2">
+										<span className="text-muted-foreground text-sm">
+											{(googleConnections?.length ?? 0) > 1
+												? `Google account ${index + 1}`
+												: "Google account"}
+										</span>
+										<Button
+											variant="outline"
+											size="sm"
+											onClick={() => {
+												setDisconnectConnectionId(conn.connectionId);
+												setDisconnectOpen(true);
+											}}
+											disabled={isDisconnecting}
 										>
-											<div
-												className="size-4 shrink-0 rounded-full"
-												style={{
-													backgroundColor: calendarColorToHex(
-														gc.color ?? DEFAULT_CALENDAR_HEX,
-													),
-												}}
-											/>
-											<span className="truncate font-medium">{gc.name}</span>
-										</li>
-									))}
-								</ul>
-							) : (
-								<p className="text-muted-foreground text-sm">
-									No Google calendars synced yet. Click Sync now to fetch them.
-								</p>
-							)}
+											Disconnect
+										</Button>
+									</div>
+									{conn.googleCalendars.length > 0 ? (
+										<ul className="flex flex-col gap-2">
+											{conn.googleCalendars.map((gc) => (
+												<li
+													key={gc._id}
+													className="flex min-w-0 items-center gap-3 rounded-lg border bg-card px-4 py-3"
+												>
+													<div
+														className="size-4 shrink-0 rounded-full"
+														style={{
+															backgroundColor: calendarColorToHex(
+																gc.color ?? DEFAULT_CALENDAR_HEX,
+															),
+														}}
+													/>
+													<span className="truncate font-medium">{gc.name}</span>
+												</li>
+											))}
+										</ul>
+									) : (
+										<p className="text-muted-foreground text-sm">
+											No calendars synced yet. Click Sync now to fetch them.
+										</p>
+									)}
+								</div>
+							))}
+							<div className="pt-2">
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={handleConnectGoogle}
+									disabled={!authUrl}
+									title={
+										!clientId
+											? "Configure VITE_GOOGLE_CALENDAR_CLIENT_ID to connect"
+											: undefined
+									}
+								>
+									Add another Google account
+								</Button>
+							</div>
 						</>
 					) : (
 						<div className="space-y-2">
@@ -570,7 +606,15 @@ function CalendarsSettings() {
 			</Dialog>
 
 			{/* Disconnect Google Calendar confirm dialog */}
-			<Dialog open={disconnectOpen} onOpenChange={setDisconnectOpen}>
+			<Dialog
+				open={disconnectOpen}
+				onOpenChange={(open) => {
+					setDisconnectOpen(open);
+					if (!open) {
+						setDisconnectConnectionId(null);
+					}
+				}}
+			>
 				<DialogContent className="sm:max-w-md">
 					<DialogHeader>
 						<DialogTitle>Disconnect Google Calendar</DialogTitle>
@@ -611,13 +655,15 @@ function CalendarsSettings() {
 									? "destructive"
 									: "default"
 							}
-							onClick={() =>
+							onClick={() => {
+								if (!disconnectConnectionId) return;
 								disconnectGoogle({
+									connectionId: disconnectConnectionId,
 									removeSyncedEvents: removeSyncedEvents || undefined,
 									removeLinkedCalendars: removeLinkedCalendars || undefined,
-								})
-							}
-							disabled={isDisconnecting}
+								});
+							}}
+							disabled={isDisconnecting || !disconnectConnectionId}
 						>
 							{isDisconnecting ? "Disconnecting…" : "Disconnect"}
 						</Button>

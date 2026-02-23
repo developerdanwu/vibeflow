@@ -32,18 +32,19 @@ describe("removeMyGoogleConnection", () => {
 		});
 
 		await asUser.mutation(api.googleCalendar.mutations.removeMyGoogleConnection, {
+			connectionId,
 			removeSyncedEvents: false,
 		});
 
-		const connectionAfter = await t.run(async (ctx: MutationCtx) =>
+		const connectionsAfter = await t.run(async (ctx: MutationCtx) =>
 			ctx.db
 				.query("calendarConnections")
 				.withIndex("by_user_and_provider", (q) =>
 					q.eq("userId", userId).eq("provider", "google"),
 				)
-				.unique(),
+				.collect(),
 		);
-		expect(connectionAfter).toBeNull();
+		expect(connectionsAfter).toHaveLength(0);
 
 		const externalsAfter = await t.run(async (ctx: MutationCtx) =>
 			ctx.db
@@ -54,16 +55,45 @@ describe("removeMyGoogleConnection", () => {
 		expect(externalsAfter).toHaveLength(0);
 	});
 
-	test("idempotent when no connection", async ({ auth, expect }) => {
-		const { asUser } = auth;
+	test("no-op when connection not found", async ({ t, auth, expect }) => {
+		const { asUser, userId } = auth;
+		const now = Date.now();
+		const connectionId = await t.run(async (ctx: MutationCtx) => {
+			return await ctx.db.insert("calendarConnections", {
+				userId,
+				provider: "google",
+				refreshToken: "test-refresh",
+				createdAt: now,
+				updatedAt: now,
+			});
+		});
+		await t.run(async (ctx: MutationCtx) => {
+			await ctx.db.delete("calendarConnections", connectionId);
+		});
 		await expect(
-			asUser.mutation(api.googleCalendar.mutations.removeMyGoogleConnection, {}),
+			asUser.mutation(api.googleCalendar.mutations.removeMyGoogleConnection, {
+				connectionId,
+				removeSyncedEvents: false,
+			}),
 		).resolves.not.toThrow();
 	});
 
-	test("requires auth", async ({ t, expect }) => {
+	test("requires auth", async ({ t, auth, expect }) => {
+		const { userId } = auth;
+		const now = Date.now();
+		const connectionId = await t.run(async (ctx: MutationCtx) => {
+			return await ctx.db.insert("calendarConnections", {
+				userId,
+				provider: "google",
+				refreshToken: "test-refresh",
+				createdAt: now,
+				updatedAt: now,
+			});
+		});
 		await expect(
-			t.mutation(api.googleCalendar.mutations.removeMyGoogleConnection, {}),
+			t.mutation(api.googleCalendar.mutations.removeMyGoogleConnection, {
+				connectionId,
+			}),
 		).rejects.toThrowError("Not authenticated");
 	});
 
@@ -112,6 +142,7 @@ describe("removeMyGoogleConnection", () => {
 		});
 
 		await asUser.mutation(api.googleCalendar.mutations.removeMyGoogleConnection, {
+			connectionId,
 			removeSyncedEvents: true,
 		});
 
@@ -166,6 +197,7 @@ describe("removeMyGoogleConnection", () => {
 		});
 
 		await asUser.mutation(api.googleCalendar.mutations.removeMyGoogleConnection, {
+			connectionId,
 			removeSyncedEvents: false,
 		});
 
@@ -174,5 +206,75 @@ describe("removeMyGoogleConnection", () => {
 		);
 		expect(eventAfter).not.toBeNull();
 		expect(eventAfter?.title).toBe("Synced event");
+	});
+
+	test("disconnecting one connection leaves other connections", async ({
+		t,
+		auth,
+		expect,
+	}) => {
+		const { asUser, userId } = auth;
+		const now = Date.now();
+
+		const connectionId1 = await t.run(async (ctx: MutationCtx) => {
+			return await ctx.db.insert("calendarConnections", {
+				userId,
+				provider: "google",
+				refreshToken: "test-refresh-1",
+				createdAt: now,
+				updatedAt: now,
+			});
+		});
+		const connectionId2 = await t.run(async (ctx: MutationCtx) => {
+			return await ctx.db.insert("calendarConnections", {
+				userId,
+				provider: "google",
+				refreshToken: "test-refresh-2",
+				createdAt: now,
+				updatedAt: now,
+			});
+		});
+
+		await t.run(async (ctx: MutationCtx) => {
+			await ctx.db.insert("externalCalendars", {
+				connectionId: connectionId1,
+				provider: "google",
+				externalCalendarId: "primary1",
+				name: "Primary 1",
+				color: "#3B82F6",
+			});
+			await ctx.db.insert("externalCalendars", {
+				connectionId: connectionId2,
+				provider: "google",
+				externalCalendarId: "primary2",
+				name: "Primary 2",
+				color: "#22C55E",
+			});
+		});
+
+		await asUser.mutation(api.googleCalendar.mutations.removeMyGoogleConnection, {
+			connectionId: connectionId1,
+			removeSyncedEvents: false,
+			removeLinkedCalendars: false,
+		});
+
+		const connection1After = await t.run(async (ctx: MutationCtx) =>
+			ctx.db.get("calendarConnections", connectionId1),
+		);
+		const connection2After = await t.run(async (ctx: MutationCtx) =>
+			ctx.db.get("calendarConnections", connectionId2),
+		);
+		expect(connection1After).toBeNull();
+		expect(connection2After).not.toBeNull();
+		expect(connection2After?.refreshToken).toBe("test-refresh-2");
+
+		const externals2 = await t.run(async (ctx: MutationCtx) =>
+			ctx.db
+				.query("externalCalendars")
+				.withIndex("by_connection", (q) => q.eq("connectionId", connectionId2))
+				.collect(),
+		);
+		expect(externals2).toHaveLength(1);
+		expect(externals2[0].externalCalendarId).toBe("primary2");
 	});
 });

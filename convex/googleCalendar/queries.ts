@@ -6,33 +6,38 @@ import { authQuery } from "../helpers";
 import { workflow } from "../workflow";
 import { providerValidator } from "./mutations";
 
-/** Auth: get current user's Google connection and calendars for UI. */
-export const getMyGoogleConnection = authQuery({
+/** Auth: get current user's Google connections and their calendars for UI. */
+export const getMyGoogleConnections = authQuery({
 	args: z.object({}),
 	handler: async (ctx) => {
-		const connection = await ctx.db
+		const connections = await ctx.db
 			.query("calendarConnections")
 			.withIndex("by_user_and_provider", (q) =>
 				q.eq("userId", ctx.user._id).eq("provider", "google"),
 			)
-			.unique();
-		if (!connection) return null;
-		const externalCalendars = await ctx.db
-			.query("externalCalendars")
-			.withIndex("by_connection", (q) => q.eq("connectionId", connection._id))
 			.collect();
-		return {
-			connectionId: connection._id,
-			googleCalendars: externalCalendars.map((ext) => ({
-				_id: ext._id,
-				googleCalendarId: ext.externalCalendarId,
-				calendarId: ext.calendarId,
-				name: ext.name,
-				color: ext.color,
-				latestSyncWorkflowRunId: ext.latestSyncWorkflowRunId,
-				lastSyncErrorMessage: ext.lastSyncErrorMessage,
-			})),
-		};
+		const result = [];
+		for (const connection of connections) {
+			const externalCalendars = await ctx.db
+				.query("externalCalendars")
+				.withIndex("by_connection", (q) =>
+					q.eq("connectionId", connection._id),
+				)
+				.collect();
+			result.push({
+				connectionId: connection._id,
+				googleCalendars: externalCalendars.map((ext) => ({
+					_id: ext._id,
+					googleCalendarId: ext.externalCalendarId,
+					calendarId: ext.calendarId,
+					name: ext.name,
+					color: ext.color,
+					latestSyncWorkflowRunId: ext.latestSyncWorkflowRunId,
+					lastSyncErrorMessage: ext.lastSyncErrorMessage,
+				})),
+			});
+		}
+		return result;
 	},
 });
 
